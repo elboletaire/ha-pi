@@ -1,7 +1,7 @@
 /**
  * Settings panel: provider auth status + OAuth login flows.
  */
-import { escapeHtml } from "./renderer.js";
+import { escapeHtml } from "./renderer";
 
 export interface ProviderStatus {
   id: string;
@@ -11,7 +11,7 @@ export interface ProviderStatus {
   auth: { configured: boolean; source?: string; label?: string };
 }
 
-type SendFn = (msg: object) => void;
+type SendFn = (msg: Record<string, unknown>) => void;
 
 // ---------------------------------------------------------------------------
 // DOM refs

@@ -4,7 +4,7 @@ import {
   type AuthStatus,
 } from "@mariozechner/pi-coding-agent";
 import type { OAuthProviderInterface } from "@mariozechner/pi-ai";
-import { log } from "./options.js";
+import { log } from "./options";
 
 export interface ProviderStatus {
   id: string;

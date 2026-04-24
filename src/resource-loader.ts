@@ -5,7 +5,7 @@ import {
   type Skill,
   loadSkillsFromDir,
 } from "@mariozechner/pi-coding-agent";
-import { PATHS, log } from "./options.js";
+import { PATHS, log } from "./options";
 
 const AGENTS_OPTIONS_FILE = `${PATHS.piAgentDir}/agents-options.md`;
 

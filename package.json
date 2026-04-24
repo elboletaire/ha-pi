@@ -7,10 +7,12 @@
   "type": "module",
   "scripts": {
     "build": "pnpm run build:server && pnpm run build:frontend",
-    "build:server": "tsc --project tsconfig.json",
+    "build:server": "node esbuild.server.mjs",
     "build:frontend": "node esbuild.frontend.mjs",
+    "clean": "rm -rf dist",
     "dev": "pnpm run build && node dist/server.js --provider anthropic --model claude-sonnet-4-5-20250929 --log-level debug",
-    "watch:server": "tsc --project tsconfig.json --watch",
+    "typecheck": "tsc",
+    "watch:server": "node esbuild.server.mjs --watch",
     "watch:frontend": "node esbuild.frontend.mjs --watch"
   },
   "dependencies": {

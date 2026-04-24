@@ -1,5 +1,5 @@
-import { renderMarkdown, escapeHtml } from "./renderer.js";
-import { initSettings, handleAuthStatus, handleLoginEvent } from "./settings.js";
+import { renderMarkdown, escapeHtml } from "./renderer";
+import { initSettings, handleAuthStatus, handleLoginEvent, type ProviderStatus } from "./settings";
 
 // ---------------------------------------------------------------------------
 // WebSocket connection (auto-reconnect)
@@ -17,7 +17,8 @@ type ServerMessage =
   | { type: "tool_result"; id: string; name: string; output: string; isError: boolean }
   | { type: "error"; message: string }
   | { type: "state"; isStreaming: boolean; sessionId: string; sessionFile?: string; model: string | null; thinkingLevel: string; messageCount: number }
-  | { type: "sessions"; sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }> };
+  | { type: "sessions"; sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }> }
+  | { type: "auth_status"; providers: ProviderStatus[] };
 
 type ClientMessage =
   | { type: "prompt"; text: string }
@@ -103,7 +104,7 @@ function connect() {
   });
 }
 
-function send(msg: ClientMessage) {
+function send(msg: Record<string, unknown>) {
   ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg));
 }
 

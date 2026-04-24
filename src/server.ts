@@ -4,11 +4,11 @@ import { WebSocketServer } from "ws";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { AuthStorage } from "@mariozechner/pi-coding-agent";
-import { parseServerArgs, setLogLevel, log, PATHS } from "./options.js";
-import { createResourceLoader } from "./resource-loader.js";
-import { AgentManager } from "./agent-manager.js";
-import { LoginManager } from "./login-manager.js";
-import { WsHandler } from "./ws-handler.js";
+import { parseServerArgs, setLogLevel, log, PATHS } from "./options";
+import { createResourceLoader } from "./resource-loader";
+import { AgentManager } from "./agent-manager";
+import { LoginManager } from "./login-manager";
+import { WsHandler } from "./ws-handler";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(__dirname, "..", "public");

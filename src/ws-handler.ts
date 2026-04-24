@@ -1,8 +1,8 @@
 import type { WebSocket } from "ws";
 import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
-import type { AgentManager } from "./agent-manager.js";
-import type { LoginManager, LoginEvent } from "./login-manager.js";
-import { log } from "./options.js";
+import type { AgentManager } from "./agent-manager";
+import type { LoginManager, LoginEvent } from "./login-manager";
+import { log } from "./options";
 
 // ---------------------------------------------------------------------------
 // Types for messages exchanged over the WebSocket

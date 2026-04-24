@@ -8,7 +8,7 @@ import {
   type AgentSessionEvent,
 } from "@mariozechner/pi-coding-agent";
 import type { ResourceLoader } from "@mariozechner/pi-coding-agent";
-import { PATHS, log } from "./options.js";
+import { PATHS, log } from "./options";
 
 export type AgentEventCallback = (event: AgentSessionEvent) => void;
 
