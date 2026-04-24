@@ -9,28 +9,20 @@ LOG_LEVEL=$(bashio::config 'log_level')
 AGENTS_APPEND=$(bashio::config 'agents_md_append' '')
 
 # ---------------------------------------------------------------------------
-# Set API key for the chosen provider
+# API keys — only exported when non-empty so pi can fall back to auth.json
+# (tokens stored there by /login survive container restarts via /data/pi-agent/)
 # ---------------------------------------------------------------------------
-case "$PROVIDER" in
-  anthropic)
-    export ANTHROPIC_API_KEY
-    ANTHROPIC_API_KEY=$(bashio::config 'anthropic_api_key')
-    ;;
-  openai)
-    export OPENAI_API_KEY
-    OPENAI_API_KEY=$(bashio::config 'openai_api_key')
-    ;;
-  google)
-    export GOOGLE_API_KEY
-    GOOGLE_API_KEY=$(bashio::config 'google_api_key')
-    ;;
-  *)
-    bashio::log.warning "Unknown provider '${PROVIDER}', defaulting to anthropic"
-    export ANTHROPIC_API_KEY
-    ANTHROPIC_API_KEY=$(bashio::config 'anthropic_api_key')
-    PROVIDER="anthropic"
-    ;;
-esac
+set_key_if_nonempty() {
+  local var="$1" val="$2"
+  if [ -n "$val" ] && [ "$val" != "null" ]; then
+    export "$var"="$val"
+    bashio::log.info "Using API key for ${var}"
+  fi
+}
+
+set_key_if_nonempty ANTHROPIC_API_KEY "$(bashio::config 'anthropic_api_key' '')"
+set_key_if_nonempty OPENAI_API_KEY    "$(bashio::config 'openai_api_key' '')"
+set_key_if_nonempty GOOGLE_API_KEY    "$(bashio::config 'google_api_key' '')"
 
 # ---------------------------------------------------------------------------
 # Home Assistant API access

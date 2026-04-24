@@ -4,15 +4,28 @@
 
 ### `anthropic_api_key` / `openai_api_key` / `google_api_key`
 
-API keys for LLM providers. At least one is required. Keys are stored securely as add-on
-secrets and never written to disk beyond `/data/options.json` (which is protected by HA).
+API keys for LLM providers. These are for **API key access** only (pay-per-use).
+All three are optional — only set the key for the provider you chose in `provider`.
+
+Keys are stored securely as add-on secrets and exported as environment variables at
+startup. They are only set when non-empty, so pi's own auth falls through to
+`/data/pi-agent/auth.json` if no key is present.
+
+**For subscription-based providers** (Claude Pro/Max, ChatGPT Plus, GitHub Copilot,
+Gemini CLI, etc.) leave all keys blank and use `/login` inside a chat session instead.
+pi stores the OAuth token in `/data/pi-agent/auth.json`, which persists across container
+restarts and upgrades.
 
 ### `provider`
 
-Which provider to use. Must match the key you configured:
-- `anthropic` — requires `anthropic_api_key`
-- `openai` — requires `openai_api_key`
-- `google` — requires `google_api_key`
+The default provider to use at startup. This is used to select which model is initially
+configured. Must be one of:
+- `anthropic` — Anthropic API key or Claude Pro/Max subscription
+- `openai` — OpenAI API key or ChatGPT Plus/Pro subscription
+- `google` — Google API key or Gemini CLI subscription
+
+For other providers supported by pi (Groq, Mistral, xAI, Bedrock, etc.), leave this as
+the closest equivalent, start the add-on, then use `/model` inside the chat to switch.
 
 ### `model`
 
