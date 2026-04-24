@@ -63,6 +63,12 @@ const flushPromises = () => new Promise<void>((r) => setTimeout(r, 0));
 // Tests
 // ---------------------------------------------------------------------------
 
+// Helper used across describe blocks below
+function agentCallbackFrom(agent: AgentManager) {
+  return (agent.subscribe as ReturnType<typeof vi.fn>).mock.calls[0][0] as
+    (event: any) => void;
+}
+
 describe("WsHandler", () => {
   let ws: ReturnType<typeof makeWs>;
   let agent: AgentManager;
@@ -142,3 +148,227 @@ describe("WsHandler", () => {
     expect(unsub).toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Agent event → browser message dispatch
+// ---------------------------------------------------------------------------
+
+describe("WsHandler — agent event dispatch", () => {
+  let ws: ReturnType<typeof makeWs>;
+  let agentCb: (event: any) => void;
+
+  beforeEach(() => {
+    ws = makeWs();
+    const agent = makeAgent();
+    new WsHandler(ws as any, agent, makeLogin());
+    agentCb = agentCallbackFrom(agent);
+  });
+
+  it("agent_start → sends { type: 'agent_start' }", () => {
+    agentCb({ type: "agent_start" });
+    expect(JSON.parse(ws._sent[0])).toEqual({ type: "agent_start" });
+  });
+
+  it("agent_end → sends agent_end then a state message", () => {
+    agentCb({ type: "agent_end" });
+    const msgs = ws._sent.map((s) => JSON.parse(s));
+    expect(msgs[0].type).toBe("agent_end");
+    expect(msgs[1].type).toBe("state");
+  });
+
+  it("message_update text_delta → sends { type: 'text_delta', delta }", () => {
+    agentCb({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "hello" } });
+    expect(JSON.parse(ws._sent[0])).toEqual({ type: "text_delta", delta: "hello" });
+  });
+
+  it("message_update thinking_delta → sends { type: 'thinking_delta', delta }", () => {
+    agentCb({ type: "message_update", assistantMessageEvent: { type: "thinking_delta", delta: "hmm" } });
+    expect(JSON.parse(ws._sent[0])).toEqual({ type: "thinking_delta", delta: "hmm" });
+  });
+
+  it("message_update with other sub-type → sends nothing", () => {
+    agentCb({ type: "message_update", assistantMessageEvent: { type: "other" } });
+    expect(ws._sent).toHaveLength(0);
+  });
+
+  it("tool_execution_start → sends tool_start with id, name, args", () => {
+    agentCb({ type: "tool_execution_start", toolCallId: "t1", toolName: "bash", args: { command: "ls" } });
+    expect(JSON.parse(ws._sent[0])).toMatchObject({
+      type: "tool_start",
+      id: "t1",
+      name: "bash",
+      args: { command: "ls" },
+    });
+  });
+
+  it("tool_execution_update extracts text content array into output string", () => {
+    agentCb({
+      type: "tool_execution_update",
+      toolCallId: "t1",
+      toolName: "bash",
+      partialResult: { content: [{ type: "text", text: "foo " }, { type: "text", text: "bar" }] },
+    });
+    const msg = JSON.parse(ws._sent[0]);
+    expect(msg.type).toBe("tool_update");
+    expect(msg.output).toBe("foo bar");
+  });
+
+  it("tool_execution_update with no content → empty output", () => {
+    agentCb({ type: "tool_execution_update", toolCallId: "t1", toolName: "bash", partialResult: undefined });
+    expect(JSON.parse(ws._sent[0]).output).toBe("");
+  });
+
+  it("tool_execution_end (success) → sends tool_result with isError: false", () => {
+    agentCb({
+      type: "tool_execution_end",
+      toolCallId: "t1",
+      toolName: "bash",
+      result: { content: [{ type: "text", text: "done" }] },
+      isError: false,
+    });
+    const msg = JSON.parse(ws._sent[0]);
+    expect(msg.type).toBe("tool_result");
+    expect(msg.output).toBe("done");
+    expect(msg.isError).toBe(false);
+  });
+
+  it("tool_execution_end (error) → sends tool_result with isError: true", () => {
+    agentCb({
+      type: "tool_execution_end",
+      toolCallId: "t1",
+      toolName: "bash",
+      result: { content: [{ type: "text", text: "boom" }] },
+      isError: true,
+    });
+    expect(JSON.parse(ws._sent[0]).isError).toBe(true);
+  });
+
+  it("compaction_start → sends a text_delta containing the compaction notice", () => {
+    agentCb({ type: "compaction_start" });
+    const msg = JSON.parse(ws._sent[0]);
+    expect(msg.type).toBe("text_delta");
+    expect(msg.delta).toContain("Compacting");
+  });
+
+  it("auto_retry_start → sends a text_delta containing the error message", () => {
+    agentCb({ type: "auto_retry_start", errorMessage: "rate limited" });
+    const msg = JSON.parse(ws._sent[0]);
+    expect(msg.type).toBe("text_delta");
+    expect(msg.delta).toContain("rate limited");
+  });
+
+  it("unknown event type → sends nothing", () => {
+    agentCb({ type: "queue_update" });
+    expect(ws._sent).toHaveLength(0);
+  });
+
+  it("does not send anything when socket is closed (readyState !== 1)", () => {
+    (ws as any).readyState = 3; // CLOSED
+    agentCb({ type: "agent_start" });
+    expect(ws._sent).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Login message routing
+// ---------------------------------------------------------------------------
+
+describe("WsHandler — login message routing", () => {
+  let ws: ReturnType<typeof makeWs>;
+  let login: LoginManager;
+
+  beforeEach(async () => {
+    ws = makeWs();
+    login = makeLogin();
+    new WsHandler(ws as any, makeAgent(), login);
+  });
+
+  function clientSend(msg: unknown) {
+    ws._emit("message", JSON.stringify(msg));
+  }
+
+  it("login_start → calls login.startLogin with provider", async () => {
+    clientSend({ type: "login_start", provider: "github" });
+    await flushPromises();
+    expect(login.startLogin).toHaveBeenCalledWith("github", expect.any(Function));
+  });
+
+  it("login_abort → calls login.abortLogin", async () => {
+    clientSend({ type: "login_abort" });
+    await flushPromises();
+    expect(login.abortLogin).toHaveBeenCalled();
+  });
+
+  it("login_prompt_response → calls login.respondToPrompt with promptId and value", async () => {
+    clientSend({ type: "login_prompt_response", promptId: "p-1", value: "the-code" });
+    await flushPromises();
+    expect(login.respondToPrompt).toHaveBeenCalledWith("p-1", "the-code");
+  });
+
+  it("logout → calls login.logout and sends auth_status", async () => {
+    clientSend({ type: "logout", provider: "github" });
+    await flushPromises();
+    expect(login.logout).toHaveBeenCalledWith("github");
+    const msg = JSON.parse(ws._sent[0]);
+    expect(msg.type).toBe("auth_status");
+  });
+
+  it("get_auth_status → sends auth_status with providers list", async () => {
+    clientSend({ type: "get_auth_status" });
+    await flushPromises();
+    const msg = JSON.parse(ws._sent[0]);
+    expect(msg.type).toBe("auth_status");
+    expect(Array.isArray(msg.providers)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sendSessions field mapping
+// ---------------------------------------------------------------------------
+
+describe("WsHandler — sendSessions mapping", () => {
+  it("maps s.path to file, truncates firstMessage at 120 chars, and ISO-formats modified", async () => {
+    const modifiedDate = new Date("2024-06-15T12:00:00.000Z");
+    const longMessage = "a".repeat(150);
+    const agent = makeAgent();
+    (agent.listSessions as ReturnType<typeof vi.fn>).mockResolvedValue([{
+      id: "s1",
+      path: "/data/sessions/s1.json",
+      name: "My session",
+      firstMessage: longMessage,
+      modified: modifiedDate,
+    }]);
+
+    const ws = makeWs();
+    new WsHandler(ws as any, agent, makeLogin());
+    ws._emit("message", JSON.stringify({ type: "get_sessions" }));
+    await flushPromises();
+
+    const msg = JSON.parse(ws._sent[0]);
+    const [s] = msg.sessions;
+    expect(s.file).toBe("/data/sessions/s1.json");    // path → file
+    expect(s.firstMessage).toHaveLength(120);            // truncated
+    expect(s.modified).toBe(modifiedDate.toISOString()); // ISO string
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Error propagation
+// ---------------------------------------------------------------------------
+
+describe("WsHandler — error propagation", () => {
+  it("sends { type: 'error' } when agent.prompt rejects", async () => {
+    const agent = makeAgent();
+    (agent.prompt as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("quota exceeded"));
+    const ws = makeWs();
+    new WsHandler(ws as any, agent, makeLogin());
+
+    ws._emit("message", JSON.stringify({ type: "prompt", text: "hello" }));
+    await flushPromises();
+
+    const msg = JSON.parse(ws._sent[0]);
+    expect(msg.type).toBe("error");
+    expect(msg.message).toContain("quota exceeded");
+  });
+});
+
