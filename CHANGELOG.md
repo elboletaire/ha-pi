@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.1.4 — Fix WebSocket path behind HA Ingress
+## 0.1.5 — Fix crash on prompt error + TUI command handling
+
+- `AgentManager.prompt()` was missing `await`, turning thrown errors into
+  unhandled rejections that killed the process. Now errors propagate
+  correctly to the WebSocket handler and are shown in the UI.
+- Intercept TUI-only commands (`/login`, `/model`, `/settings`, etc.) before
+  they reach the SDK and return a clear message explaining they don't work
+  in the web UI. `/login` includes a pointer to add-on options.
+- Server no longer crashes on agent init failure (e.g. missing API key);
+  the UI still loads and shows the error message on connect.
 
 - Frontend now builds WebSocket URL relative to `location.pathname` instead
   of hardcoding `/ws`, so it works behind the dynamic Ingress prefix

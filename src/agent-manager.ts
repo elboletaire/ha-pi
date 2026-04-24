@@ -96,7 +96,24 @@ export class AgentManager {
   }
 
   async prompt(text: string): Promise<void> {
-    this.ensureSession().prompt(text);
+    // Built-in TUI commands (/login, /model, /settings, etc.) are not
+    // accessible through the SDK — they only work in interactive terminal mode.
+    // Intercept them early and return a helpful message instead of crashing.
+    if (text.trim().startsWith("/")) {
+      const command = text.trim().split(/\s+/)[0];
+      const TUI_COMMANDS = ["/login", "/logout", "/model", "/settings", "/hotkeys",
+        "/session", "/resume", "/new", "/compact", "/tree", "/fork", "/clone",
+        "/reload", "/export", "/share", "/copy", "/quit", "/changelog"];
+      if (TUI_COMMANDS.includes(command)) {
+        throw new Error(
+          `\`${command}\` is a terminal-only command and cannot be used in the web UI.` +
+          (command === "/login"
+            ? " To configure an API key, use the add-on options in HA Settings → Add-ons → Pi Agent → Configuration."
+            : "")
+        );
+      }
+    }
+    await this.ensureSession().prompt(text);
   }
 
   async abort(): Promise<void> {

@@ -27,7 +27,15 @@ async function main() {
     opts.model,
     resourceLoader
   );
-  await agentManager.init();
+
+  let initError: string | null = null;
+  try {
+    await agentManager.init();
+  } catch (err) {
+    initError = err instanceof Error ? err.message : String(err);
+    log.error("Agent failed to initialise:", initError);
+    log.error("The web UI will still load — fix the configuration and restart the add-on.");
+  }
 
   // -------------------------------------------------------------------------
   // HTTP server — Express
@@ -82,6 +90,10 @@ async function main() {
   wss.on("connection", (ws, req) => {
     log.info(`WebSocket client connected (${req.socket.remoteAddress})`);
     new WsHandler(ws, agentManager);
+    // If init failed, immediately tell the client so it shows in the UI
+    if (initError) {
+      ws.send(JSON.stringify({ type: "error", message: `Agent init failed: ${initError}` }));
+    }
     ws.on("close", () =>
       log.info(`WebSocket client disconnected (${req.socket.remoteAddress})`)
     );
