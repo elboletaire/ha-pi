@@ -1,3 +1,7 @@
+# Global ARG — must be declared before any FROM so it is available to FROM lines.
+# Docker resets ARG scope at each stage; only pre-FROM ARGs survive into FROM itself.
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-nodejs:22
+
 # ─── Stage 1: build ──────────────────────────────────────────────────────────
 # Use a plain node image so this stage is always native (fast on all runners).
 # The compiled JS output is arch-agnostic, so no need to cross-compile here.
@@ -26,7 +30,6 @@ COPY ha-helper/src/ ./src/
 RUN npm run build
 
 # ─── Stage 2: runtime ────────────────────────────────────────────────────────
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-nodejs:22
 FROM ${BUILD_FROM}
 
 WORKDIR /app
