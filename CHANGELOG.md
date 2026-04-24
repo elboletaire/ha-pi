@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed the chat Send button staying disabled after a response by waiting for the agent to become idle before publishing the final state
 - Mounted `/config` read/write for all installs so the agent can directly inspect and edit Home Assistant configuration files
 
 ## 0.2.1 — Docker build fix
