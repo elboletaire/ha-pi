@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.2.1 — Docker build fix
+
+- Removed the unnecessary global pnpm install in the runtime image so CI builds no longer fail on a missing global bin directory
+
 ## 0.2.0 — Web model selector + dynamic availability
 
 - Added a web model selector modal that only lists authenticated, available models

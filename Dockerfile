@@ -32,9 +32,6 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable pnpm && pnpm install --frozen-lockfile --prod
 
-# Install pi coding agent globally
-RUN pnpm add -g @mariozechner/pi-coding-agent
-
 # Copy compiled server
 COPY --from=builder /build/app/dist/ /app/dist/
 
