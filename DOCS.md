@@ -34,6 +34,8 @@ The model ID. Examples:
 - OpenAI: `gpt-4o`, `o3`
 - Google: `gemini-2.0-flash`, `gemini-2.5-pro`
 
+The web UI can switch models at runtime. Only authenticated models are shown in the selector, and the chosen model is saved via pi settings so it survives restarts.
+
 ### `log_level`
 
 Controls how much the add-on logs to the HA log viewer. Use `debug` when troubleshooting.
@@ -92,6 +94,15 @@ Create the file /data/pi-agent/AGENTS.md with the content:
 ```
 
 This file is loaded on every new conversation and merged with the built-in base instructions.
+
+## Web UI model selector
+
+- Open the selector with the 🧠 header button or `Alt+Shift+M`
+- Only models with working auth are listed; unavailable models are hidden
+- Use the arrow buttons in the selector or `Alt+Shift+,` / `Alt+Shift+.` to cycle models
+- The currently selected model stays selected when auth changes
+- The selected model persists in pi settings, so it remains active after a restart
+- Open the shortcut legend with the ⌨️ header button or `Alt+Shift+H`
 
 ## Troubleshooting
 

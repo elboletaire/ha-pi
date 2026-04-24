@@ -14,6 +14,8 @@ additional skills.
 - 🏠 Bundled `home-assistant` skill — inspect entities, run services, edit automations
 - 🔍 Bundled `find-skills` skill — discover and install additional skills from the ecosystem
 - 💬 Streaming chat UI accessible via the HA sidebar
+- 🧠 Dynamic model selector that only shows currently available models
+- ⌨️ Shortcut legend modal in the header, with browser-safe hotkeys
 - 💾 Sessions, skills, and settings persist in `/data` (included in HA backups)
 - 🔧 Extend with new skills from within a chat session: `pi install git:...`
 - 📝 Customise the agent persona via add-on options
@@ -37,6 +39,8 @@ additional skills.
 | `model` | Model ID to use (e.g. `claude-sonnet-4-5-20250929`) |
 | `log_level` | Server log verbosity (`debug`, `info`, `warn`, `error`) |
 | `agents_md_append` | Extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
+
+The active chat model can be changed from the web UI. Only authenticated models are shown, and the selection persists via pi's saved settings.
 
 ## Persistent customisation
 

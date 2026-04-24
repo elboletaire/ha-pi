@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Added a web model selector modal that only lists authenticated, available models
+- Persisted model changes through pi settings so the active model survives restarts
+- Added browser-safe model cycling shortcuts plus a header shortcut legend modal
+- Model availability now refreshes after provider login/logout, while keeping the currently selected model
+
 ## 0.1.6 — OAuth login flows + provider status in UI
 
 - New `LoginManager` drives all OAuth flows via the pi SDK's `authStorage.login()`
