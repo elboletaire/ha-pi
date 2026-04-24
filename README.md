@@ -19,6 +19,7 @@ additional skills.
 - 💾 Sessions, skills, and settings persist in `/data` (included in HA backups)
 - 🔧 Extend with new skills from within a chat session: `pi install git:...`
 - 📝 Customise the agent persona via add-on options
+- 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, and boundaries clearly
 
 ## Installation
 
@@ -41,6 +42,8 @@ additional skills.
 | `agents_md_append` | Extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
 
 The active chat model can be changed from the web UI. Only authenticated models are shown, and the selection persists via pi's saved settings.
+
+The built-in agent instructions also explain what the assistant is, what it can access, and what it cannot directly modify.
 
 ## Persistent customisation
 
