@@ -70,7 +70,7 @@ export class WsHandler {
 
       case "agent_end":
         this.send({ type: "agent_end" });
-        this.sendState();
+        void this.sendStateWhenIdle();
         break;
 
       case "message_update": {
@@ -244,6 +244,26 @@ export class WsHandler {
       thinkingLevel: String(state.thinkingLevel),
       messageCount: state.messageCount,
     });
+  }
+
+  private async sendStateWhenIdle(): Promise<void> {
+    const pollIntervalMs = 50;
+    const timeoutMs = 5000;
+    const started = Date.now();
+
+    while (Date.now() - started < timeoutMs) {
+      const state = this.agent.getState();
+      if (state && !state.isStreaming) {
+        this.sendState();
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    // Safety fallback: send the latest state even if the agent never flipped
+    // to idle within the timeout. This should be rare, but keeps the UI from
+    // getting stuck if the session tears down unexpectedly.
+    this.sendState();
   }
 
   private async sendSessions(): Promise<void> {

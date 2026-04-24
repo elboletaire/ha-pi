@@ -155,11 +155,12 @@ describe("WsHandler", () => {
 
 describe("WsHandler — agent event dispatch", () => {
   let ws: ReturnType<typeof makeWs>;
+  let agent: ReturnType<typeof makeAgent>;
   let agentCb: (event: any) => void;
 
   beforeEach(() => {
     ws = makeWs();
-    const agent = makeAgent();
+    agent = makeAgent();
     new WsHandler(ws as any, agent, makeLogin());
     agentCb = agentCallbackFrom(agent);
   });
@@ -169,11 +170,37 @@ describe("WsHandler — agent event dispatch", () => {
     expect(JSON.parse(ws._sent[0])).toEqual({ type: "agent_start" });
   });
 
-  it("agent_end → sends agent_end then a state message", () => {
-    agentCb({ type: "agent_end" });
-    const msgs = ws._sent.map((s) => JSON.parse(s));
-    expect(msgs[0].type).toBe("agent_end");
-    expect(msgs[1].type).toBe("state");
+  it("agent_end → sends agent_end immediately and waits for idle before sending state", async () => {
+    vi.useFakeTimers();
+    try {
+      (agent.getState as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({
+          isStreaming: true,
+          sessionId: "sess-1",
+          sessionFile: "/data/sessions/sess-1.json",
+          model: "anthropic/claude-3-5-sonnet",
+          thinkingLevel: "medium",
+          messageCount: 4,
+        })
+        .mockReturnValue({
+          isStreaming: false,
+          sessionId: "sess-1",
+          sessionFile: "/data/sessions/sess-1.json",
+          model: "anthropic/claude-3-5-sonnet",
+          thinkingLevel: "medium",
+          messageCount: 4,
+        });
+
+      agentCb({ type: "agent_end" });
+      expect(ws._sent.map((s) => JSON.parse(s).type)).toEqual(["agent_end"]);
+
+      await vi.advanceTimersByTimeAsync(60);
+      const msgs = ws._sent.map((s) => JSON.parse(s));
+      expect(msgs[1].type).toBe("state");
+      expect(msgs[1].isStreaming).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("message_update text_delta → sends { type: 'text_delta', delta }", () => {
