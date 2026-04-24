@@ -1,11 +1,11 @@
 # Global ARG — must be declared before any FROM so it is available to FROM lines.
 # Docker resets ARG scope at each stage; only pre-FROM ARGs survive into FROM itself.
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-nodejs:22
+ARG BUILD_FROM=node:22-alpine
 
 # ─── Stage 1: build ──────────────────────────────────────────────────────────
-# Use a plain node image so this stage is always native (fast on all runners).
-# The compiled JS output is arch-agnostic, so no need to cross-compile here.
-FROM --platform=linux/amd64 node:22-alpine AS builder
+# $BUILDPLATFORM is set by Docker buildx to the runner's native platform so the
+# builder stage always runs natively (fast) regardless of the target arch.
+FROM --platform=${BUILDPLATFORM} node:22-alpine AS builder
 
 # ── Build ha-pi-agent server + frontend ──────────────────────────────────────
 WORKDIR /build/app
@@ -30,7 +30,12 @@ COPY ha-helper/src/ ./src/
 RUN npm run build
 
 # ─── Stage 2: runtime ────────────────────────────────────────────────────────
+# node:22-alpine is a multi-arch image; Docker buildx pulls the correct variant
+# (amd64 or arm64) automatically based on the --platform flag passed at build time.
 FROM ${BUILD_FROM}
+
+# bash: required by run.sh  jq: used to parse /data/options.json (HAOS add-on options)
+RUN apk add --no-cache bash jq
 
 WORKDIR /app
 

@@ -24,10 +24,8 @@ jobs:
         include:
           - arch: amd64
             platform: linux/amd64
-            build_from: ghcr.io/home-assistant/amd64-base-nodejs:22
           - arch: aarch64
             platform: linux/arm64
-            build_from: ghcr.io/home-assistant/aarch64-base-nodejs:22
 
     steps:
       - name: Checkout
@@ -60,8 +58,6 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
-          build-args: |
-            BUILD_FROM=${{ matrix.build_from }}
           tags: |
             ${{ env.IMAGE_BASE }}/${{ matrix.arch }}:${{ steps.meta.outputs.version }}
             ${{ env.IMAGE_BASE }}/${{ matrix.arch }}:latest

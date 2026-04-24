@@ -1,12 +1,29 @@
-#!/usr/bin/env bashio
+#!/bin/bash
+set -e
+
+OPTIONS_FILE="/data/options.json"
+
+# ---------------------------------------------------------------------------
+# Helper: read a value from the HAOS options file
+# ---------------------------------------------------------------------------
+get_option() {
+  local key="$1"
+  local default="${2:-}"
+  local value
+  value=$(jq -r --arg k "$key" '.[$k] // empty' "$OPTIONS_FILE" 2>/dev/null)
+  echo "${value:-$default}"
+}
+
+log_info() { echo "[pi-agent] $*"; }
+log_warn() { echo "[pi-agent] WARN: $*" >&2; }
 
 # ---------------------------------------------------------------------------
 # Read add-on options
 # ---------------------------------------------------------------------------
-PROVIDER=$(bashio::config 'provider')
-MODEL=$(bashio::config 'model')
-LOG_LEVEL=$(bashio::config 'log_level')
-AGENTS_APPEND=$(bashio::config 'agents_md_append' '')
+PROVIDER=$(get_option 'provider' 'anthropic')
+MODEL=$(get_option 'model' 'claude-sonnet-4-5-20250929')
+LOG_LEVEL=$(get_option 'log_level' 'info')
+AGENTS_APPEND=$(get_option 'agents_md_append' '')
 
 # ---------------------------------------------------------------------------
 # API keys — only exported when non-empty so pi can fall back to auth.json
@@ -14,15 +31,15 @@ AGENTS_APPEND=$(bashio::config 'agents_md_append' '')
 # ---------------------------------------------------------------------------
 set_key_if_nonempty() {
   local var="$1" val="$2"
-  if [ -n "$val" ] && [ "$val" != "null" ]; then
+  if [ -n "$val" ]; then
     export "$var"="$val"
-    bashio::log.info "Using API key for ${var}"
+    log_info "Using API key for ${var}"
   fi
 }
 
-set_key_if_nonempty ANTHROPIC_API_KEY "$(bashio::config 'anthropic_api_key' '')"
-set_key_if_nonempty OPENAI_API_KEY    "$(bashio::config 'openai_api_key' '')"
-set_key_if_nonempty GOOGLE_API_KEY    "$(bashio::config 'google_api_key' '')"
+set_key_if_nonempty ANTHROPIC_API_KEY "$(get_option 'anthropic_api_key' '')"
+set_key_if_nonempty OPENAI_API_KEY    "$(get_option 'openai_api_key' '')"
+set_key_if_nonempty GOOGLE_API_KEY    "$(get_option 'google_api_key' '')"
 
 # ---------------------------------------------------------------------------
 # Home Assistant API access
@@ -50,9 +67,9 @@ mkdir -p /data/workspace/.ha-helper
 # Write the options-sourced AGENTS.md append file
 # (overwritten on every start so it always reflects current options)
 # ---------------------------------------------------------------------------
-if [ -n "$AGENTS_APPEND" ] && [ "$AGENTS_APPEND" != "null" ]; then
+if [ -n "$AGENTS_APPEND" ]; then
   echo "$AGENTS_APPEND" > /data/pi-agent/agents-options.md
-  bashio::log.info "Wrote agents_md_append to /data/pi-agent/agents-options.md"
+  log_info "Wrote agents_md_append to /data/pi-agent/agents-options.md"
 else
   rm -f /data/pi-agent/agents-options.md
 fi
@@ -60,7 +77,7 @@ fi
 # ---------------------------------------------------------------------------
 # Start the Node.js server
 # ---------------------------------------------------------------------------
-bashio::log.info "Starting Pi Agent server (provider=${PROVIDER}, model=${MODEL})"
+log_info "Starting Pi Agent server (provider=${PROVIDER}, model=${MODEL})"
 
 exec node /app/dist/server.js \
   --provider "${PROVIDER}" \
