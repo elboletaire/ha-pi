@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.2 — Fix missing runtime dependencies
+## 0.1.3 — Replace wrong skill, remove ha-helper
+
+- Replaced `home-assistant` skill (ha-skillset, remote management tool) with
+  `home-assistant-best-practices` from `homeassistant-ai/skills` (the correct
+  official skill for HA automations, helpers, and best practices)
+- Removed `ha-helper` entirely — it was built for remote HA management and
+  has no place in an add-on running inside HA
+- Simplified Dockerfile: no more ha-helper build stage
+- Cleaned up `base-agents.md` and `run.sh` accordingly
 
 - Install `express` and `ws` in the runtime stage via `npm ci --omit=dev`
   (they were only present in the builder stage)

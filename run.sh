@@ -42,14 +42,11 @@ set_key_if_nonempty OPENAI_API_KEY    "$(get_option 'openai_api_key' '')"
 set_key_if_nonempty GOOGLE_API_KEY    "$(get_option 'google_api_key' '')"
 
 # ---------------------------------------------------------------------------
-# Home Assistant API access
+# Home Assistant API — available for direct use if needed (e.g. curl calls)
 # SUPERVISOR_TOKEN is injected automatically by HAOS (homeassistant_api: true)
 # ---------------------------------------------------------------------------
 export HA_URL="http://supervisor/core"
 export HA_TOKEN="${SUPERVISOR_TOKEN}"
-
-# ha-helper uses paths relative to cwd (/data/workspace/.ha-helper/)
-# No extra env vars needed — defaults resolve correctly under cwd
 
 # ---------------------------------------------------------------------------
 # Point pi at persistent storage on /data
@@ -61,7 +58,6 @@ export PI_CODING_AGENT_DIR="/data/pi-agent"
 # ---------------------------------------------------------------------------
 mkdir -p /data/pi-agent
 mkdir -p /data/workspace
-mkdir -p /data/workspace/.ha-helper
 
 # ---------------------------------------------------------------------------
 # Write the options-sourced AGENTS.md append file

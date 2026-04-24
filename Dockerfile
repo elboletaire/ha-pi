@@ -7,7 +7,6 @@ ARG BUILD_FROM=node:22-alpine
 # builder stage always runs natively (fast) regardless of the target arch.
 FROM --platform=${BUILDPLATFORM} node:22-alpine AS builder
 
-# ── Build ha-pi-agent server + frontend ──────────────────────────────────────
 WORKDIR /build/app
 
 COPY package*.json ./
@@ -17,16 +16,6 @@ COPY tsconfig.json esbuild.frontend.mjs ./
 COPY src/ ./src/
 COPY frontend/ ./frontend/
 COPY public/index.html public/index.css ./public/
-RUN npm run build
-
-# ── Build ha-helper ───────────────────────────────────────────────────────────
-WORKDIR /build/ha-helper
-
-COPY ha-helper/package*.json ./
-RUN npm ci
-
-COPY ha-helper/tsconfig.json ./
-COPY ha-helper/src/ ./src/
 RUN npm run build
 
 # ─── Stage 2: runtime ────────────────────────────────────────────────────────
@@ -45,13 +34,6 @@ RUN npm ci --omit=dev
 
 # Install pi coding agent globally
 RUN npm install -g @mariozechner/pi-coding-agent
-
-# Install ha-helper:
-# - package.json + lock from source (for dep resolution)
-# - compiled dist/ from builder stage
-COPY ha-helper/package*.json /tmp/ha-helper/
-COPY --from=builder /build/ha-helper/dist/ /tmp/ha-helper/dist/
-RUN npm install -g /tmp/ha-helper && rm -rf /tmp/ha-helper
 
 # Copy compiled server
 COPY --from=builder /build/app/dist/ /app/dist/
