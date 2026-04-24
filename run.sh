@@ -1,0 +1,76 @@
+#!/usr/bin/env bashio
+
+# ---------------------------------------------------------------------------
+# Read add-on options
+# ---------------------------------------------------------------------------
+PROVIDER=$(bashio::config 'provider')
+MODEL=$(bashio::config 'model')
+LOG_LEVEL=$(bashio::config 'log_level')
+AGENTS_APPEND=$(bashio::config 'agents_md_append' '')
+
+# ---------------------------------------------------------------------------
+# Set API key for the chosen provider
+# ---------------------------------------------------------------------------
+case "$PROVIDER" in
+  anthropic)
+    export ANTHROPIC_API_KEY
+    ANTHROPIC_API_KEY=$(bashio::config 'anthropic_api_key')
+    ;;
+  openai)
+    export OPENAI_API_KEY
+    OPENAI_API_KEY=$(bashio::config 'openai_api_key')
+    ;;
+  google)
+    export GOOGLE_API_KEY
+    GOOGLE_API_KEY=$(bashio::config 'google_api_key')
+    ;;
+  *)
+    bashio::log.warning "Unknown provider '${PROVIDER}', defaulting to anthropic"
+    export ANTHROPIC_API_KEY
+    ANTHROPIC_API_KEY=$(bashio::config 'anthropic_api_key')
+    PROVIDER="anthropic"
+    ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Home Assistant API access
+# SUPERVISOR_TOKEN is injected automatically by HAOS (homeassistant_api: true)
+# ---------------------------------------------------------------------------
+export HA_URL="http://supervisor/core"
+export HA_TOKEN="${SUPERVISOR_TOKEN}"
+
+# ha-helper uses paths relative to cwd (/data/workspace/.ha-helper/)
+# No extra env vars needed — defaults resolve correctly under cwd
+
+# ---------------------------------------------------------------------------
+# Point pi at persistent storage on /data
+# ---------------------------------------------------------------------------
+export PI_CODING_AGENT_DIR="/data/pi-agent"
+
+# ---------------------------------------------------------------------------
+# Ensure required directories exist
+# ---------------------------------------------------------------------------
+mkdir -p /data/pi-agent
+mkdir -p /data/workspace
+mkdir -p /data/workspace/.ha-helper
+
+# ---------------------------------------------------------------------------
+# Write the options-sourced AGENTS.md append file
+# (overwritten on every start so it always reflects current options)
+# ---------------------------------------------------------------------------
+if [ -n "$AGENTS_APPEND" ] && [ "$AGENTS_APPEND" != "null" ]; then
+  echo "$AGENTS_APPEND" > /data/pi-agent/agents-options.md
+  bashio::log.info "Wrote agents_md_append to /data/pi-agent/agents-options.md"
+else
+  rm -f /data/pi-agent/agents-options.md
+fi
+
+# ---------------------------------------------------------------------------
+# Start the Node.js server
+# ---------------------------------------------------------------------------
+bashio::log.info "Starting Pi Agent server (provider=${PROVIDER}, model=${MODEL})"
+
+exec node /app/dist/server.js \
+  --provider "${PROVIDER}" \
+  --model "${MODEL}" \
+  --log-level "${LOG_LEVEL}"

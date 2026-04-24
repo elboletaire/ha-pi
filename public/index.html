@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pi Agent</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="header">
+      <div id="header-left">
+        <span id="logo">⬡ Pi Agent</span>
+        <span id="model-badge" class="badge"></span>
+      </div>
+      <div id="header-right">
+        <button id="btn-sessions" class="icon-btn" title="Sessions">⏱</button>
+        <button id="btn-new-session" class="icon-btn" title="New session">＋</button>
+      </div>
+    </header>
+
+    <!-- Session picker overlay -->
+    <div id="sessions-overlay" class="overlay hidden">
+      <div class="overlay-box">
+        <div class="overlay-header">
+          <span>Sessions</span>
+          <button id="btn-close-sessions" class="icon-btn">✕</button>
+        </div>
+        <ul id="sessions-list"></ul>
+      </div>
+    </div>
+
+    <main id="messages"></main>
+
+    <footer id="footer">
+      <div id="input-area">
+        <textarea
+          id="input"
+          rows="1"
+          placeholder="Message pi…"
+          autocomplete="off"
+          spellcheck="true"
+        ></textarea>
+        <div id="input-buttons">
+          <button id="btn-send" title="Send (Enter)">Send</button>
+          <button id="btn-abort" class="danger hidden" title="Abort">Stop</button>
+        </div>
+      </div>
+      <div id="status-bar">
+        <span id="status-text">Connecting…</span>
+        <span id="session-info"></span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

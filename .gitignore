@@ -1,0 +1,7 @@
+node_modules/
+dist/
+public/app.js
+public/app.js.map
+ha-skillset-src/
+.env
+*.tgz

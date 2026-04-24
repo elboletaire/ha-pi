@@ -1,0 +1,30 @@
+{
+  "name": "ha-pi-agent",
+  "version": "0.1.0",
+  "description": "Pi agent Home Assistant add-on",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:server && npm run build:frontend",
+    "build:server": "tsc --project tsconfig.json",
+    "build:frontend": "node esbuild.frontend.mjs",
+    "dev": "npm run build && node dist/server.js --provider anthropic --model claude-sonnet-4-5-20250929 --log-level debug",
+    "watch:server": "tsc --project tsconfig.json --watch",
+    "watch:frontend": "node esbuild.frontend.mjs --watch"
+  },
+  "dependencies": {
+    "@mariozechner/pi-coding-agent": "^0.70.2",
+    "express": "^4.21.2",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.14",
+    "dompurify": "^3.2.6",
+    "esbuild": "^0.25.4",
+    "highlight.js": "^11.11.1",
+    "marked": "^15.0.12",
+    "typescript": "^5.8.3"
+  }
+}
