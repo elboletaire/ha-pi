@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.1.1 — Docker base image fix
+## 0.1.2 — Fix missing runtime dependencies
+
+- Install `express` and `ws` in the runtime stage via `npm ci --omit=dev`
+  (they were only present in the builder stage)
 
 - Replaced non-existent HA base-nodejs images with `node:22-alpine` (multi-arch)
 - Replaced `bashio` calls in `run.sh` with plain `jq` — no HA base image dependency

@@ -39,6 +39,10 @@ RUN apk add --no-cache bash jq
 
 WORKDIR /app
 
+# Install production dependencies (express, ws)
+COPY package*.json ./
+RUN npm ci --omit=dev
+
 # Install pi coding agent globally
 RUN npm install -g @mariozechner/pi-coding-agent
 
