@@ -16,6 +16,8 @@
       <div id="header-right">
         <button id="btn-sessions" class="icon-btn" title="Sessions">⏱</button>
         <button id="btn-new-session" class="icon-btn" title="New session">＋</button>
+        <button id="btn-models" class="icon-btn" title="Models (Alt+Shift+M)">🧠</button>
+        <button id="btn-shortcuts" class="icon-btn" title="Shortcut legend (Alt+Shift+H)">⌨️</button>
         <button id="btn-settings" class="icon-btn" title="Providers &amp; auth">⚙️</button>
       </div>
     </header>
@@ -28,6 +30,45 @@
           <button id="btn-close-sessions" class="icon-btn">✕</button>
         </div>
         <ul id="sessions-list"></ul>
+      </div>
+    </div>
+
+    <!-- Model selector overlay -->
+    <div id="model-selector-overlay" class="overlay hidden">
+      <div class="overlay-box model-box">
+        <div class="overlay-header">
+          <span>Models</span>
+          <div class="overlay-actions">
+            <button id="btn-cycle-model-prev" class="icon-btn" title="Previous model (Alt+Shift+,)">←</button>
+            <button id="btn-cycle-model-next" class="icon-btn" title="Next model (Alt+Shift+.)">→</button>
+            <button id="btn-close-model-selector" class="icon-btn">✕</button>
+          </div>
+        </div>
+        <div class="model-selector-meta">
+          <span>Current:</span>
+          <strong id="model-selector-current">none</strong>
+        </div>
+        <input id="model-selector-search" class="model-selector-search" type="text" placeholder="Search models…" autocomplete="off" spellcheck="false" />
+        <div id="model-selector-empty" class="model-selector-empty hidden"></div>
+        <div id="model-selector-list" class="model-selector-list"></div>
+      </div>
+    </div>
+
+    <!-- Shortcut legend overlay -->
+    <div id="shortcuts-overlay" class="overlay hidden">
+      <div class="overlay-box shortcuts-box">
+        <div class="overlay-header">
+          <span>Keyboard shortcuts</span>
+          <button id="btn-close-shortcuts" class="icon-btn">✕</button>
+        </div>
+        <div class="shortcuts-list">
+          <div class="shortcut-row"><kbd>Alt+Shift+M</kbd><span>Open model selector</span></div>
+          <div class="shortcut-row"><kbd>Alt+Shift+H</kbd><span>Show this shortcut legend</span></div>
+          <div class="shortcut-row"><kbd>Alt+Shift+,</kbd><span>Previous model</span></div>
+          <div class="shortcut-row"><kbd>Alt+Shift+.</kbd><span>Next model</span></div>
+          <div class="shortcut-row"><kbd>Enter</kbd><span>Select highlighted model in the selector</span></div>
+          <div class="shortcut-row"><kbd>Esc</kbd><span>Close the open modal</span></div>
+        </div>
       </div>
     </div>
 

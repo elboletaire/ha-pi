@@ -1,32 +1,14 @@
 import { renderMarkdown, escapeHtml } from "./renderer";
-import { initSettings, handleAuthStatus, handleLoginEvent, type ProviderStatus } from "./settings";
+import { initSettings, handleAuthStatus, handleLoginEvent } from "./settings";
+import { handleAvailableModels, handleCurrentModel, initModelSelector, openModelSelector } from "./model-selector";
+import { initShortcutsLegend } from "./shortcuts";
+import type { ClientMessage, ServerMessage } from "./protocol";
 
 // ---------------------------------------------------------------------------
 // WebSocket connection (auto-reconnect)
 // ---------------------------------------------------------------------------
 
 const RECONNECT_DELAY = 3000;
-
-type ServerMessage =
-  | { type: "agent_start" }
-  | { type: "agent_end" }
-  | { type: "text_delta"; delta: string }
-  | { type: "thinking_delta"; delta: string }
-  | { type: "tool_start"; id: string; name: string; args: unknown }
-  | { type: "tool_update"; id: string; name: string; output: string }
-  | { type: "tool_result"; id: string; name: string; output: string; isError: boolean }
-  | { type: "error"; message: string }
-  | { type: "state"; isStreaming: boolean; sessionId: string; sessionFile?: string; model: string | null; thinkingLevel: string; messageCount: number }
-  | { type: "sessions"; sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }> }
-  | { type: "auth_status"; providers: ProviderStatus[] };
-
-type ClientMessage =
-  | { type: "prompt"; text: string }
-  | { type: "abort" }
-  | { type: "new_session" }
-  | { type: "switch_session"; sessionFile: string }
-  | { type: "get_sessions" }
-  | { type: "get_state" };
 
 // ---------------------------------------------------------------------------
 // DOM refs
@@ -104,7 +86,7 @@ function connect() {
   });
 }
 
-function send(msg: Record<string, unknown>) {
+function send(msg: ClientMessage) {
   ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg));
 }
 
@@ -154,14 +136,24 @@ function handleMessage(msg: ServerMessage) {
       renderSessionsList(msg.sessions);
       break;
 
+    case "available_models":
+      handleAvailableModels(msg.models);
+      break;
+
     case "auth_status":
-      handleAuthStatus((msg as any).providers);
+      handleAuthStatus(msg.providers);
+      break;
+
+    case "login_device_flow":
+    case "login_open_url":
+    case "login_progress":
+    case "login_prompt":
+    case "login_complete":
+    case "login_error":
+      handleLoginEvent(msg);
       break;
 
     default:
-      if (typeof (msg as any).type === "string" && (msg as any).type.startsWith("login_")) {
-        handleLoginEvent(msg as Record<string, unknown>);
-      }
       break;
   }
 }
@@ -378,6 +370,7 @@ function applyState(state: Extract<ServerMessage, { type: "state" }>) {
   $btnAbort.classList.toggle("hidden", !state.isStreaming);
   $modelBadge.textContent = state.model ?? "";
   $sessionInfo.textContent = `${state.messageCount} msgs`;
+  handleCurrentModel(state.model);
   setStatus("Ready");
 }
 
@@ -447,9 +440,36 @@ $sessionsOverlay.addEventListener("click", (e) => {
   if (e.target === $sessionsOverlay) $sessionsOverlay.classList.add("hidden");
 });
 
+// Browser-safe keyboard shortcuts. Keep them broad and explicit so we don't
+// fight with built-in browser shortcuts like Ctrl+L / Ctrl+P.
+document.addEventListener("keydown", (e) => {
+  if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey) return;
+
+  switch (e.code) {
+    case "KeyM":
+      e.preventDefault();
+      openModelSelector();
+      break;
+    case "KeyH":
+      e.preventDefault();
+      document.getElementById("btn-shortcuts")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      break;
+    case "Comma":
+      e.preventDefault();
+      send({ type: "cycle_model", direction: "backward" });
+      break;
+    case "Period":
+      e.preventDefault();
+      send({ type: "cycle_model", direction: "forward" });
+      break;
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
 
+initModelSelector(send);
+initShortcutsLegend();
 initSettings(send);
 connect();

@@ -2,16 +2,9 @@
  * Settings panel: provider auth status + OAuth login flows.
  */
 import { escapeHtml } from "./renderer";
+import type { ClientMessage, LoginEvent, ProviderStatus } from "./protocol";
 
-export interface ProviderStatus {
-  id: string;
-  name: string;
-  isOAuth: boolean;
-  usesCallbackServer: boolean;
-  auth: { configured: boolean; source?: string; label?: string };
-}
-
-type SendFn = (msg: Record<string, unknown>) => void;
+type SendFn = (msg: ClientMessage) => void;
 
 // ---------------------------------------------------------------------------
 // DOM refs
@@ -27,8 +20,6 @@ const $btnCancelLogin   = document.getElementById("btn-cancel-login")!;
 
 let sendFn: SendFn = () => {};
 let providers: ProviderStatus[] = [];
-// pending prompt resolve — keyed by promptId
-let pendingPromptResolve: ((promptId: string, value: string) => void) | null = null;
 
 // ---------------------------------------------------------------------------
 // Public API (called from app.ts)
@@ -58,41 +49,40 @@ export function handleAuthStatus(newProviders: ProviderStatus[]) {
   updateHeaderStatus();
 }
 
-export function handleLoginEvent(event: Record<string, unknown>) {
-  const type = event.type as string;
+export function handleLoginEvent(event: LoginEvent) {
   const provider = providers.find((p) => p.id === event.provider);
   const name = provider?.name ?? String(event.provider);
 
-  switch (type) {
+  switch (event.type) {
     case "login_device_flow":
-      renderDeviceFlow(name, String(event.url), String(event.code));
+      renderDeviceFlow(name, event.url, event.code);
       break;
 
     case "login_open_url":
-      renderOpenUrl(name, String(event.url));
+      renderOpenUrl(name, event.url);
       break;
 
     case "login_progress":
-      updateProgress(String(event.message));
+      updateProgress(event.message);
       break;
 
     case "login_prompt":
       renderPrompt(
-        String(event.promptId),
-        String(event.message),
-        event.placeholder ? String(event.placeholder) : undefined
+        event.promptId,
+        event.message,
+        event.placeholder
       );
       break;
 
     case "login_complete":
       renderSuccess(name);
-      // Refresh auth status
+      // Refresh auth status and model availability
       sendFn({ type: "get_auth_status" });
       setTimeout(closeLoginModal, 1800);
       break;
 
     case "login_error":
-      renderLoginError(String(event.message));
+      renderLoginError(event.message);
       break;
   }
 }
@@ -130,7 +120,7 @@ function renderProviders() {
       if (btn.dataset.action === "login") {
         startLoginFlow(p);
       } else {
-        sendFn({ type: "logout", provider: btn.dataset.id });
+        sendFn({ type: "logout", provider: btn.dataset.id! });
       }
     });
     $providersList.appendChild(row);
