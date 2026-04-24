@@ -9,8 +9,9 @@ describe("base-agents.md", () => {
     expect(baseAgents).toContain("I am Pi Agent running inside Home Assistant.");
   });
 
-  it("documents the writable workspace and persistent agent data directories", () => {
+  it("documents the writable workspace, HA config, and persistent agent data directories", () => {
     expect(baseAgents).toContain("/data/workspace");
+    expect(baseAgents).toContain("/config");
     expect(baseAgents).toContain("/data/pi-agent");
     expect(baseAgents).toContain("/data/pi-agent/AGENTS.md");
   });

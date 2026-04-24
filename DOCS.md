@@ -68,6 +68,8 @@ All files under `/data` are included in Home Assistant backups.
     └── .ha-helper/        ← ha-helper cache and audit log
 ```
 
+The add-on also mounts `/config` read/write, so the agent can inspect and edit Home Assistant configuration files directly when needed.
+
 ## Installing extra skills
 
 From within a chat session, ask pi to install a skill, for example:

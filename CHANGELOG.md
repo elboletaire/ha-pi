@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Mounted `/config` read/write for all installs so the agent can directly inspect and edit Home Assistant configuration files
+
 ## 0.2.1 — Docker build fix
 
 - Removed the unnecessary global pnpm install in the runtime image so CI builds no longer fail on a missing global bin directory

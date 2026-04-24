@@ -14,6 +14,7 @@ arch:
   - amd64
 map:
   - data:rw
+  - config:rw
 options:
   anthropic_api_key: ""
   openai_api_key: ""
