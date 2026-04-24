@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Expanded the built-in agent instructions to document the add-on mounts, HA API access, and workspace/data boundaries up front
 - Fixed the chat Send button staying disabled after a response by waiting for the agent to become idle before publishing the final state
 - Mounted `/config` read/write for all installs so the agent can directly inspect and edit Home Assistant configuration files
 
