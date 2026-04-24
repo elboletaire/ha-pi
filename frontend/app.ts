@@ -4,7 +4,6 @@ import { renderMarkdown, escapeHtml } from "./renderer.js";
 // WebSocket connection (auto-reconnect)
 // ---------------------------------------------------------------------------
 
-const WS_PATH = "/ws";
 const RECONNECT_DELAY = 3000;
 
 type ServerMessage =
@@ -67,7 +66,11 @@ let renderPending = false;
 
 function wsUrl(): string {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  return `${proto}://${location.host}${WS_PATH}`;
+  // Build the WS URL relative to the current page path so it works both
+  // directly (localhost:3000) and behind HA Ingress (which adds a dynamic
+  // prefix like /api/hassio_ingress/TOKEN/ to all requests).
+  const base = location.pathname.replace(/\/$/, "");
+  return `${proto}://${location.host}${base}/ws`;
 }
 
 function connect() {

@@ -57,7 +57,27 @@ async function main() {
   // WebSocket server
   // -------------------------------------------------------------------------
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
+
+  // Use noServer mode so we can manually handle the upgrade event and strip
+  // the HA Ingress path prefix before matching — the ws library's built-in
+  // path matching runs before Express middleware so it would never see /ws.
+  const wss = new WebSocketServer({ noServer: true });
+
+  httpServer.on("upgrade", (request, socket, head) => {
+    const ingressPath = (request.headers["x-ingress-path"] as string) ?? "";
+    const rawPath = request.url ?? "/";
+    const path = ingressPath && rawPath.startsWith(ingressPath)
+      ? rawPath.slice(ingressPath.length) || "/"
+      : rawPath;
+
+    if (path === "/ws") {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit("connection", ws, request);
+      });
+    } else {
+      socket.destroy();
+    }
+  });
 
   wss.on("connection", (ws, req) => {
     log.info(`WebSocket client connected (${req.socket.remoteAddress})`);

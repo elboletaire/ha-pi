@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.3 — Replace wrong skill, remove ha-helper
+## 0.1.4 — Fix WebSocket path behind HA Ingress
+
+- Frontend now builds WebSocket URL relative to `location.pathname` instead
+  of hardcoding `/ws`, so it works behind the dynamic Ingress prefix
+- Server now uses `noServer` mode and handles the `upgrade` event manually,
+  stripping the `X-Ingress-Path` prefix before matching `/ws` — the `ws`
+  library's built-in path matching runs before Express middleware so the
+  previous approach never worked behind Ingress
 
 - Replaced `home-assistant` skill (ha-skillset, remote management tool) with
   `home-assistant-best-practices` from `homeassistant-ai/skills` (the correct
