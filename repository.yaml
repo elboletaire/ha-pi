@@ -1,4 +1,4 @@
 # HA add-on repository metadata
 name: Pi Agent Add-on Repository
-url: https://github.com/YOUR_USERNAME/ha-pi-agent
-maintainer: YOUR_USERNAME
+url: https://github.com/elboletaire/ha-pi
+maintainer: elboletaire
