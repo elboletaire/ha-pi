@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.1.0 — Initial release
+## 0.1.1 — Docker base image fix
+
+- Replaced non-existent HA base-nodejs images with `node:22-alpine` (multi-arch)
+- Replaced `bashio` calls in `run.sh` with plain `jq` — no HA base image dependency
+- Fixed `ARG BUILD_FROM` scope in multi-stage Dockerfile
+- Fixed `--platform` lint warning in builder stage
 
 - Pi coding agent running inside Home Assistant OS
 - Streaming chat UI accessible via HA Ingress
