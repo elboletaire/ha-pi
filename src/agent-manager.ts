@@ -8,6 +8,7 @@ import {
   type AgentSessionEvent,
 } from "@mariozechner/pi-coding-agent";
 import type { ResourceLoader } from "@mariozechner/pi-coding-agent";
+import { selectInitialModel, summarizeAvailableModels, type AvailableModelSummary, type ModelRef } from "./model-selection";
 import { PATHS, log } from "./options";
 
 export type AgentEventCallback = (event: AgentSessionEvent) => void;
@@ -16,6 +17,7 @@ export class AgentManager {
   private session: AgentSession | null = null;
   private listeners = new Set<AgentEventCallback>();
   private unsubscribe: (() => void) | null = null;
+  private modelRegistry: ModelRegistry | null = null;
 
   constructor(
     private readonly provider: string,
@@ -33,21 +35,24 @@ export class AgentManager {
       log.warn(`Could not chdir to ${PATHS.workspace} — using current directory`);
     }
 
+    const settingsManager = SettingsManager.create(PATHS.workspace, PATHS.piAgentDir);
     const modelRegistry = ModelRegistry.create(
       this.authStorage,
       `${PATHS.piAgentDir}/models.json`
     );
+    this.modelRegistry = modelRegistry;
 
-    // Resolve model — fall back to first available if specified one isn't found
-    let model = modelRegistry.find(this.provider, this.modelId) ?? null;
-    if (!model) {
-      log.warn(
-        `Model ${this.provider}/${this.modelId} not found in registry, ` +
-          `falling back to first available`
-      );
-      const available = modelRegistry.getAvailable();
-      model = available[0] ?? null;
-    }
+    const preferredModels: Array<ModelRef | null> = [
+      settingsManager.getDefaultProvider() && settingsManager.getDefaultModel()
+        ? {
+            provider: settingsManager.getDefaultProvider()!,
+            modelId: settingsManager.getDefaultModel()!,
+          }
+        : null,
+      { provider: this.provider, modelId: this.modelId },
+    ];
+
+    const model = selectInitialModel(preferredModels, modelRegistry.getAvailable());
     if (!model) {
       throw new Error(
         `No model available for provider "${this.provider}". ` +
@@ -58,7 +63,6 @@ export class AgentManager {
     log.info(`Using model: ${model.provider}/${model.id}`);
 
     const sessionManager = SessionManager.create(PATHS.workspace);
-    const settingsManager = SettingsManager.create(PATHS.workspace, PATHS.piAgentDir);
 
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,
@@ -120,6 +124,22 @@ export class AgentManager {
     await this.session?.abort();
   }
 
+  getAvailableModels(): AvailableModelSummary[] {
+    return summarizeAvailableModels(this.ensureModelRegistry().getAvailable());
+  }
+
+  async setModel(provider: string, modelId: string): Promise<void> {
+    const model = this.ensureModelRegistry().find(provider, modelId);
+    if (!model) {
+      throw new Error(`Model not found: ${provider}/${modelId}`);
+    }
+    await this.ensureSession().setModel(model);
+  }
+
+  async cycleModel(direction: "forward" | "backward" = "forward") {
+    return this.ensureSession().cycleModel(direction);
+  }
+
   async newSession(): Promise<void> {
     const current = this.ensureSession();
     const modelRegistry = ModelRegistry.create(this.authStorage);
@@ -174,5 +194,10 @@ export class AgentManager {
   private ensureSession(): AgentSession {
     if (!this.session) throw new Error("Agent not initialised");
     return this.session;
+  }
+
+  private ensureModelRegistry(): ModelRegistry {
+    if (!this.modelRegistry) throw new Error("Agent not initialised");
+    return this.modelRegistry;
   }
 }

@@ -2,6 +2,7 @@ import type { WebSocket } from "ws";
 import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
 import type { AgentManager } from "./agent-manager";
 import type { LoginManager, LoginEvent } from "./login-manager";
+import type { AvailableModelSummary } from "./model-selection";
 import { log } from "./options";
 
 // ---------------------------------------------------------------------------
@@ -16,6 +17,9 @@ type ClientMessage =
   | { type: "switch_session"; sessionFile: string }
   | { type: "get_sessions" }
   | { type: "get_state" }
+  | { type: "get_available_models" }
+  | { type: "set_model"; provider: string; modelId: string }
+  | { type: "cycle_model"; direction?: "forward" | "backward" }
   | { type: "login_start"; provider: string }
   | { type: "login_abort" }
   | { type: "login_prompt_response"; promptId: string; value: string }
@@ -34,6 +38,7 @@ type ServerMessage =
   | { type: "error"; message: string }
   | { type: "state"; isStreaming: boolean; sessionId: string; sessionFile?: string; model: string | null; thinkingLevel: string; messageCount: number }
   | { type: "sessions"; sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }> }
+  | { type: "available_models"; models: AvailableModelSummary[] }
   | LoginEvent;
 
 // ---------------------------------------------------------------------------
@@ -176,6 +181,20 @@ export class WsHandler {
           this.sendState();
           break;
 
+        case "get_available_models":
+          this.sendAvailableModels();
+          break;
+
+        case "set_model":
+          await this.agent.setModel(msg.provider, msg.modelId);
+          this.sendState();
+          break;
+
+        case "cycle_model":
+          await this.agent.cycleModel(msg.direction);
+          this.sendState();
+          break;
+
         case "login_start":
           // Fire and forget — events are streamed back via send callbacks
           this.login.startLogin(msg.provider, (event) => this.send(event));
@@ -196,6 +215,7 @@ export class WsHandler {
 
         case "get_auth_status":
           this.sendAuthStatus();
+          this.sendAvailableModels();
           break;
 
         default:
@@ -248,6 +268,13 @@ export class WsHandler {
     this.send({
       type: "auth_status",
       providers: this.login.getProviders(),
+    });
+  }
+
+  private sendAvailableModels(): void {
+    this.send({
+      type: "available_models",
+      models: this.agent.getAvailableModels(),
     });
   }
 
