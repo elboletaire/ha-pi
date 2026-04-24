@@ -10,6 +10,8 @@
     "build:server": "node esbuild.server.mjs",
     "build:frontend": "node esbuild.frontend.mjs",
     "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev": "pnpm run build && node dist/server.js --provider anthropic --model claude-sonnet-4-5-20250929 --log-level debug",
     "typecheck": "tsc",
     "watch:server": "node esbuild.server.mjs --watch",
@@ -25,9 +27,10 @@
     "@types/node": "^22.0.0",
     "@types/ws": "^8.5.14",
     "dompurify": "^3.2.6",
-    "esbuild": "^0.25.4",
+    "esbuild": "^0.27.7",
     "highlight.js": "^11.11.1",
     "marked": "^15.0.12",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.5"
   }
 }
