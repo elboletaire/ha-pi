@@ -9,14 +9,14 @@ FROM --platform=${BUILDPLATFORM} node:22-alpine AS builder
 
 WORKDIR /build/app
 
-COPY package*.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
 COPY tsconfig.json esbuild.frontend.mjs ./
 COPY src/ ./src/
 COPY frontend/ ./frontend/
 COPY public/index.html public/index.css ./public/
-RUN npm run build
+RUN pnpm run build
 
 # ─── Stage 2: runtime ────────────────────────────────────────────────────────
 # node:22-alpine is a multi-arch image; Docker buildx pulls the correct variant
@@ -29,11 +29,11 @@ RUN apk add --no-cache bash jq
 WORKDIR /app
 
 # Install production dependencies (express, ws)
-COPY package*.json ./
-RUN npm ci --omit=dev
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN corepack enable pnpm && pnpm install --frozen-lockfile --prod
 
 # Install pi coding agent globally
-RUN npm install -g @mariozechner/pi-coding-agent
+RUN pnpm add -g @mariozechner/pi-coding-agent
 
 # Copy compiled server
 COPY --from=builder /build/app/dist/ /app/dist/

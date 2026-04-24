@@ -1,0 +1,4 @@
+allowBuilds:
+  esbuild: true
+  koffi: true
+  protobufjs: true

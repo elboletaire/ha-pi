@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "description": "Pi agent Home Assistant add-on",
   "private": true,
+  "packageManager": "pnpm@10.32.1",
   "type": "module",
   "scripts": {
-    "build": "npm run build:server && npm run build:frontend",
+    "build": "pnpm run build:server && pnpm run build:frontend",
     "build:server": "tsc --project tsconfig.json",
     "build:frontend": "node esbuild.frontend.mjs",
-    "dev": "npm run build && node dist/server.js --provider anthropic --model claude-sonnet-4-5-20250929 --log-level debug",
+    "dev": "pnpm run build && node dist/server.js --provider anthropic --model claude-sonnet-4-5-20250929 --log-level debug",
     "watch:server": "tsc --project tsconfig.json --watch",
     "watch:frontend": "node esbuild.frontend.mjs --watch"
   },
