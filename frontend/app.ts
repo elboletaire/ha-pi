@@ -1,4 +1,5 @@
 import { renderMarkdown, escapeHtml } from "./renderer.js";
+import { initSettings, handleAuthStatus, handleLoginEvent } from "./settings.js";
 
 // ---------------------------------------------------------------------------
 // WebSocket connection (auto-reconnect)
@@ -150,6 +151,16 @@ function handleMessage(msg: ServerMessage) {
 
     case "sessions":
       renderSessionsList(msg.sessions);
+      break;
+
+    case "auth_status":
+      handleAuthStatus((msg as any).providers);
+      break;
+
+    default:
+      if (typeof (msg as any).type === "string" && (msg as any).type.startsWith("login_")) {
+        handleLoginEvent(msg as Record<string, unknown>);
+      }
       break;
   }
 }
@@ -439,4 +450,5 @@ $sessionsOverlay.addEventListener("click", (e) => {
 // Boot
 // ---------------------------------------------------------------------------
 
+initSettings(send);
 connect();

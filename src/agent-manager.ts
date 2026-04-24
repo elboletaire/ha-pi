@@ -20,7 +20,8 @@ export class AgentManager {
   constructor(
     private readonly provider: string,
     private readonly modelId: string,
-    private readonly resourceLoader: ResourceLoader
+    private readonly resourceLoader: ResourceLoader,
+    private readonly authStorage: AuthStorage
   ) {}
 
   async init(): Promise<void> {
@@ -32,9 +33,8 @@ export class AgentManager {
       log.warn(`Could not chdir to ${PATHS.workspace} — using current directory`);
     }
 
-    const authStorage = AuthStorage.create(`${PATHS.piAgentDir}/auth.json`);
     const modelRegistry = ModelRegistry.create(
-      authStorage,
+      this.authStorage,
       `${PATHS.piAgentDir}/models.json`
     );
 
@@ -64,7 +64,7 @@ export class AgentManager {
       cwd: PATHS.workspace,
       agentDir: PATHS.piAgentDir,
       model,
-      authStorage,
+      authStorage: this.authStorage,
       modelRegistry,
       sessionManager,
       settingsManager,
@@ -122,14 +122,13 @@ export class AgentManager {
 
   async newSession(): Promise<void> {
     const current = this.ensureSession();
-    const authStorage2 = AuthStorage.create(`${PATHS.piAgentDir}/auth.json`);
-    const modelRegistry2 = ModelRegistry.create(authStorage2);
+    const modelRegistry = ModelRegistry.create(this.authStorage);
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,
       agentDir: PATHS.piAgentDir,
       model: current.model ?? undefined,
-      authStorage: authStorage2,
-      modelRegistry: modelRegistry2,
+      authStorage: this.authStorage,
+      modelRegistry,
       sessionManager: SessionManager.create(PATHS.workspace),
       settingsManager: SettingsManager.create(PATHS.workspace, PATHS.piAgentDir),
       resourceLoader: this.resourceLoader,
@@ -139,13 +138,12 @@ export class AgentManager {
   }
 
   async switchSession(sessionFile: string): Promise<void> {
-    const authStorage3 = AuthStorage.create(`${PATHS.piAgentDir}/auth.json`);
-    const modelRegistry3 = ModelRegistry.create(authStorage3);
+    const modelRegistry = ModelRegistry.create(this.authStorage);
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,
       agentDir: PATHS.piAgentDir,
-      authStorage: authStorage3,
-      modelRegistry: modelRegistry3,
+      authStorage: this.authStorage,
+      modelRegistry,
       sessionManager: SessionManager.open(sessionFile),
       settingsManager: SettingsManager.create(PATHS.workspace, PATHS.piAgentDir),
       resourceLoader: this.resourceLoader,

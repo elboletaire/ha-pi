@@ -16,6 +16,7 @@
       <div id="header-right">
         <button id="btn-sessions" class="icon-btn" title="Sessions">⏱</button>
         <button id="btn-new-session" class="icon-btn" title="New session">＋</button>
+        <button id="btn-settings" class="icon-btn" title="Providers &amp; auth">⚙️</button>
       </div>
     </header>
 
@@ -27,6 +28,30 @@
           <button id="btn-close-sessions" class="icon-btn">✕</button>
         </div>
         <ul id="sessions-list"></ul>
+      </div>
+    </div>
+
+    <!-- Settings / providers overlay -->
+    <div id="settings-overlay" class="overlay hidden">
+      <div class="overlay-box">
+        <div class="overlay-header">
+          <span>Providers</span>
+          <button id="btn-close-settings" class="icon-btn">✕</button>
+        </div>
+        <div id="providers-list"></div>
+      </div>
+    </div>
+
+    <!-- Device flow modal -->
+    <div id="login-modal" class="overlay hidden">
+      <div class="overlay-box login-box">
+        <div class="overlay-header">
+          <span id="login-modal-title">Connecting…</span>
+          <button id="btn-cancel-login" class="icon-btn">✕</button>
+        </div>
+        <div id="login-modal-body">
+          <!-- Populated dynamically -->
+        </div>
       </div>
     </div>
 

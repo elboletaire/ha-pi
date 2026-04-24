@@ -1,6 +1,7 @@
 import type { WebSocket } from "ws";
 import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
 import type { AgentManager } from "./agent-manager.js";
+import type { LoginManager, LoginEvent } from "./login-manager.js";
 import { log } from "./options.js";
 
 // ---------------------------------------------------------------------------
@@ -14,7 +15,12 @@ type ClientMessage =
   | { type: "new_session" }
   | { type: "switch_session"; sessionFile: string }
   | { type: "get_sessions" }
-  | { type: "get_state" };
+  | { type: "get_state" }
+  | { type: "login_start"; provider: string }
+  | { type: "login_abort" }
+  | { type: "login_prompt_response"; promptId: string; value: string }
+  | { type: "logout"; provider: string }
+  | { type: "get_auth_status" };
 
 /** Messages sent FROM the server to the browser */
 type ServerMessage =
@@ -27,7 +33,8 @@ type ServerMessage =
   | { type: "tool_result"; id: string; name: string; output: string; isError: boolean }
   | { type: "error"; message: string }
   | { type: "state"; isStreaming: boolean; sessionId: string; sessionFile?: string; model: string | null; thinkingLevel: string; messageCount: number }
-  | { type: "sessions"; sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }> };
+  | { type: "sessions"; sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }> }
+  | LoginEvent;
 
 // ---------------------------------------------------------------------------
 // WsHandler — one instance per connected client
@@ -38,7 +45,8 @@ export class WsHandler {
 
   constructor(
     private readonly ws: WebSocket,
-    private readonly agent: AgentManager
+    private readonly agent: AgentManager,
+    private readonly login: LoginManager
   ) {
     this.unsub = this.agent.subscribe((event) => this.onAgentEvent(event));
     this.ws.on("message", (raw) => this.onClientMessage(raw.toString()));
@@ -168,6 +176,28 @@ export class WsHandler {
           this.sendState();
           break;
 
+        case "login_start":
+          // Fire and forget — events are streamed back via send callbacks
+          this.login.startLogin(msg.provider, (event) => this.send(event));
+          break;
+
+        case "login_abort":
+          this.login.abortLogin();
+          break;
+
+        case "login_prompt_response":
+          this.login.respondToPrompt(msg.promptId, msg.value);
+          break;
+
+        case "logout":
+          this.login.logout(msg.provider);
+          this.sendAuthStatus();
+          break;
+
+        case "get_auth_status":
+          this.sendAuthStatus();
+          break;
+
         default:
           log.warn("Unknown message type from client:", (msg as any).type);
       }
@@ -212,6 +242,13 @@ export class WsHandler {
     } catch (err) {
       log.error("Failed to list sessions:", err);
     }
+  }
+
+  private sendAuthStatus(): void {
+    this.send({
+      type: "auth_status",
+      providers: this.login.getProviders(),
+    });
   }
 
   private send(msg: ServerMessage): void {

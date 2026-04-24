@@ -339,3 +339,146 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
    Utility
 ------------------------------------------------------------------------ */
 .hidden { display: none !important; }
+
+/* -----------------------------------------------------------------------
+   Providers / settings panel
+------------------------------------------------------------------------ */
+#providers-list { padding: 8px 0; overflow-y: auto; }
+
+.provider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.provider-row:last-child { border-bottom: none; }
+
+.provider-info { flex: 1; }
+.provider-name { font-size: 14px; color: var(--text-bright); font-weight: 500; }
+.provider-status {
+  font-size: 11px;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.connected { background: var(--success); }
+.status-dot.disconnected { background: var(--text-dim); }
+
+.provider-btn {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  white-space: nowrap;
+  transition: background .15s;
+}
+.provider-btn:hover { background: var(--bg-card); }
+.provider-btn.connect { border-color: var(--accent); color: var(--accent); }
+.provider-btn.disconnect { border-color: var(--danger); color: var(--danger); }
+
+/* -----------------------------------------------------------------------
+   Login / device flow modal
+------------------------------------------------------------------------ */
+.login-box { max-width: 480px; }
+
+#login-modal-body { padding: 20px 16px; }
+
+.login-step { margin-bottom: 16px; color: var(--text); line-height: 1.6; }
+.login-step a { color: var(--accent); }
+
+.device-code {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: var(--text-bright);
+  background: var(--tool-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  margin: 12px 0;
+}
+
+.login-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.login-actions a,
+.login-actions button {
+  flex: 1;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s;
+}
+.btn-open-url {
+  background: var(--accent-dim);
+  color: #fff;
+  border: none;
+}
+.btn-open-url:hover { background: var(--accent); }
+.btn-copy-code {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn-copy-code:hover { background: var(--bg-card); }
+.btn-copy-code.copied { border-color: var(--success); color: var(--success); }
+
+.login-progress {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 12px;
+  min-height: 18px;
+  font-style: italic;
+}
+
+.login-prompt-form {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+.login-prompt-form input {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-bright);
+  font-size: 13px;
+  padding: 7px 10px;
+}
+.login-prompt-form input:focus { outline: none; border-color: var(--accent); }
+.login-prompt-form button {
+  padding: 7px 14px;
+  background: var(--accent-dim);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.login-success {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--success);
+  font-size: 16px;
+  font-weight: 600;
+}

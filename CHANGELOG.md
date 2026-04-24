@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.1.5 — Fix crash on prompt error + TUI command handling
+## 0.1.6 — OAuth login flows + provider status in UI
+
+- New `LoginManager` drives all OAuth flows via the pi SDK's `authStorage.login()`
+- GitHub Copilot device code flow: prominent code display, one-click copy,
+  direct link to github.com/login/device, auto-closes on success
+- Callback-server providers (Anthropic, Gemini CLI, OpenAI Codex, Antigravity):
+  open-URL modal with manual code input fallback via `onManualCodeInput`
+- Prompt dialog for interactive inputs during login (e.g. enterprise domain)
+- ⚙️ Settings panel shows all OAuth providers with live connection status
+- Auth status pushed to frontend on every WebSocket connect
+- Shared `AuthStorage` instance across agent sessions and login manager
+  so tokens written by login are immediately available to the agent
 
 - `AgentManager.prompt()` was missing `await`, turning thrown errors into
   unhandled rejections that killed the process. Now errors propagate

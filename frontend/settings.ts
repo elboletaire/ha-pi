@@ -1,0 +1,267 @@
+/**
+ * Settings panel: provider auth status + OAuth login flows.
+ */
+import { escapeHtml } from "./renderer.js";
+
+export interface ProviderStatus {
+  id: string;
+  name: string;
+  isOAuth: boolean;
+  usesCallbackServer: boolean;
+  auth: { configured: boolean; source?: string; label?: string };
+}
+
+type SendFn = (msg: object) => void;
+
+// ---------------------------------------------------------------------------
+// DOM refs
+// ---------------------------------------------------------------------------
+const $settingsOverlay  = document.getElementById("settings-overlay")!;
+const $providersList    = document.getElementById("providers-list")!;
+const $btnSettings      = document.getElementById("btn-settings")!;
+const $btnCloseSettings = document.getElementById("btn-close-settings")!;
+const $loginModal       = document.getElementById("login-modal")!;
+const $loginModalTitle  = document.getElementById("login-modal-title")!;
+const $loginModalBody   = document.getElementById("login-modal-body")!;
+const $btnCancelLogin   = document.getElementById("btn-cancel-login")!;
+
+let sendFn: SendFn = () => {};
+let providers: ProviderStatus[] = [];
+// pending prompt resolve — keyed by promptId
+let pendingPromptResolve: ((promptId: string, value: string) => void) | null = null;
+
+// ---------------------------------------------------------------------------
+// Public API (called from app.ts)
+// ---------------------------------------------------------------------------
+
+export function initSettings(send: SendFn) {
+  sendFn = send;
+
+  $btnSettings.addEventListener("click", () => {
+    send({ type: "get_auth_status" });
+    $settingsOverlay.classList.remove("hidden");
+  });
+  $btnCloseSettings.addEventListener("click", closeSettings);
+  $settingsOverlay.addEventListener("click", (e) => {
+    if (e.target === $settingsOverlay) closeSettings();
+  });
+
+  $btnCancelLogin.addEventListener("click", () => {
+    send({ type: "login_abort" });
+    closeLoginModal();
+  });
+}
+
+export function handleAuthStatus(newProviders: ProviderStatus[]) {
+  providers = newProviders;
+  renderProviders();
+  updateHeaderStatus();
+}
+
+export function handleLoginEvent(event: Record<string, unknown>) {
+  const type = event.type as string;
+  const provider = providers.find((p) => p.id === event.provider);
+  const name = provider?.name ?? String(event.provider);
+
+  switch (type) {
+    case "login_device_flow":
+      renderDeviceFlow(name, String(event.url), String(event.code));
+      break;
+
+    case "login_open_url":
+      renderOpenUrl(name, String(event.url));
+      break;
+
+    case "login_progress":
+      updateProgress(String(event.message));
+      break;
+
+    case "login_prompt":
+      renderPrompt(
+        String(event.promptId),
+        String(event.message),
+        event.placeholder ? String(event.placeholder) : undefined
+      );
+      break;
+
+    case "login_complete":
+      renderSuccess(name);
+      // Refresh auth status
+      sendFn({ type: "get_auth_status" });
+      setTimeout(closeLoginModal, 1800);
+      break;
+
+    case "login_error":
+      renderLoginError(String(event.message));
+      break;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Provider list rendering
+// ---------------------------------------------------------------------------
+
+function renderProviders() {
+  $providersList.innerHTML = "";
+  if (!providers.length) {
+    $providersList.innerHTML = `<div style="padding:16px;color:var(--text-dim)">No OAuth providers found.</div>`;
+    return;
+  }
+  for (const p of providers) {
+    const connected = p.auth.configured;
+    const row = document.createElement("div");
+    row.className = "provider-row";
+    row.innerHTML = `
+      <div class="provider-info">
+        <div class="provider-name">${escapeHtml(p.name)}</div>
+        <div class="provider-status">
+          <span class="status-dot ${connected ? "connected" : "disconnected"}"></span>
+          <span>${connected ? (p.auth.label ?? "Connected") : "Not connected"}</span>
+        </div>
+      </div>
+      <button class="provider-btn ${connected ? "disconnect" : "connect"}"
+              data-id="${escapeHtml(p.id)}"
+              data-action="${connected ? "logout" : "login"}">
+        ${connected ? "Disconnect" : "Connect"}
+      </button>
+    `;
+    row.querySelector("button")!.addEventListener("click", (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      if (btn.dataset.action === "login") {
+        startLoginFlow(p);
+      } else {
+        sendFn({ type: "logout", provider: btn.dataset.id });
+      }
+    });
+    $providersList.appendChild(row);
+  }
+}
+
+function updateHeaderStatus() {
+  const connected = providers.filter((p) => p.auth.configured);
+  const badge = document.getElementById("model-badge")!;
+  // Append connected provider count hint if any
+  const existing = badge.dataset.model ?? badge.textContent ?? "";
+  if (connected.length) {
+    badge.title = "Connected: " + connected.map((p) => p.name).join(", ");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Login modal helpers
+// ---------------------------------------------------------------------------
+
+function startLoginFlow(provider: ProviderStatus) {
+  $loginModalTitle.textContent = `Connecting to ${provider.name}…`;
+  $loginModalBody.innerHTML = `<div class="login-progress">Starting authorization flow…</div>`;
+  $loginModal.classList.remove("hidden");
+  sendFn({ type: "login_start", provider: provider.id });
+}
+
+function renderDeviceFlow(name: string, url: string, code: string) {
+  $loginModalTitle.textContent = `Connect ${name}`;
+  $loginModalBody.innerHTML = `
+    <div class="login-step">
+      Visit the link below and enter this code to authorize:
+    </div>
+    <div class="device-code" id="device-code-display">${escapeHtml(code)}</div>
+    <div class="login-actions">
+      <a class="btn-open-url" href="${escapeHtml(url)}" target="_blank" rel="noopener">
+        Open ${escapeHtml(new URL(url).hostname)} →
+      </a>
+      <button class="btn-copy-code" id="btn-copy-code">Copy code</button>
+    </div>
+    <div class="login-progress" id="login-progress">Waiting for authorization…</div>
+  `;
+  document.getElementById("btn-copy-code")!.addEventListener("click", () => {
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.getElementById("btn-copy-code")!;
+      btn.textContent = "Copied ✓";
+      btn.classList.add("copied");
+    });
+  });
+}
+
+function renderOpenUrl(name: string, url: string) {
+  $loginModalTitle.textContent = `Connect ${name}`;
+  $loginModalBody.innerHTML = `
+    <div class="login-step">
+      Click the button below to open the authorization page in your browser.
+      After authorizing, return here — the connection will complete automatically.
+    </div>
+    <div class="login-actions">
+      <a class="btn-open-url" href="${escapeHtml(url)}" target="_blank" rel="noopener">
+        Authorize ${escapeHtml(name)} →
+      </a>
+    </div>
+    <div class="login-progress" id="login-progress">Waiting for authorization…</div>
+  `;
+}
+
+function updateProgress(message: string) {
+  const el = document.getElementById("login-progress");
+  if (el) el.textContent = message;
+}
+
+function renderPrompt(promptId: string, message: string, placeholder?: string) {
+  const existing = document.getElementById("login-prompt-form");
+  if (existing) existing.remove();
+
+  const form = document.createElement("div");
+  form.className = "login-prompt-form";
+  form.id = "login-prompt-form";
+  form.innerHTML = `
+    <input type="text" placeholder="${placeholder ? escapeHtml(placeholder) : ""}"
+           aria-label="${escapeHtml(message)}" id="login-prompt-input" />
+    <button type="button">Submit</button>
+  `;
+
+  const label = document.createElement("div");
+  label.className = "login-step";
+  label.style.marginTop = "12px";
+  label.textContent = message;
+  $loginModalBody.appendChild(label);
+  $loginModalBody.appendChild(form);
+
+  const input = form.querySelector("input")!;
+  const submitBtn = form.querySelector("button")!;
+  input.focus();
+
+  const submit = () => {
+    const value = input.value.trim();
+    if (!value) return;
+    form.remove();
+    label.remove();
+    sendFn({ type: "login_prompt_response", promptId, value });
+  };
+  submitBtn.addEventListener("click", submit);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+}
+
+function renderSuccess(name: string) {
+  $loginModalTitle.textContent = `Connected`;
+  $loginModalBody.innerHTML = `
+    <div class="login-success">✓ Connected to ${escapeHtml(name)}</div>
+  `;
+}
+
+function renderLoginError(message: string) {
+  const progress = document.getElementById("login-progress");
+  if (progress) {
+    progress.style.color = "var(--danger)";
+    progress.textContent = `Error: ${message}`;
+  } else {
+    $loginModalBody.innerHTML += `
+      <div class="login-progress" style="color:var(--danger)">Error: ${escapeHtml(message)}</div>
+    `;
+  }
+}
+
+function closeSettings() {
+  $settingsOverlay.classList.add("hidden");
+}
+
+function closeLoginModal() {
+  $loginModal.classList.add("hidden");
+  renderProviders(); // refresh the list
+}

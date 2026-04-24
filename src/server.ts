@@ -3,9 +3,11 @@ import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { parseServerArgs, setLogLevel, log } from "./options.js";
+import { AuthStorage } from "@mariozechner/pi-coding-agent";
+import { parseServerArgs, setLogLevel, log, PATHS } from "./options.js";
 import { createResourceLoader } from "./resource-loader.js";
 import { AgentManager } from "./agent-manager.js";
+import { LoginManager } from "./login-manager.js";
 import { WsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -22,10 +24,13 @@ async function main() {
   // Initialise pi agent
   // -------------------------------------------------------------------------
   const resourceLoader = await createResourceLoader();
+  const authStorage = AuthStorage.create(`${PATHS.piAgentDir}/auth.json`);
+  const loginManager = new LoginManager(authStorage);
   const agentManager = new AgentManager(
     opts.provider,
     opts.model,
-    resourceLoader
+    resourceLoader,
+    authStorage
   );
 
   let initError: string | null = null;
@@ -89,11 +94,15 @@ async function main() {
 
   wss.on("connection", (ws, req) => {
     log.info(`WebSocket client connected (${req.socket.remoteAddress})`);
-    new WsHandler(ws, agentManager);
+    // WsHandler registration is now done below after init error check
     // If init failed, immediately tell the client so it shows in the UI
     if (initError) {
       ws.send(JSON.stringify({ type: "error", message: `Agent init failed: ${initError}` }));
     }
+    // Send auth status so the UI shows provider connection state immediately
+    const handler = new WsHandler(ws, agentManager, loginManager);
+    void handler; // handler registers itself via ws events
+    ws.send(JSON.stringify({ type: "auth_status", providers: loginManager.getProviders() }));
     ws.on("close", () =>
       log.info(`WebSocket client disconnected (${req.socket.remoteAddress})`)
     );
