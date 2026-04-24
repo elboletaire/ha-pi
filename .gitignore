@@ -1,7 +1,8 @@
 node_modules/
 dist/
+ha-helper/node_modules/
+ha-helper/dist/
 public/app.js
 public/app.js.map
-ha-skillset-src/
 .env
 *.tgz
