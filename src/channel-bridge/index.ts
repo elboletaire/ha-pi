@@ -72,7 +72,7 @@ export async function startTelegramBridge(config: TelegramBridgeConfig): Promise
   const telegramConfig: AdapterConfig = {
     type: 'telegram',
     botToken: config.token,
-    parseMode: 'Markdown',
+    parseMode: 'HTML',
     polling: true,
     pollingTimeout: 30,
     allowedChatIds: config.allowedChatIds,
