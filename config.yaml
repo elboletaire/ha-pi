@@ -27,6 +27,6 @@ options:
 schema:
   log_level: list(debug|info|warn|error)
   agents_md_append: str?
-  telegram_enabled: '<icon>mdi:telegram; label: Enable Telegram Bot; type: boolean'
-  telegram_bot_token: '<icon>mdi:key-variant; label: Telegram Bot Token; type: password; helper_text: Get this from @BotFather on Telegram'
-  telegram_allowed_chat_ids: '<icon>mdi:account-group; label: Allowed Chat IDs (comma-separated); type: text; helper_text: Send /start to your bot and then to @userinfobot to get your chat ID. Example: 123456789,-1001234567890'
+  telegram_enabled: bool
+  telegram_bot_token: password
+  telegram_allowed_chat_ids: str
