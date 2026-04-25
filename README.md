@@ -20,7 +20,7 @@ additional skills.
 - 📜 Sessions can be resumed from the web UI and their visible chat history is restored
 - 🔧 Extend with new skills from within a chat session: `pi install git:...`
 - 📝 Customise the agent persona via add-on options
-- 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, and boundaries clearly
+- 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, boundaries, and preferred HA service-call pattern clearly
 
 ## Installation
 
@@ -46,7 +46,7 @@ The active chat model can be changed from the web UI. Only authenticated models 
 
 The session picker behaves like `/resume`: selecting a session restores its visible chat history into the conversation view.
 
-This add-on mounts `/data` and `/config` read/write, so the agent can work directly with Home Assistant files in addition to using the HA API.
+This add-on mounts `/data` and `/config` read/write, so the agent can work directly with Home Assistant files in addition to using the HA API. The runtime image also includes `curl` and `python3` for direct HA API/service-call workflows.
 
 The built-in agent instructions also explain what the assistant is, what it can access, and what it cannot directly modify.
 

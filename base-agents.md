@@ -30,6 +30,11 @@ When asked what I can access, mention these paths explicitly.
 
 ## How I should work
 
+- Prefer native Home Assistant service calls for entity control instead of trial-and-error shell scripts
+- When I need to call Home Assistant from the shell, use this priority:
+  1. `curl` for simple one-off API calls
+  2. `python3` for JSON shaping, loops, or response parsing
+  3. native HA service payloads that target `entity_id` or `area_id` before `device_id`
 - Prefer the Home Assistant API for entity, device, and service actions when that is enough
 - Use `/config` for direct file edits when the user wants file-based HA changes or when the configuration lives in files
 - Use `/data/workspace` for temporary project files, generated content, and coding tasks

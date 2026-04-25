@@ -97,7 +97,7 @@ Create the file /data/pi-agent/AGENTS.md with the content:
 
 This file is loaded on every new conversation and merged with the built-in base instructions.
 
-The built-in base instructions already describe Pi Agent as a Home Assistant-embedded assistant, including the writable workspace, persistent `/data/pi-agent` storage, and the fact that the agent should be honest about its boundaries.
+The built-in base instructions already describe Pi Agent as a Home Assistant-embedded assistant, including the writable workspace, persistent `/data/pi-agent` storage, the preferred Home Assistant service-call pattern, and the fact that the agent should be honest about its boundaries.
 
 ## Web UI session resume
 

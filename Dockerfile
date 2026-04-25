@@ -23,8 +23,10 @@ RUN pnpm run build
 # (amd64 or arm64) automatically based on the --platform flag passed at build time.
 FROM ${BUILD_FROM}
 
-# bash: required by run.sh  jq: used to parse /data/options.json (HAOS add-on options)
-RUN apk add --no-cache bash jq
+# bash: required by run.sh
+# jq: used to parse /data/options.json (HAOS add-on options)
+# curl/python3: used for direct Home Assistant API/service-call workflows
+RUN apk add --no-cache bash jq curl python3
 
 WORKDIR /app
 

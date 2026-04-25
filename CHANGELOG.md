@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.4 — HA service-call workflow helpers
+
+- Added `curl` and `python3` to the runtime image for direct Home Assistant API/service-call workflows
+- Expanded the built-in agent instructions with a prioritized Home Assistant service-call pattern that prefers native targets and avoids trial-and-error
+- Documented the preferred service-call workflow in the README and docs alongside the built-in agent instructions
+
 ## 0.2.3 — Session resume hydration + cursor polish
 
 - Resuming a session from the web UI now restores the visible chat transcript from the selected session
