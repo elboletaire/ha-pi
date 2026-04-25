@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.3 — Telegram message formatting fixes
+
+### Fixes
+
+- Fixed "object Object" response bug where array content from pi SDK was not being flattened
+- Fixed typing indicator stuck for minutes after errors by moving stop logic to finally block
+- Fixed message headers to show current model name instead of generic "agent"
+- Fixed HTML code tags displaying as raw text in /sessions and /start commands
+
 ## 0.4.2 — Mobile keyboard viewport fix
 
 ### Fixes
