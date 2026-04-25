@@ -28,18 +28,20 @@ function buildSessionKeyboard(sessions: SessionInfo[], chatId: string): InlineKe
     const row: InlineKeyboardButton[] = [];
     
     if (i < sessions.length) {
-      const displayName = sessions[i].name || sessions[i].id.slice(0, 8);
+      const session = sessions[i];
+      const displayName = session.name || session.id.slice(0, 8);
       row.push({
         text: displayName,
-        callback_data: `session:${chatId}:${sessions[i].path}`,
+        callback_data: `session:${chatId}:${session.path}`,
       });
     }
     
     if (i + 1 < sessions.length) {
-      const displayName = sessions[i + 1].name || sessions[i + 1].id.slice(0, 8);
+      const session = sessions[i + 1];
+      const displayName = session.name || session.id.slice(0, 8);
       row.push({
         text: displayName,
-        callback_data: `session:${chatId}:${sessions[i + 1].path}`,
+        callback_data: `session:${chatId}:${session.path}`,
       });
     }
     
@@ -151,7 +153,7 @@ export async function handleSessionCommand(
 
     return {
       text: `✅ Switched to session.\n\nID: ${session.id.slice(0, 8)}\nModel: ${state?.model}\nMessages: ${state?.messageCount}`,
-      markup: buildSessionKeyboard(sessions, "temp"),
+      markup: buildSessionKeyboard(sessions, "current"),
     };
   } catch (err: any) {
     log.error("Failed to switch session:", err.message);
