@@ -9,9 +9,12 @@ describe('add-on config', () => {
     expect(configYaml).toContain('- config:rw')
   })
 
-  it('only exposes log_level and agents_md_append in the add-on UI', () => {
-    expect(configYaml).toContain('log_level: "info"')
-    expect(configYaml).toContain('agents_md_append: ""')
+  it('exposes log_level, agents_md_append, and telegram configuration in the add-on UI', () => {
+    expect(configYaml).toContain("log_level: 'info'")
+    expect(configYaml).toContain("agents_md_append: ''")
+    expect(configYaml).toContain('telegram_enabled: false')
+    expect(configYaml).toContain("telegram_bot_token: ''")
+    expect(configYaml).toContain("telegram_allowed_chat_ids: ''")
     expect(configYaml).not.toContain('anthropic_api_key')
     expect(configYaml).not.toContain('openai_api_key')
     expect(configYaml).not.toContain('google_api_key')
