@@ -117,18 +117,18 @@ fi
 log_info "Starting Pi Agent server (provider=${PROVIDER}, model=${MODEL})"
 
 # Build Telegram flags if enabled
-TELEGRAM_FLAGS=""
+TELEGRAM_ARGS=()
 if [ "$TELEGRAM_ENABLED" = "true" ]; then
-  TELEGRAM_FLAGS="--telegram-enabled true"
-  
+  TELEGRAM_ARGS+=(--telegram-enabled true)
+
   if [ -n "$TELEGRAM_TOKEN" ]; then
-    TELEGRAM_FLAGS="$TELEGRAM_FLAGS --telegram-bot-token \"${TELEGRAM_TOKEN}\""
+    TELEGRAM_ARGS+=(--telegram-bot-token "$TELEGRAM_TOKEN")
   else
     log_warn "Telegram enabled but no bot token provided. Bridge will not start."
   fi
-  
+
   if [ -n "$TELEGRAM_CHAT_IDS" ]; then
-    TELEGRAM_FLAGS="$TELEGRAM_FLAGS --telegram-allowed-chat-ids \"${TELEGRAM_CHAT_IDS}\""
+    TELEGRAM_ARGS+=(--telegram-allowed-chat-ids "$TELEGRAM_CHAT_IDS")
   else
     log_info "Telegram enabled with no allowed chat IDs (all chats permitted)"
   fi
@@ -140,4 +140,4 @@ exec node /app/dist/server.js \
   --provider "${PROVIDER}" \
   --model "${MODEL}" \
   --log-level "${LOG_LEVEL}" \
-  $TELEGRAM_FLAGS
+  "${TELEGRAM_ARGS[@]}"

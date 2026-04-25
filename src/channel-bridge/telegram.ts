@@ -38,6 +38,7 @@ import type {
   IncomingMessage,
   OnIncomingMessage,
 } from './types'
+import { log } from '../options'
 import { transcribeAudio, type WyomingSttOptions } from './wyoming-stt'
 
 const MAX_LENGTH = 4096
@@ -338,6 +339,25 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
     }
   }
 
+  function describeTelegramActor(
+    chat: TelegramMessage['chat'],
+    from?: TelegramMessage['from']
+  ): string {
+    const parts: string[] = [`chat=${chat.type}:${chat.id}`]
+
+    if (chat.title) {
+      parts.push(`title=${chat.title}`)
+    }
+
+    if (from?.username) {
+      parts.push(`username=@${from.username}`)
+    } else if (from?.first_name) {
+      parts.push(`name=${from.first_name}`)
+    }
+
+    return parts.join(' ')
+  }
+
   // ── Incoming (long polling) ─────────────────────────────
 
   async function poll(onMessage: OnIncomingMessage): Promise<void> {
@@ -372,7 +392,10 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
           const cbq = update.callback_query
           if (cbq && cbq.data && cbq.message) {
             const chatId = String(cbq.message.chat.id)
-            if (allowedChatIds && !allowedChatIds.includes(chatId)) continue
+            if (allowedChatIds && !allowedChatIds.includes(chatId)) {
+              log.warn(`Rejected Telegram callback from unauthorized chat ${describeTelegramActor(cbq.message.chat, cbq.from)}`)
+              continue
+            }
 
             // Answer the callback (removes loading spinner on button)
             fetch(`${apiBase}/answerCallbackQuery`, {
@@ -404,7 +427,10 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
           if (!msg) continue
 
           const chatId = String(msg.chat.id)
-          if (allowedChatIds && !allowedChatIds.includes(chatId)) continue
+          if (allowedChatIds && !allowedChatIds.includes(chatId)) {
+            log.warn(`Rejected Telegram message from unauthorized chat ${describeTelegramActor(msg.chat, msg.from)}`)
+            continue
+          }
 
           const incoming = await processMessage(msg, chatId)
           if (incoming) onMessage(incoming)
@@ -703,10 +729,10 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
       })
       if (!res.ok) {
         const err = await res.text().catch(() => 'unknown')
-        console.error(`[pi-channels] Failed to sync Telegram commands: ${err}`)
+        log.error(`Failed to sync Telegram commands: ${err}`)
       }
     } catch (err: any) {
-      console.error(`[pi-channels] Failed to sync Telegram commands: ${err.message}`)
+      log.error(`Failed to sync Telegram commands: ${err.message}`)
     }
   }
 

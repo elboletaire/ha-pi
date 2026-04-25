@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.1 — Telegram bridge completion and logging
+
+### Features
+
+- Added `/start` and `/help` command responses with a Telegram-friendly welcome message
+- Wired Telegram inline button callbacks for session navigation and quick actions
+- Improved Telegram command suggestions by syncing the full command menu on startup
+- Added allowlist rejection logging for unauthorized Telegram chats and callback queries
+
+### Fixes
+
+- Fixed Telegram argument passing in `run.sh` so bot token and allowed chat IDs are preserved correctly
+- Fixed Telegram command handling so slash commands and inline button callbacks are parsed consistently
+- Fixed session selection and deletion to work with Telegram callback payloads that use session IDs
+- Routed Telegram sync and rejection messages through the add-on logger so log-level filtering applies
+
 ## 0.4.0 — Telegram bot integration
 
 ### Features

@@ -149,7 +149,6 @@ export class ChannelBridge {
           adapter: msg.adapter,
           recipient: msg.sender,
           text: command.text,
-          source: 'telegram:commands',
         },
         command.markup as InlineKeyboardMarkup | undefined
       )

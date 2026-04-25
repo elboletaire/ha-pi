@@ -13,7 +13,7 @@ import type { CommandResult, InlineKeyboardButton, InlineKeyboardMarkup } from '
 /**
  * Build a reply keyboard markup for session selection.
  */
-function buildSessionKeyboard(sessions: SessionInfo[], chatId: string): InlineKeyboardMarkup | undefined {
+function buildSessionKeyboard(sessions: SessionInfo[], _chatId: string): InlineKeyboardMarkup | undefined {
   if (sessions.length === 0) return undefined
 
   const rows: InlineKeyboardButton[][] = []
@@ -27,7 +27,7 @@ function buildSessionKeyboard(sessions: SessionInfo[], chatId: string): InlineKe
       const displayName = session.name || session.id.slice(0, 8)
       row.push({
         text: displayName,
-        callback_data: `session:${chatId}:${session.path}`,
+        callback_data: `session:${session.id}`,
       })
     }
 
@@ -36,7 +36,7 @@ function buildSessionKeyboard(sessions: SessionInfo[], chatId: string): InlineKe
       const displayName = session.name || session.id.slice(0, 8)
       row.push({
         text: displayName,
-        callback_data: `session:${chatId}:${session.path}`,
+        callback_data: `session:${session.id}`,
       })
     }
 
@@ -130,7 +130,7 @@ export async function handleSessionsCommand(agentManager: AgentManager): Promise
 export async function handleSessionCommand(agentManager: AgentManager, sessionPath: string): Promise<CommandResult> {
   try {
     const sessions = await agentManager.listSessions()
-    const session = sessions.find((s) => s.path === sessionPath)
+    const session = sessions.find((s) => s.path === sessionPath || s.id === sessionPath)
 
     if (!session) {
       return {
@@ -138,7 +138,7 @@ export async function handleSessionCommand(agentManager: AgentManager, sessionPa
       }
     }
 
-    await agentManager.switchSession(sessionPath)
+    await agentManager.switchSession(session.path)
     const state = agentManager.getState()
 
     return {
@@ -159,7 +159,7 @@ export async function handleSessionCommand(agentManager: AgentManager, sessionPa
 export async function handleDeleteCommand(agentManager: AgentManager, sessionPath: string): Promise<CommandResult> {
   try {
     const sessions = await agentManager.listSessions()
-    const session = sessions.find((s) => s.path === sessionPath)
+    const session = sessions.find((s) => s.path === sessionPath || s.id === sessionPath)
 
     if (!session) {
       return {
@@ -167,7 +167,7 @@ export async function handleDeleteCommand(agentManager: AgentManager, sessionPat
       }
     }
 
-    await agentManager.deleteSession(sessionPath)
+    await agentManager.deleteSession(session.path)
 
     return {
       text: `✅ Session deleted: ${session.id.slice(0, 8)}`,
@@ -283,6 +283,81 @@ export async function handleAbortCommand(agentManager: AgentManager): Promise<Co
   }
 }
 
+function buildWelcomeText(): string {
+  return [
+    '🤖 Welcome to Pi Agent!',
+    '',
+    "I'm your AI coding assistant on Telegram.",
+    '',
+    'Commands:',
+    '/start - This message',
+    '/help - Show this message',
+    '/new - Create new session',
+    '/sessions - List all sessions',
+    '/session <ID> - Switch to session',
+    '/delete <ID> - Delete session',
+    '/status - Show current status',
+    '/model [name] - Show/change model',
+    '/abort - Cancel generation',
+    '',
+    'Send me a message to start coding!',
+  ].join('\n')
+}
+
+export async function handleStartCommand(): Promise<CommandResult> {
+  return {
+    text: buildWelcomeText(),
+    markup: {
+      inline_keyboard: [
+        [
+          { text: '🆕 New session', callback_data: '/new' },
+          { text: '📚 Sessions', callback_data: '/sessions' },
+        ],
+        [
+          { text: '📊 Status', callback_data: '/status' },
+          { text: '❓ Help', callback_data: '/help' },
+        ],
+      ],
+    },
+  }
+}
+
+export async function handleHelpCommand(): Promise<CommandResult> {
+  return handleStartCommand()
+}
+
+function parseTelegramCommand(text: string): { name: string; args: string } | undefined {
+  const trimmed = text.trim()
+
+  switch (trimmed) {
+    case 'back_to_chat':
+    case 'continue_chat':
+      return { name: 'start', args: '' }
+    case 'list_sessions':
+      return { name: 'sessions', args: '' }
+    case 'list_models':
+      return { name: 'model', args: '' }
+  }
+
+  if (trimmed.startsWith('session:')) {
+    return {
+      name: 'session',
+      args: trimmed.slice('session:'.length),
+    }
+  }
+
+  if (!trimmed.startsWith('/')) return undefined
+
+  const [commandToken, ...rest] = trimmed.split(/\s+/)
+  const match = commandToken.match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?$/i)
+  if (!match) return undefined
+
+  return {
+    name: match[1].toLowerCase(),
+    args: rest.join(' ').trim(),
+  }
+}
+
 /**
  * Map incoming text commands to handlers.
  * Returns undefined if the command doesn't match any handler.
@@ -290,6 +365,8 @@ export async function handleAbortCommand(agentManager: AgentManager): Promise<Co
 export function parseCommand(
   text: string
 ):
+  | { type: 'start' }
+  | { type: 'help' }
   | { type: 'new' }
   | { type: 'sessions' }
   | { type: 'session'; path: string }
@@ -298,43 +375,31 @@ export function parseCommand(
   | { type: 'model'; model?: string }
   | { type: 'abort' }
   | undefined {
-  const trimmed = text.trim()
+  const parsed = parseTelegramCommand(text)
+  if (!parsed) return undefined
 
-  if (trimmed === '/new' || trimmed === '/new@pi_agent_bot') {
-    return { type: 'new' }
+  switch (parsed.name) {
+    case 'start':
+      return { type: 'start' }
+    case 'help':
+      return { type: 'help' }
+    case 'new':
+      return { type: 'new' }
+    case 'sessions':
+      return { type: 'sessions' }
+    case 'session':
+      return { type: 'session', path: parsed.args }
+    case 'delete':
+      return { type: 'delete', path: parsed.args }
+    case 'status':
+      return { type: 'status' }
+    case 'model':
+      return { type: 'model', model: parsed.args || undefined }
+    case 'abort':
+      return { type: 'abort' }
+    default:
+      return undefined
   }
-
-  if (trimmed === '/sessions' || trimmed === '/sessions@pi_agent_bot') {
-    return { type: 'sessions' }
-  }
-
-  if (trimmed.startsWith('/session ') || trimmed.startsWith('/session@pi_agent_bot ')) {
-    const parts = trimmed.split(' ')
-    const path = parts[1]?.replace('@pi_agent_bot', '') || ''
-    return { type: 'session', path }
-  }
-
-  if (trimmed.startsWith('/delete ') || trimmed.startsWith('/delete@pi_agent_bot ')) {
-    const parts = trimmed.split(' ')
-    const path = parts[1]?.replace('@pi_agent_bot', '') || ''
-    return { type: 'delete', path }
-  }
-
-  if (trimmed === '/status' || trimmed === '/status@pi_agent_bot') {
-    return { type: 'status' }
-  }
-
-  if (trimmed.startsWith('/model ') || trimmed.startsWith('/model@pi_agent_bot ')) {
-    const parts = trimmed.split(' ')
-    const model = parts[1]?.replace('@pi_agent_bot', '') || undefined
-    return { type: 'model', model }
-  }
-
-  if (trimmed === '/abort' || trimmed === '/abort@pi_agent_bot') {
-    return { type: 'abort' }
-  }
-
-  return undefined
 }
 
 /**
@@ -348,6 +413,12 @@ export async function processCommand(agentManager: AgentManager, text: string): 
   }
 
   switch (command.type) {
+    case 'start':
+      return handleStartCommand()
+
+    case 'help':
+      return handleHelpCommand()
+
     case 'new':
       return handleNewCommand(agentManager)
 
@@ -384,25 +455,23 @@ export interface BotCommand {
 
 /**
  * Get commands formatted for Telegram's setMyCommands API.
- * Excludes /start (Telegram handles it specially).
  */
 export function getCommandsForTelegram(): Array<{ command: string; description: string }> {
   // Return the built-in commands that are available in this system
   const allCommands: BotCommand[] = [
-    { name: 'abort', description: 'Abort the current operation' },
-    { name: 'status', description: 'Check system status and health' },
+    { name: 'start', description: 'Show the welcome message' },
+    { name: 'help', description: 'Show the welcome message' },
     { name: 'new', description: 'Start a new session' },
-    { name: 'model', description: 'Change the AI model' },
     { name: 'sessions', description: 'List available sessions' },
+    { name: 'session', description: 'Switch to a session' },
     { name: 'delete', description: 'Delete a session' },
-    { name: 'whoami', description: 'Show current user information' },
-    { name: 'help', description: 'Show help and available commands' },
+    { name: 'status', description: 'Check system status and health' },
+    { name: 'model', description: 'Change the AI model' },
+    { name: 'abort', description: 'Abort the current operation' },
   ]
 
-  return allCommands
-    .filter((c) => c.name !== 'start') // Telegram handles /start natively
-    .map((c) => ({
-      command: c.name,
-      description: c.description.slice(0, 256), // Telegram limit
-    }))
+  return allCommands.map((c) => ({
+    command: c.name,
+    description: c.description.slice(0, 256), // Telegram limit
+  }))
 }
