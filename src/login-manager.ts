@@ -14,6 +14,12 @@ export interface ProviderStatus {
   auth: AuthStatus;
 }
 
+const API_KEY_PROVIDERS: Array<Pick<ProviderStatus, "id" | "name">> = [
+  { id: "anthropic", name: "Anthropic" },
+  { id: "openai", name: "OpenAI" },
+  { id: "google", name: "Google Gemini" },
+];
+
 export type LoginEvent =
   | { type: "login_device_flow"; provider: string; url: string; code: string }
   | { type: "login_open_url"; provider: string; url: string }
@@ -35,14 +41,30 @@ export class LoginManager {
   // ---------------------------------------------------------------------------
 
   getProviders(): ProviderStatus[] {
-    const oauthProviders = this.authStorage.getOAuthProviders();
-    return oauthProviders.map((p: OAuthProviderInterface) => ({
+    const oauthProviders = this.authStorage.getOAuthProviders().map((p: OAuthProviderInterface) => ({
       id: p.id,
       name: p.name,
       isOAuth: true,
       usesCallbackServer: p.usesCallbackServer ?? false,
       auth: this.authStorage.getAuthStatus(p.id),
     }));
+
+    const apiProviders = API_KEY_PROVIDERS.map((provider) => ({
+      ...provider,
+      isOAuth: false,
+      usesCallbackServer: false,
+      auth: this.authStorage.getAuthStatus(provider.id),
+    }));
+
+    return [...oauthProviders, ...apiProviders];
+  }
+
+  setApiKey(providerId: string, apiKey: string): void {
+    this.authStorage.set(providerId, { type: "api_key", key: apiKey });
+  }
+
+  clearApiKey(providerId: string): void {
+    this.authStorage.remove(providerId);
   }
 
   // ---------------------------------------------------------------------------

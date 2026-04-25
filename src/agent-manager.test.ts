@@ -36,15 +36,15 @@ describe("AgentManager.prompt — TUI command interception", () => {
     await expect(manager.prompt("/model")).rejects.toThrow("`/model`");
   });
 
-  it("includes an add-on options hint specifically for /login", async () => {
+  it("includes a Providers modal hint specifically for /login", async () => {
     const manager = makeManager();
-    await expect(manager.prompt("/login")).rejects.toThrow("add-on options");
+    await expect(manager.prompt("/login")).rejects.toThrow("Providers modal");
   });
 
   it("does not add the hint to other commands", async () => {
     const manager = makeManager();
     await expect(manager.prompt("/logout")).rejects.toThrow(
-      expect.not.stringContaining("add-on options")
+      expect.not.stringContaining("Providers modal")
     );
   });
 

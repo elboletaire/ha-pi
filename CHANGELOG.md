@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.3.0 — Unified providers modal and auth migration
+
+- Moved API keys into the web UI Providers modal so Anthropic, OpenAI, and Google credentials are managed in one place alongside OAuth logins
+- Saved API keys now persist to `/data/pi-agent/auth.json`, and legacy add-on API key options are migrated automatically on startup
+- Removed provider/model/API key settings from the add-on config, leaving only `log_level` and `agents_md_append`
+- Made `agents_md_append` the explicit multiline add-on option for extra instructions
+- Auth changes now retry agent startup automatically when the add-on had no model yet, so adding a key or completing OAuth can recover a failed startup without restart
+
 ## 0.2.4 — HA service-call workflow helpers
 
 - Added `curl` and `python3` to the runtime image for direct Home Assistant API/service-call workflows

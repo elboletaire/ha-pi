@@ -112,7 +112,7 @@ export class AgentManager {
         throw new Error(
           `\`${command}\` is a terminal-only command and cannot be used in the web UI.` +
           (command === "/login"
-            ? " To configure an API key, use the add-on options in HA Settings → Add-ons → Pi Agent → Configuration."
+            ? " To configure an API key, use the Providers modal in the web UI."
             : "")
         );
       }

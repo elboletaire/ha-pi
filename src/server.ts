@@ -94,9 +94,10 @@ async function main() {
 
   wss.on("connection", (ws, req) => {
     log.info(`WebSocket client connected (${req.socket.remoteAddress})`);
-    // WsHandler registration is now done below after init error check
-    // If init failed, immediately tell the client so it shows in the UI
-    if (initError) {
+    // If init failed and the agent still has no session, immediately tell the client
+    // so it shows in the UI. Once auth changes allow a successful retry, this stops
+    // firing because the agent will have a live session again.
+    if (initError && !agentManager.getState()) {
       ws.send(JSON.stringify({ type: "error", message: `Agent init failed: ${initError}` }));
     }
     // Send auth status so the UI shows provider connection state immediately

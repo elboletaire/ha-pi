@@ -34,6 +34,8 @@ function makeLogin() {
     abortLogin: vi.fn(),
     respondToPrompt: vi.fn(),
     logout: vi.fn(),
+    setApiKey: vi.fn(),
+    clearApiKey: vi.fn(),
   } as unknown as LoginManager;
 }
 
@@ -44,8 +46,10 @@ function makeAgent() {
     abort: vi.fn().mockResolvedValue(undefined),
     newSession: vi.fn().mockResolvedValue(undefined),
     switchSession: vi.fn().mockResolvedValue(undefined),
+    init: vi.fn().mockResolvedValue(undefined),
     listSessions: vi.fn().mockResolvedValue([]),
     getMessages: vi.fn().mockReturnValue([]),
+    getAvailableModels: vi.fn().mockReturnValue([]),
     getState: vi.fn().mockReturnValue({
       isStreaming: false,
       sessionId: "sess-1",
@@ -307,11 +311,13 @@ describe("WsHandler — agent event dispatch", () => {
 describe("WsHandler — login message routing", () => {
   let ws: ReturnType<typeof makeWs>;
   let login: LoginManager;
+  let agent: ReturnType<typeof makeAgent>;
 
   beforeEach(async () => {
     ws = makeWs();
     login = makeLogin();
-    new WsHandler(ws as any, makeAgent(), login);
+    agent = makeAgent();
+    new WsHandler(ws as any, agent, login);
   });
 
   function clientSend(msg: unknown) {
@@ -322,6 +328,21 @@ describe("WsHandler — login message routing", () => {
     clientSend({ type: "login_start", provider: "github" });
     await flushPromises();
     expect(login.startLogin).toHaveBeenCalledWith("github", expect.any(Function));
+  });
+
+  it("login_complete → refreshes auth state and reinitializes when no session is active", async () => {
+    (agent.getState as ReturnType<typeof vi.fn>).mockReturnValueOnce(null);
+    (login.startLogin as ReturnType<typeof vi.fn>).mockImplementation((_provider, send) => {
+      send({ type: "login_complete", provider: "github" });
+      return Promise.resolve();
+    });
+
+    clientSend({ type: "login_start", provider: "github" });
+    await flushPromises();
+
+    expect(agent.init).toHaveBeenCalled();
+    expect(JSON.parse(ws._sent[0]).type).toBe("login_complete");
+    expect(JSON.parse(ws._sent[1]).type).toBe("auth_status");
   });
 
   it("login_abort → calls login.abortLogin", async () => {
@@ -350,6 +371,27 @@ describe("WsHandler — login message routing", () => {
     const msg = JSON.parse(ws._sent[0]);
     expect(msg.type).toBe("auth_status");
     expect(Array.isArray(msg.providers)).toBe(true);
+  });
+
+  it("set_api_key → stores the key and refreshes auth state", async () => {
+    clientSend({ type: "set_api_key", provider: "anthropic", key: "sk-test" });
+    await flushPromises();
+    expect(login.setApiKey).toHaveBeenCalledWith("anthropic", "sk-test");
+    expect(JSON.parse(ws._sent[0]).type).toBe("auth_status");
+  });
+
+  it("clear_api_key → removes the stored key and refreshes auth state", async () => {
+    clientSend({ type: "clear_api_key", provider: "openai" });
+    await flushPromises();
+    expect(login.clearApiKey).toHaveBeenCalledWith("openai");
+    expect(JSON.parse(ws._sent[0]).type).toBe("auth_status");
+  });
+
+  it("auth changes reinitialize the agent when no session is active", async () => {
+    (agent.getState as ReturnType<typeof vi.fn>).mockReturnValueOnce(null);
+    clientSend({ type: "set_api_key", provider: "google", key: "secret" });
+    await flushPromises();
+    expect(agent.init).toHaveBeenCalled();
   });
 });
 

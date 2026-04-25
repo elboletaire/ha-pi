@@ -26,20 +26,56 @@ LOG_LEVEL=$(get_option 'log_level' 'info')
 AGENTS_APPEND=$(get_option 'agents_md_append' '')
 
 # ---------------------------------------------------------------------------
-# API keys — only exported when non-empty so pi can fall back to auth.json
-# (tokens stored there by /login survive container restarts via /data/pi-agent/)
+# Legacy API key options → auth.json migration
+# We now keep API credentials in /data/pi-agent/auth.json so the web UI can
+# manage them directly. Older installs may still have the keys in /data/options.json;
+# seed auth.json from those values once so upgrades keep working.
 # ---------------------------------------------------------------------------
-set_key_if_nonempty() {
-  local var="$1" val="$2"
-  if [ -n "$val" ]; then
-    export "$var"="$val"
-    log_info "Using API key for ${var}"
+AUTH_FILE="/data/pi-agent/auth.json"
+
+seed_api_key_from_legacy_option() {
+  local provider="$1" option="$2" value
+  value=$(get_option "$option" '')
+  if [ -z "$value" ]; then
+    return 0
+  fi
+
+  if python3 - "$AUTH_FILE" "$provider" "$value" <<'PY'
+import json
+import os
+import sys
+
+path, provider, value = sys.argv[1:]
+
+try:
+    with open(path, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+        if not isinstance(data, dict):
+            data = {}
+except FileNotFoundError:
+    data = {}
+except json.JSONDecodeError:
+    data = {}
+
+if provider not in data:
+    data[provider] = {"type": "api_key", "key": value}
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp_path = path + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2, sort_keys=True)
+        fh.write("\n")
+    os.replace(tmp_path, path)
+    os.chmod(path, 0o600)
+    print("1")
+PY
+  then
+    log_info "Migrated legacy ${option} into auth.json"
   fi
 }
 
-set_key_if_nonempty ANTHROPIC_API_KEY "$(get_option 'anthropic_api_key' '')"
-set_key_if_nonempty OPENAI_API_KEY    "$(get_option 'openai_api_key' '')"
-set_key_if_nonempty GOOGLE_API_KEY    "$(get_option 'google_api_key' '')"
+seed_api_key_from_legacy_option anthropic 'anthropic_api_key'
+seed_api_key_from_legacy_option openai 'openai_api_key'
+seed_api_key_from_legacy_option google 'google_api_key'
 
 # ---------------------------------------------------------------------------
 # Home Assistant API — available for direct use if needed (e.g. curl calls)

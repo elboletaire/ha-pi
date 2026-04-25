@@ -8,4 +8,14 @@ describe("add-on config", () => {
     expect(configYaml).toContain("- data:rw");
     expect(configYaml).toContain("- config:rw");
   });
+
+  it("only exposes log_level and agents_md_append in the add-on UI", () => {
+    expect(configYaml).toContain("log_level: \"info\"");
+    expect(configYaml).toContain("agents_md_append: \"\"");
+    expect(configYaml).not.toContain("anthropic_api_key");
+    expect(configYaml).not.toContain("openai_api_key");
+    expect(configYaml).not.toContain("google_api_key");
+    expect(configYaml).not.toContain("provider: \"anthropic\"");
+    expect(configYaml).not.toContain("model: \"claude-sonnet-4-5-20250929\"");
+  });
 });

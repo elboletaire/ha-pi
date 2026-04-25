@@ -15,32 +15,30 @@ additional skills.
 - 🔍 Bundled `find-skills` skill — discover and install additional skills from the ecosystem
 - 💬 Streaming chat UI accessible via the HA sidebar
 - 🧠 Dynamic model selector that only shows currently available models
+- 👥 Unified Providers modal for OAuth logins and API-key providers
 - ⌨️ Shortcut legend modal in the header, with browser-safe hotkeys
 - 💾 Sessions, skills, settings, and direct Home Assistant config access persist through the add-on mounts
 - 📜 Sessions can be resumed from the web UI and their visible chat history is restored
 - 🔧 Extend with new skills from within a chat session: `pi install git:...`
-- 📝 Customise the agent persona via add-on options
+- 📝 Customise the agent persona via the multiline `agents_md_append` add-on option
 - 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, boundaries, and preferred HA service-call pattern clearly
 
 ## Installation
 
 1. Add this repository to your HA add-on store
 2. Install **Pi Agent**
-3. Configure at least one API key (Anthropic recommended)
-4. Start the add-on
+3. Start the add-on
+4. Open the Providers modal in the web UI and add API keys or sign in with OAuth providers
 5. Click **Open Web UI** or find **Pi Agent** in your sidebar
 
 ## Configuration
 
 | Option | Description |
 |--------|-------------|
-| `anthropic_api_key` | Anthropic API key (recommended) |
-| `openai_api_key` | OpenAI API key |
-| `google_api_key` | Google Gemini API key |
-| `provider` | Which provider to use (`anthropic`, `openai`, `google`) |
-| `model` | Model ID to use (e.g. `claude-sonnet-4-5-20250929`) |
 | `log_level` | Server log verbosity (`debug`, `info`, `warn`, `error`) |
-| `agents_md_append` | Extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
+| `agents_md_append` | Multiline extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
+
+API keys and OAuth tokens are managed from the web UI's Providers modal and stored in `/data/pi-agent/auth.json`.
 
 The active chat model can be changed from the web UI. Only authenticated models are shown, and the selection persists via pi's saved settings.
 

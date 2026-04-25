@@ -24,6 +24,8 @@ type ClientMessage =
   | { type: "login_abort" }
   | { type: "login_prompt_response"; promptId: string; value: string }
   | { type: "logout"; provider: string }
+  | { type: "set_api_key"; provider: string; key: string }
+  | { type: "clear_api_key"; provider: string }
   | { type: "get_auth_status" };
 
 /** Messages sent FROM the server to the browser */
@@ -200,7 +202,7 @@ export class WsHandler {
 
         case "login_start":
           // Fire and forget — events are streamed back via send callbacks
-          this.login.startLogin(msg.provider, (event) => this.send(event));
+          this.login.startLogin(msg.provider, (event) => this.onLoginEvent(event));
           break;
 
         case "login_abort":
@@ -213,7 +215,20 @@ export class WsHandler {
 
         case "logout":
           this.login.logout(msg.provider);
-          this.sendAuthStatus();
+          await this.handleAuthChanged();
+          break;
+
+        case "set_api_key":
+          if (!msg.key.trim()) {
+            throw new Error("API key cannot be empty");
+          }
+          this.login.setApiKey(msg.provider, msg.key.trim());
+          await this.handleAuthChanged();
+          break;
+
+        case "clear_api_key":
+          this.login.clearApiKey(msg.provider);
+          await this.handleAuthChanged();
           break;
 
         case "get_auth_status":
@@ -284,6 +299,29 @@ export class WsHandler {
       });
     } catch (err) {
       log.error("Failed to list sessions:", err);
+    }
+  }
+
+  private async handleAuthChanged(): Promise<void> {
+    this.sendAuthStatus();
+    this.sendAvailableModels();
+
+    if (!this.agent.getState()) {
+      try {
+        await this.agent.init();
+        this.sendSessionHistory();
+        this.sendState();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.send({ type: "error", message });
+      }
+    }
+  }
+
+  private onLoginEvent(event: LoginEvent): void {
+    this.send(event);
+    if (event.type === "login_complete") {
+      void this.handleAuthChanged();
     }
   }
 

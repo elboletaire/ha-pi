@@ -2,53 +2,34 @@
 
 ## Options
 
-### `anthropic_api_key` / `openai_api_key` / `google_api_key`
-
-API keys for LLM providers. These are for **API key access** only (pay-per-use).
-All three are optional — only set the key for the provider you chose in `provider`.
-
-Keys are stored securely as add-on secrets and exported as environment variables at
-startup. They are only set when non-empty, so pi's own auth falls through to
-`/data/pi-agent/auth.json` if no key is present.
-
-**For subscription-based providers** (Claude Pro/Max, ChatGPT Plus, GitHub Copilot,
-Gemini CLI, etc.) leave all keys blank and use `/login` inside a chat session instead.
-pi stores the OAuth token in `/data/pi-agent/auth.json`, which persists across container
-restarts and upgrades.
-
-### `provider`
-
-The default provider to use at startup. This is used to select which model is initially
-configured. Must be one of:
-- `anthropic` — Anthropic API key or Claude Pro/Max subscription
-- `openai` — OpenAI API key or ChatGPT Plus/Pro subscription
-- `google` — Google API key or Gemini CLI subscription
-
-For other providers supported by pi (Groq, Mistral, xAI, Bedrock, etc.), leave this as
-the closest equivalent, start the add-on, then use `/model` inside the chat to switch.
-
-### `model`
-
-The model ID. Examples:
-- Anthropic: `claude-sonnet-4-5-20250929`, `claude-opus-4-5`
-- OpenAI: `gpt-4o`, `o3`
-- Google: `gemini-2.0-flash`, `gemini-2.5-pro`
-
-The web UI can switch models at runtime. Only authenticated models are shown in the selector, and the chosen model is saved via pi settings so it survives restarts.
-
 ### `log_level`
 
 Controls how much the add-on logs to the HA log viewer. Use `debug` when troubleshooting.
 
 ### `agents_md_append`
 
-Freeform text appended to the agent's system context on every start. Use this to:
+Multiline freeform text appended to the agent's system context on every start. Use this to:
 - Set a language: `Always respond in Catalan.`
 - Set a persona: `You are a concise, no-nonsense assistant.`
 - Add house-specific context: `My main lights are in group.living_room.`
 
 This is **separate** from `/data/pi-agent/AGENTS.md`. Both are loaded; the options value
-is applied first, then the file.
+is applied first, then the file. In the Home Assistant add-on UI, this field is shown as a
+multiline textarea.
+
+## Providers modal
+
+Open the **Providers** modal from the web UI to manage both OAuth logins and API keys.
+
+- **OAuth providers** use the existing `/login` flow and store tokens in `/data/pi-agent/auth.json`
+- **API key providers** are entered directly in the modal and saved to `/data/pi-agent/auth.json`
+- API keys are available for Anthropic, OpenAI, and Google Gemini
+- Saving an API key refreshes the available model list immediately
+- Completing an OAuth login refreshes the available model list and retries agent initialization automatically when the add-on had no model yet
+- If the add-on had no model yet, saving a key also retries agent initialization automatically
+
+The web UI model selector handles provider/model switching at runtime. Only authenticated
+models are shown, and the chosen model is saved via pi settings so it survives restarts.
 
 ## Persistent files
 
@@ -60,7 +41,7 @@ All files under `/data` are included in Home Assistant backups.
 │   ├── sessions/          ← conversation history
 │   ├── skills/            ← user-installed skills
 │   ├── extensions/        ← user-installed extensions
-│   ├── auth.json          ← OAuth tokens (if you log in via /login)
+│   ├── auth.json          ← OAuth tokens and API keys
 │   ├── settings.json      ← pi settings
 │   └── AGENTS.md          ← your personal agent instructions (optional)
 └── workspace/
@@ -118,7 +99,7 @@ The built-in base instructions already describe Pi Agent as a Home Assistant-emb
 ## Troubleshooting
 
 ### "No model available"
-Check that the API key for the chosen provider is set correctly in add-on options.
+Check that the relevant API key or OAuth login is configured in the web UI's Providers modal.
 
 ### Agent doesn't know about my devices
 The `home-assistant` skill uses `ha-helper` to query your HA instance. Try asking:

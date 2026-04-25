@@ -1,5 +1,5 @@
 /**
- * Settings panel: provider auth status + OAuth login flows.
+ * Settings panel: provider auth status, OAuth login flows, and API keys.
  */
 import { escapeHtml } from "./renderer";
 import type { ClientMessage, LoginEvent, ProviderStatus } from "./protocol";
@@ -76,8 +76,6 @@ export function handleLoginEvent(event: LoginEvent) {
 
     case "login_complete":
       renderSuccess(name);
-      // Refresh auth status and model availability
-      sendFn({ type: "get_auth_status" });
       setTimeout(closeLoginModal, 1800);
       break;
 
@@ -94,36 +92,146 @@ export function handleLoginEvent(event: LoginEvent) {
 function renderProviders() {
   $providersList.innerHTML = "";
   if (!providers.length) {
-    $providersList.innerHTML = `<div style="padding:16px;color:var(--text-dim)">No OAuth providers found.</div>`;
+    $providersList.innerHTML = `<div style="padding:16px;color:var(--text-dim)">No providers found.</div>`;
     return;
   }
-  for (const p of providers) {
-    const connected = p.auth.configured;
-    const row = document.createElement("div");
-    row.className = "provider-row";
-    row.innerHTML = `
-      <div class="provider-info">
-        <div class="provider-name">${escapeHtml(p.name)}</div>
-        <div class="provider-status">
-          <span class="status-dot ${connected ? "connected" : "disconnected"}"></span>
-          <span>${connected ? (p.auth.label ?? "Connected") : "Not connected"}</span>
-        </div>
+
+  const oauthProviders = providers.filter((p) => p.isOAuth);
+  const apiProviders = providers.filter((p) => !p.isOAuth);
+
+  if (oauthProviders.length) {
+    $providersList.appendChild(renderProviderSection("OAuth providers", oauthProviders, renderOAuthProviderRow));
+  }
+
+  if (apiProviders.length) {
+    $providersList.appendChild(renderProviderSection("API key providers", apiProviders, renderApiKeyProviderRow));
+  }
+}
+
+function renderProviderSection(
+  title: string,
+  providerList: ProviderStatus[],
+  renderRow: (provider: ProviderStatus) => HTMLElement
+): HTMLElement {
+  const section = document.createElement("section");
+  section.className = "provider-section";
+
+  const heading = document.createElement("h3");
+  heading.className = "provider-section-title";
+  heading.textContent = title;
+  section.appendChild(heading);
+
+  for (const provider of providerList) {
+    section.appendChild(renderRow(provider));
+  }
+
+  return section;
+}
+
+function renderOAuthProviderRow(provider: ProviderStatus): HTMLElement {
+  const connected = provider.auth.configured;
+  const row = document.createElement("div");
+  row.className = "provider-row";
+  row.innerHTML = `
+    <div class="provider-info">
+      <div class="provider-name">${escapeHtml(provider.name)}</div>
+      <div class="provider-status">
+        <span class="status-dot ${connected ? "connected" : "disconnected"}"></span>
+        <span>${escapeHtml(getAuthStatusLabel(provider.auth))}</span>
       </div>
-      <button class="provider-btn ${connected ? "disconnect" : "connect"}"
-              data-id="${escapeHtml(p.id)}"
-              data-action="${connected ? "logout" : "login"}">
-        ${connected ? "Disconnect" : "Connect"}
-      </button>
-    `;
-    row.querySelector("button")!.addEventListener("click", (e) => {
-      const btn = e.currentTarget as HTMLButtonElement;
-      if (btn.dataset.action === "login") {
-        startLoginFlow(p);
-      } else {
-        sendFn({ type: "logout", provider: btn.dataset.id! });
-      }
-    });
-    $providersList.appendChild(row);
+    </div>
+    <button class="provider-btn ${connected ? "disconnect" : "connect"}"
+            data-id="${escapeHtml(provider.id)}"
+            data-action="${connected ? "logout" : "login"}">
+      ${connected ? "Disconnect" : "Connect"}
+    </button>
+  `;
+  row.querySelector("button")!.addEventListener("click", (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    if (btn.dataset.action === "login") {
+      startLoginFlow(provider);
+    } else {
+      sendFn({ type: "logout", provider: btn.dataset.id! });
+    }
+  });
+  return row;
+}
+
+function renderApiKeyProviderRow(provider: ProviderStatus): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "provider-row provider-row-api";
+
+  const info = document.createElement("div");
+  info.className = "provider-info";
+  info.innerHTML = `
+    <div class="provider-name">${escapeHtml(provider.name)}</div>
+    <div class="provider-status">
+      <span class="status-dot ${provider.auth.configured ? "connected" : "disconnected"}"></span>
+      <span>${escapeHtml(getAuthStatusLabel(provider.auth))}</span>
+    </div>
+  `;
+
+  const form = document.createElement("form");
+  form.className = "provider-api-form";
+
+  const input = document.createElement("input");
+  input.type = "password";
+  input.autocomplete = "off";
+  input.spellcheck = false;
+  input.placeholder = `Enter ${provider.name} API key`;
+  input.setAttribute("aria-label", `${provider.name} API key`);
+
+  const buttons = document.createElement("div");
+  buttons.className = "provider-api-actions";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "submit";
+  saveBtn.className = "provider-btn connect";
+  saveBtn.textContent = "Save";
+
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.className = "provider-btn disconnect";
+  clearBtn.textContent = "Clear";
+  clearBtn.disabled = !provider.auth.configured;
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const key = input.value.trim();
+    if (!key) return;
+    sendFn({ type: "set_api_key", provider: provider.id, key });
+    input.value = "";
+  });
+
+  clearBtn.addEventListener("click", () => {
+    sendFn({ type: "clear_api_key", provider: provider.id });
+    input.value = "";
+  });
+
+  buttons.appendChild(saveBtn);
+  buttons.appendChild(clearBtn);
+  form.appendChild(input);
+  form.appendChild(buttons);
+  row.appendChild(info);
+  row.appendChild(form);
+
+  return row;
+}
+
+function getAuthStatusLabel(auth: ProviderStatus["auth"]): string {
+  if (!auth.configured) return "Not configured";
+  if (auth.label) return auth.label;
+  switch (auth.source) {
+    case "stored":
+      return "Saved in auth.json";
+    case "environment":
+      return "Configured via environment";
+    case "runtime":
+      return "Runtime API key";
+    case "fallback":
+      return "Custom provider key";
+    default:
+      return "Configured";
   }
 }
 

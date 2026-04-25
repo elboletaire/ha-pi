@@ -482,6 +482,21 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
    Providers / settings panel
 ------------------------------------------------------------------------ */
 #providers-list { padding: 8px 0; overflow-y: auto; }
+.providers-box { width: min(760px, 96vw); }
+
+.provider-section {
+  padding-bottom: 6px;
+}
+.provider-section + .provider-section {
+  border-top: 1px solid var(--border);
+}
+.provider-section-title {
+  padding: 12px 16px 8px;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
 
 .provider-row {
   display: flex;
@@ -490,7 +505,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
 }
-.provider-row:last-child { border-bottom: none; }
+.provider-section .provider-row:last-child { border-bottom: none; }
+.provider-row-api {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 10px;
+}
 
 .provider-info { flex: 1; }
 .provider-name { font-size: 14px; color: var(--text-bright); font-weight: 500; }
@@ -508,6 +528,29 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .status-dot.connected { background: var(--success); }
 .status-dot.disconnected { background: var(--text-dim); }
+
+.provider-api-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.provider-api-form input {
+  flex: 1;
+  min-width: 220px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-bright);
+  font-size: 13px;
+  padding: 8px 10px;
+}
+.provider-api-form input:focus { outline: none; border-color: var(--accent); }
+.provider-api-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
 
 .provider-btn {
   font-size: 12px;

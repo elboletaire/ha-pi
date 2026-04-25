@@ -1,6 +1,6 @@
 name: "Pi Agent"
 description: "AI coding agent with Home Assistant integration, accessible from the HA web UI."
-version: "0.2.4"
+version: "0.3.0"
 slug: "pi-agent"
 image: "ghcr.io/elboletaire/ha-pi/{arch}"
 init: false
@@ -16,18 +16,10 @@ map:
   - data:rw
   - config:rw
 options:
-  anthropic_api_key: ""
-  openai_api_key: ""
-  google_api_key: ""
-  provider: "anthropic"
-  model: "claude-sonnet-4-5-20250929"
   log_level: "info"
+  # Freeform AGENTS.md text appended to the built-in base instructions.
+  # This is saved as a multiline textarea in the add-on UI.
   agents_md_append: ""
 schema:
-  anthropic_api_key: password?
-  openai_api_key: password?
-  google_api_key: password?
-  provider: str
-  model: str
   log_level: list(debug|info|warn|error)
   agents_md_append: str?
