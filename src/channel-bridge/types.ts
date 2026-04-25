@@ -83,8 +83,9 @@ export interface ChannelAdapter {
    * @param recipient - Chat ID
    * @param draftId - Non-zero integer identifying this draft (same ID animates updates)
    * @param text - Current accumulated text (1-4096 chars)
+   * @param parseMode - Optional parse mode for status messages ('HTML'). Omit for raw token streams.
    */
-  sendDraft?(recipient: string, draftId: number, text: string): Promise<void>
+  sendDraft?(recipient: string, draftId: number, text: string, parseMode?: string): Promise<void>
 }
 
 // ── Config (lives under "pi-channels" key in pi settings.json) ──

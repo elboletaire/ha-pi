@@ -44,6 +44,16 @@ export interface TelegramBridgeConfig {
   maxConcurrent?: number
   /** Enable typing indicators (default: true) */
   typingIndicators?: boolean
+  /**
+   * Stream partial responses via Telegram Bot API 9.3+ sendMessageDraft (default: true).
+   * Degrades gracefully — bots on older API versions simply deliver a single final message.
+   */
+  streamingDrafts?: boolean
+  /**
+   * Minimum interval between draft token updates in milliseconds (default: 500).
+   * Lower values produce smoother streaming at the cost of more API calls.
+   */
+  streamingIntervalMs?: number
   /** Auth storage instance */
   authStorage: AuthStorage
   /** Resource loader instance */
@@ -66,6 +76,8 @@ export async function startTelegramBridge(config: TelegramBridgeConfig): Promise
     authStorage: config.authStorage,
     maxConcurrent: config.maxConcurrent ?? 2,
     typingIndicators: config.typingIndicators ?? true,
+    streamingDrafts: config.streamingDrafts ?? true,
+    streamingIntervalMs: config.streamingIntervalMs ?? 500,
   })
 
   // Create Telegram adapter configuration

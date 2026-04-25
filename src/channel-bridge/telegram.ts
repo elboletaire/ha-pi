@@ -235,7 +235,7 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
     }
   }
 
-  async function sendDraft(chatId: string, draftId: number, text: string): Promise<void> {
+  async function sendDraft(chatId: string, draftId: number, text: string, parseMode?: string): Promise<void> {
     // Clamp text to API limits (1-4096 chars)
     const clamped = text.length > 4096 ? text.slice(0, 4096) : text
     if (!clamped) return
@@ -245,8 +245,9 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
       draft_id: draftId,
       text: clamped,
     }
-    // Don't use parse_mode for drafts — partial markdown may break formatting
-    // The final sendMessage will have proper formatting
+    // Only set parse_mode for complete status messages (e.g. '<i>Thinking...</i>').
+    // Token streams are partial and must not use parse_mode — unclosed tags break the parser.
+    if (parseMode) body.parse_mode = parseMode
 
     try {
       const res = await fetch(`${apiBase}/sendMessageDraft`, {
@@ -762,8 +763,8 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
       await sendFileToChat(recipient, filePath, caption)
     },
 
-    async sendDraft(recipient: string, draftId: number, text: string): Promise<void> {
-      await sendDraft(recipient, draftId, text)
+    async sendDraft(recipient: string, draftId: number, text: string, parseMode?: string): Promise<void> {
+      await sendDraft(recipient, draftId, text, parseMode)
     },
 
     async send(message: ChannelMessage): Promise<void> {
