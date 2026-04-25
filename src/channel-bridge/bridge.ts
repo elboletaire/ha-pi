@@ -21,6 +21,7 @@ import type {
 import { AgentManager } from "../agent-manager.js";
 import { processCommand } from "./commands.js";
 import { log, PATHS } from "../options.js";
+import { startTypingLoop } from "./typing.js";
 import { AuthStorage } from "@mariozechner/pi-coding-agent";
 import type { ResourceLoader } from "@mariozechner/pi-coding-agent";
 import { createResourceLoader } from "../resource-loader.js";
@@ -62,6 +63,7 @@ export class ChannelBridge {
   private authStorage: AuthStorage;
   private typingIndicators: boolean;
   private abortControllers: Map<string, AbortController> = new Map();
+  private activeDrafts: Map<string, { draftId: number; text: string }> = new Map();
 
   constructor(config: {
     provider: string;
@@ -195,11 +197,60 @@ export class ChannelBridge {
       
       const agentManager = await this.getAgentManager(senderId);
       
+      // Start typing indicators
+      let stopTyping: (() => void) | null = null;
       if (this.typingIndicators) {
-        await this.sendTyping(prompt.adapter, prompt.sender);
+        const channelAdapter = this.adapters.get("bidirectional");
+        if (channelAdapter?.sendTyping) {
+          const { stop } = startTypingLoop({
+            adapter: channelAdapter,
+            recipient: prompt.sender,
+            intervalMs: 4000,
+            maxRefreshes: 30, // Allow up to 2 minutes of typing
+          });
+          stopTyping = stop;
+        }
       }
 
+      // Start draft streaming if supported
+      const draftId = this.startDraftStreaming(senderId);
+
+      // Execute the prompt
       await agentManager.prompt(prompt.text);
+
+      // Get the response from the session
+      const messages = agentManager.getMessages();
+      const assistantMessage = messages.findLast(
+        (m) => m.role === "assistant" || m.role === "ai"
+      );
+
+      const responseText = assistantMessage?.content || "No response generated.";
+
+      // Stop typing indicators
+      if (stopTyping) {
+        stopTyping();
+      }
+
+      // Send the response - use draft if available, otherwise single message
+      if (draftId !== null && this.activeDrafts.has(senderId)) {
+        // Draft streaming is active, finalize it
+        await this.finalizeDraft(
+          senderId,
+          prompt.adapter,
+          prompt.sender
+        );
+      } else {
+        // Send as single message
+        await this.sendMessage(
+          {
+            adapter: prompt.adapter,
+            recipient: prompt.sender,
+            text: responseText,
+            source: "agent",
+          },
+          undefined
+        );
+      }
 
       // Clear abort controller after completion
       const controller = this.abortControllers.get(senderId);
@@ -211,8 +262,6 @@ export class ChannelBridge {
       log.error(`Error processing message for ${senderId}:`, err.message);
       
       // Send error message back to user
-      // Note: prompt is undefined here, but we need to send an error
-      // We'll get the sender info from the last queued message or session
       await this.sendMessage({
         adapter: "telegram",
         recipient: session?.sender || "unknown",
@@ -308,9 +357,10 @@ export class ChannelBridge {
     // Log event type for debugging
     log.debug(`Agent event for ${senderId}: ${event.type}`);
 
-    // For now, just track message completion
+    // Track message completion
     if (event.type === "message_end" || event.type === "turn_end") {
       session.messageCount++;
+      this.activeDrafts.delete(senderId);
     }
   }
 
@@ -346,6 +396,88 @@ export class ChannelBridge {
     }
 
     await channelAdapter.sendTyping(recipient);
+  }
+
+  /**
+   * Send a draft update for streaming text.
+   * Uses Telegram Bot API 9.3+ sendMessageDraft if available.
+   */
+  private async sendDraft(
+    adapter: string,
+    recipient: string,
+    draftId: number,
+    text: string
+  ): Promise<void> {
+    const channelAdapter = this.adapters.get("bidirectional");
+    if (!channelAdapter || !channelAdapter.sendDraft) {
+      // Draft streaming not supported, will fallback to single message
+      return;
+    }
+
+    try {
+      await channelAdapter.sendDraft(recipient, draftId, text);
+    } catch (err: any) {
+      log.debug(`Failed to send draft: ${err.message}`);
+      // Silently ignore - draft streaming is optional
+    }
+  }
+
+  /**
+   * Start draft streaming for a sender.
+   * Returns the draft ID if supported, null otherwise.
+   */
+  private startDraftStreaming(senderId: string): number | null {
+    const channelAdapter = this.adapters.get("bidirectional");
+    if (!channelAdapter || !channelAdapter.sendDraft) {
+      return null;
+    }
+
+    const draftId = ++this.draftCounter;
+    this.activeDrafts.set(senderId, { draftId, text: "" });
+    return draftId;
+  }
+
+  /**
+   * Update draft with new text.
+   */
+  private async updateDraft(
+    senderId: string,
+    adapter: string,
+    recipient: string,
+    newText: string
+  ): Promise<void> {
+    const active = this.activeDrafts.get(senderId);
+    if (!active) return;
+
+    const fullText = active.text + newText;
+    active.text = fullText;
+
+    await this.sendDraft(adapter, recipient, active.draftId, fullText);
+  }
+
+  /**
+   * Finalize draft and send complete message.
+   */
+  private async finalizeDraft(
+    senderId: string,
+    adapter: string,
+    recipient: string,
+    markup?: InlineKeyboardMarkup
+  ): Promise<void> {
+    const active = this.activeDrafts.get(senderId);
+    if (!active) return;
+
+    await this.sendMessage(
+      {
+        adapter,
+        recipient,
+        text: active.text,
+        source: "agent",
+      },
+      markup
+    );
+
+    this.activeDrafts.delete(senderId);
   }
 
   /**
