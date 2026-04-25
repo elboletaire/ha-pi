@@ -7,12 +7,16 @@ ARG BUILD_FROM=node:22-alpine
 # builder stage always runs natively (fast) regardless of the target arch.
 FROM --platform=${BUILDPLATFORM} node:22-alpine AS builder
 
+# Install git (required for skill installation)
+RUN apk add --no-cache git
+
 WORKDIR /build/app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
 COPY tsconfig.json esbuild.server.mjs esbuild.frontend.mjs ./
+COPY scripts/ ./scripts/
 COPY src/ ./src/
 COPY frontend/ ./frontend/
 COPY public/index.html public/index.css ./public/
@@ -41,8 +45,8 @@ COPY --from=builder /build/app/dist/ /app/dist/
 # Copy bundled frontend
 COPY --from=builder /build/app/public/ /app/public/
 
-# Copy static assets
-COPY bundled-skills/ /app/bundled-skills/
+# Copy skills (both external and custom)
+COPY skills/ /app/skills/
 COPY base-agents.md /app/base-agents.md
 COPY run.sh /app/run.sh
 

@@ -340,10 +340,7 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
     }
   }
 
-  function describeTelegramActor(
-    chat: TelegramMessage['chat'],
-    from?: TelegramMessage['from']
-  ): string {
+  function describeTelegramActor(chat: TelegramMessage['chat'], from?: TelegramMessage['from']): string {
     const parts: string[] = [`chat=${chat.type}:${chat.id}`]
 
     if (chat.title) {
@@ -394,7 +391,9 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
           if (cbq && cbq.data && cbq.message) {
             const chatId = String(cbq.message.chat.id)
             if (allowedChatIds && !allowedChatIds.includes(chatId)) {
-              log.warn(`Rejected Telegram callback from unauthorized chat ${describeTelegramActor(cbq.message.chat, cbq.from)}`)
+              log.warn(
+                `Rejected Telegram callback from unauthorized chat ${describeTelegramActor(cbq.message.chat, cbq.from)}`
+              )
               continue
             }
 

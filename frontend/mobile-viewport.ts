@@ -9,9 +9,10 @@ export function calculateViewportMetrics(
   visualViewportOffsetTop = 0
 ): ViewportMetrics {
   const visibleHeight = visualViewportHeight ?? layoutViewportHeight
-  const keyboardInset = visualViewportHeight === undefined
-    ? 0
-    : Math.max(0, Math.round(layoutViewportHeight - visualViewportHeight - visualViewportOffsetTop))
+  const keyboardInset =
+    visualViewportHeight === undefined
+      ? 0
+      : Math.max(0, Math.round(layoutViewportHeight - visualViewportHeight - visualViewportOffsetTop))
 
   return {
     appHeight: `${Math.max(0, Math.round(visibleHeight))}px`,
@@ -26,11 +27,7 @@ export function initMobileViewport(): () => void {
   const update = () => {
     rafId = 0
     const vv = window.visualViewport
-    const { appHeight, keyboardInset } = calculateViewportMetrics(
-      window.innerHeight,
-      vv?.height,
-      vv?.offsetTop ?? 0
-    )
+    const { appHeight, keyboardInset } = calculateViewportMetrics(window.innerHeight, vv?.height, vv?.offsetTop ?? 0)
 
     root.style.setProperty('--app-height', appHeight)
     root.style.setProperty('--keyboard-inset', keyboardInset)

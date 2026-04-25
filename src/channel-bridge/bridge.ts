@@ -498,12 +498,7 @@ export class ChannelBridge {
    * Sends immediately with HTML parse_mode so italic tags render correctly.
    * Bypasses the token-stream throttle — status changes are infrequent.
    */
-  private async setDraftStatus(
-    senderId: string,
-    adapter: string,
-    recipient: string,
-    html: string
-  ): Promise<void> {
+  private async setDraftStatus(senderId: string, adapter: string, recipient: string, html: string): Promise<void> {
     const active = this.activeDrafts.get(senderId)
     if (!active) return
     active.text = html
@@ -515,12 +510,7 @@ export class ChannelBridge {
    * Append a streamed token to the current draft and send it throttled.
    * No parse_mode — partial markdown cannot be safely rendered mid-stream.
    */
-  private async appendDraftToken(
-    senderId: string,
-    adapter: string,
-    recipient: string,
-    delta: string
-  ): Promise<void> {
+  private async appendDraftToken(senderId: string, adapter: string, recipient: string, delta: string): Promise<void> {
     const active = this.activeDrafts.get(senderId)
     if (!active) return
     active.text += delta

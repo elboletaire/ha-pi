@@ -28,16 +28,6 @@ describe('telegram command helpers', () => {
   it('exposes the expected Telegram command menu', () => {
     const commands = getCommandsForTelegram().map((entry) => entry.command)
 
-    expect(commands).toEqual([
-      'start',
-      'help',
-      'new',
-      'sessions',
-      'session',
-      'delete',
-      'status',
-      'model',
-      'abort',
-    ])
+    expect(commands).toEqual(['start', 'help', 'new', 'sessions', 'session', 'delete', 'status', 'model', 'abort'])
   })
 })

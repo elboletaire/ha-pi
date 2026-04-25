@@ -1,11 +1,20 @@
 # Changelog
 
+## 0.5.1 — Build-time skill installation
+
+### Changed
+
+- Removed bundled-skills directory from repository
+- Skills now installed during build using `npx skills add`
+- Added `skills/` directory for both external and custom skills
+- Updated Dockerfile to use `skills/` instead of `bundled-skills/`
+
 ## 0.5.0 — Telegram streaming and formatting fixes
 
 ### Features
 
 - Telegram bot now streams responses in real time using Telegram Bot API 9.3+ `sendMessageDraft`
-- Draft message shows live status feedback while the agent works: *Thinking...* during model reasoning, *Using bash...* / *Using curl...* (etc.) during tool execution, then streams the final response token by token before delivering the fully formatted message
+- Draft message shows live status feedback while the agent works: _Thinking..._ during model reasoning, _Using bash..._ / _Using curl..._ (etc.) during tool execution, then streams the final response token by token before delivering the fully formatted message
 - Token stream updates are throttled (default 500 ms) to avoid API rate limits; status changes (thinking, tool) are sent immediately
 - Typing indicator automatically stops as soon as streaming begins
 - New `streamingDrafts` (default: true) and `streamingIntervalMs` (default: 500) options on `TelegramBridgeConfig`; degrades gracefully on older Bot API versions

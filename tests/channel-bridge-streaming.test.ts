@@ -407,14 +407,7 @@ describe('draft state machine — full sequence', () => {
     expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('Hello, world!')
 
     // 5. Finalize with fully formatted text
-    await (bridge as any).finalizeDraft(
-      'telegram:123',
-      'telegram',
-      '123',
-      '**Hello**, world!',
-      undefined,
-      'agent'
-    )
+    await (bridge as any).finalizeDraft('telegram:123', 'telegram', '123', '**Hello**, world!', undefined, 'agent')
 
     const lastSend = (adapter.send as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(lastSend.text).toBe('**Hello**, world!')
