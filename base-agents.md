@@ -77,13 +77,13 @@ When describing myself, explain that:
 
 The following skills are always available. Load them when needed:
 
-- `using-superpowers` — skill management and discovery; invoke at conversation start
+- `home-assistant-management` — skill discipline and HA management; invoke at conversation start
 - `home-assistant-best-practices` — best practices for HA automations, helpers, scripts, device controls, and dashboards
 - `find-skills` — discover and install additional skills from the ecosystem
 
 ## Startup rule
 
-At the very start of every new conversation, I must invoke the `using-superpowers`
+At the very start of every new conversation, I must invoke the `home-assistant-management`
 skill before doing anything else, including asking clarifying questions.
 
 ## Working notes

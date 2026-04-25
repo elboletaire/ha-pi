@@ -6,7 +6,6 @@ import { readdir, rm } from 'fs/promises'
 // External skills to install from repositories
 const EXTERNAL_SKILLS = [
   ['vercel-labs/skills', 'find-skills'],
-  ['obra/superpowers', 'using-superpowers'],
   ['homeassistant-ai/skills', 'home-assistant-best-practices'],
 ]
 

@@ -19,7 +19,6 @@ The script:
 | Skill                         | Source Repository       | Command                                                                           |
 | ----------------------------- | ----------------------- | --------------------------------------------------------------------------------- |
 | find-skills                   | vercel-labs/skills      | `npx skills add vercel-labs/skills --skill find-skills -y`                        |
-| using-superpowers             | obra/superpowers        | `npx skills add obra/superpowers --skill using-superpowers -y`                    |
 | home-assistant-best-practices | homeassistant-ai/skills | `npx skills add homeassistant-ai/skills --skill home-assistant-best-practices -y` |
 
 ### Custom Skills
@@ -63,11 +62,9 @@ const EXTERNAL_SKILLS = [
 
 ```
 skills/
-├── .gitkeep                    # Placeholder for git
 ├── find-skills/                # External skill (auto-installed)
-├── using-superpowers/          # External skill (auto-installed)
 ├── home-assistant-best-practices/  # External skill (auto-installed)
-└── my-custom-skill/            # Your custom skills (manually added)
+└── home-assistant-management/  # Custom skill (committed to git)
 ```
 
 ### Why Store Skills in `skills/`?
