@@ -137,3 +137,39 @@ describe('session list format', () => {
     expect(result!.text).toContain('/new')
   })
 })
+
+describe('handleSessionCommand', () => {
+  it('shows the latest message from the switched session and removes buttons', async () => {
+    const fakeManager = {
+      listSessions: vi.fn().mockResolvedValue([
+        {
+          id: '019dc5e5-c123-7456-89ab-cdef01234567',
+          path: '/sessions/target.jsonl',
+          messageCount: 3,
+          modified: new Date('2026-04-25T22:32:00Z'),
+          firstMessage: 'Hello there',
+          name: undefined,
+        },
+      ]),
+      switchSession: vi.fn().mockResolvedValue(undefined),
+      getState: vi.fn().mockReturnValue({
+        sessionId: '019dc5e5-c123-7456-89ab-cdef01234567',
+        model: 'anthropic/claude-sonnet-4-5-20250929',
+        messageCount: 3,
+      }),
+      getMessages: vi.fn().mockReturnValue([
+        { role: 'assistant', content: [{ type: 'text', text: 'Earlier assistant reply' }] },
+        { role: 'user', content: [{ type: 'text', text: 'Last message from the user' }] },
+      ]),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/session 019dc5e5')
+
+    expect(fakeManager.switchSession).toHaveBeenCalledWith('/sessions/target.jsonl')
+    expect(result?.markup).toBeUndefined()
+    expect(result?.text).toContain('<b>ID:</b> 019dc5e5')
+    expect(result?.text).toContain('<b>Model:</b> anthropic/claude-sonnet-4-5-20250929')
+    expect(result?.text).toContain('<b>Messages:</b> 3')
+    expect(result?.text).toContain('<b>Latest message:</b> Last message from the user')
+  })
+})

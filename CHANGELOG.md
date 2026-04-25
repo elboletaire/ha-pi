@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.9 — Telegram session switch UX and pi-ai dependency fix
+
+### Fixed
+
+- **Direct `@mariozechner/pi-ai` dependency**: added the package explicitly so TypeScript and the build can resolve the shared session/model types imported directly by the frontend and login/model-selection code. The package was already present transitively through `@mariozechner/pi-coding-agent`, but pnpm does not guarantee transitive packages are importable from the app root.
+- **Telegram session switch response**: the `/session <ID>` reply now shows the latest message from the switched session inline, uses bold labels for the metadata lines, and no longer sends inline buttons.
+
 ## 0.5.8 — Fix Telegram session lost when web UI deletes sessions
 
 ### Fixed

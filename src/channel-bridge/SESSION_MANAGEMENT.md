@@ -99,16 +99,20 @@ Switches to a specific session by path.
 ```
 ✅ Switched to session.
 
-ID: a1b2c3d4
-Model: anthropic/claude-sonnet-4-5-20250929
-Messages: 42
+<b>ID:</b> a1b2c3d4
+<b>Model:</b> anthropic/claude-sonnet-4-5-20250929
+<b>Messages:</b> 42
+<b>Latest message:</b> Last message in the session history (user or assistant)
 ```
+
+The Telegram reply no longer includes session-switch buttons.
 
 **Implementation**: Calls `agentManager.switchSession(sessionPath)` which:
 
 1. Loads the existing session file
 2. Reinitializes the AgentSession with previous conversation history
 3. Preserves all messages and context
+4. Reads the last message in the session history and includes it in the confirmation body
 
 ### `/delete <ID>` - Delete Session
 

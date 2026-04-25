@@ -8,51 +8,7 @@
 import type { SessionInfo } from '@mariozechner/pi-coding-agent'
 import { AgentManager } from '../agent-manager'
 import { log } from '../options'
-import type { CommandResult, InlineKeyboardButton, InlineKeyboardMarkup } from './types'
-
-/**
- * Build a reply keyboard markup for session selection.
- */
-function buildSessionKeyboard(sessions: SessionInfo[], _chatId: string): InlineKeyboardMarkup | undefined {
-  if (sessions.length === 0) return undefined
-
-  const rows: InlineKeyboardButton[][] = []
-
-  // Group sessions into rows of 2
-  for (let i = 0; i < sessions.length; i += 2) {
-    const row: InlineKeyboardButton[] = []
-
-    if (i < sessions.length) {
-      const session = sessions[i]
-      const displayName = session.name || session.id.slice(0, 8)
-      row.push({
-        text: displayName,
-        callback_data: `session:${session.id}`,
-      })
-    }
-
-    if (i + 1 < sessions.length) {
-      const session = sessions[i + 1]
-      const displayName = session.name || session.id.slice(0, 8)
-      row.push({
-        text: displayName,
-        callback_data: `session:${session.id}`,
-      })
-    }
-
-    rows.push(row)
-  }
-
-  // Add "back to chat" button
-  rows.push([
-    {
-      text: '← Back to chat',
-      callback_data: 'back_to_chat',
-    },
-  ])
-
-  return { inline_keyboard: rows }
-}
+import type { CommandResult } from './types'
 
 /** Format a Date as a compact locale string without seconds (e.g. "4/25/2026, 10:32 PM"). */
 function formatDate(date: Date): string {
@@ -63,9 +19,44 @@ function formatDate(date: Date): string {
   )
 }
 
+/** Escape HTML special characters for Telegram parse_mode=HTML text. */
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 /** Truncate a string to `max` chars, appending '…' if cut. */
 function truncate(str: string, max: number): string {
   return str.length <= max ? str : str.slice(0, max) + '…'
+}
+
+function extractTextFromContent(content: unknown): string {
+  if (typeof content === 'string') {
+    return content
+  }
+
+  if (!Array.isArray(content)) {
+    return ''
+  }
+
+  return content
+    .map((block) => {
+      if (!block || typeof block !== 'object') return ''
+      const typedBlock = block as { type?: string; text?: unknown }
+      return typedBlock.type === 'text' && typeof typedBlock.text === 'string' ? typedBlock.text : ''
+    })
+    .filter(Boolean)
+    .join('\n')
+}
+
+function getLatestMessageText(messages: unknown[]): string {
+  const latestMessage = messages.at(-1)
+  if (!latestMessage || typeof latestMessage !== 'object') {
+    return '(no messages)'
+  }
+
+  const content = (latestMessage as { content?: unknown }).content
+  const text = extractTextFromContent(content).trim()
+  return text || '(no text content)'
 }
 
 /**
@@ -160,10 +151,17 @@ export async function handleSessionCommand(agentManager: AgentManager, sessionPa
 
     await agentManager.switchSession(session.path)
     const state = agentManager.getState()
+    const latestMessage = getLatestMessageText(agentManager.getMessages())
 
     return {
-      text: `✅ Switched to session.\n\nID: ${session.id.slice(0, 8)}\nModel: ${state?.model}\nMessages: ${state?.messageCount}`,
-      markup: buildSessionKeyboard(sessions, 'current'),
+      text: [
+        '✅ Switched to session.',
+        '',
+        `<b>ID:</b> ${escapeHtml(session.id.slice(0, 8))}`,
+        `<b>Model:</b> ${escapeHtml(state?.model || 'not set')}`,
+        `<b>Messages:</b> ${state?.messageCount ?? 0}`,
+        `<b>Latest message:</b> ${escapeHtml(latestMessage)}`,
+      ].join('\n'),
     }
   } catch (err: any) {
     log.error('Failed to switch session:', err.message)
