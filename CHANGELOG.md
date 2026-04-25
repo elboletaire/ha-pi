@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.0 — Telegram streaming and formatting fixes
+
+### Features
+
+- Telegram bot now streams responses in real time using Telegram Bot API 9.3+ `sendMessageDraft`
+- Draft message shows live status feedback while the agent works: *Thinking...* during model reasoning, *Using bash...* / *Using curl...* (etc.) during tool execution, then streams the final response token by token before delivering the fully formatted message
+- Token stream updates are throttled (default 500 ms) to avoid API rate limits; status changes (thinking, tool) are sent immediately
+- Typing indicator automatically stops as soon as streaming begins
+- New `streamingDrafts` (default: true) and `streamingIntervalMs` (default: 500) options on `TelegramBridgeConfig`; degrades gracefully on older Bot API versions
+
+### Fixes
+
+- Fixed Telegram messages rendering raw HTML tags (`<b>`, `<code>`, etc.) — `parseMode` was set to `'Markdown'` while the formatter produces HTML; changed to `'HTML'`
+- Fixed typing indicator remaining stuck after an error — `stopTyping` was scoped inside `try` and unreachable from `finally`
+- Fixed `[object Object]` appearing in responses when the pi SDK returns content as typed blocks — now filters on `type === 'text'` blocks only
+- Fixed error messages being routed to the hardcoded `'telegram'` adapter instead of the actual sender's adapter
+- Fixed model name not appearing in the message header when draft streaming was active (`finalizeDraft` was hardcoding `source: 'agent'`)
+- Fixed inline code inside triple-backtick fences being incorrectly extracted as `<code>` spans and producing nested tags in the rendered output
+- Fixed several TypeScript errors: `startTypingLoop` return type mismatch (`{ stop }` destructuring), `findLast` not available in ES2022 lib, `stopTyping` variable declared inside `try` but referenced in `finally`
+
 ## 0.4.3 — Telegram message formatting fixes
 
 ### Fixes
