@@ -236,18 +236,22 @@ export class ChannelBridge {
             .join('\n')
         : (content || 'No response generated.')
 
+      // Get the current model for the message header
+      const state = agentManager.getState()
+      const modelSource = state?.model ? `🤖 ${state.model}` : 'agent'
+
       // Send the response - use draft if available, otherwise single message
       if (draftId !== null && this.activeDrafts.has(senderId)) {
         // Draft streaming is active, finalize it
         await this.finalizeDraft(senderId, prompt.adapter, prompt.sender)
       } else {
-        // Send as single message
+        // Send as single message with model in header
         await this.sendMessage(
           {
             adapter: prompt.adapter,
             recipient: prompt.sender,
             text: responseText,
-            source: 'agent',
+            source: modelSource,
           },
           undefined
         )
