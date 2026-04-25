@@ -288,7 +288,15 @@ function renderUserBubble(text: string) {
 }
 
 async function renderAssistantMarkdown(bubble: HTMLElement | null, rawText: string) {
-  if (!bubble || !rawText) return;
+  if (!bubble) return;
+
+  const textBubble = bubble.querySelector<HTMLElement>(".msg-bubble");
+  if (!rawText) {
+    textBubble?.remove();
+    scrollBottom();
+    return;
+  }
+
   const textEl = bubble.querySelector<HTMLElement>(".msg-text");
   if (!textEl) return;
   const html = await renderMarkdown(rawText);
