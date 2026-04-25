@@ -214,7 +214,7 @@ export class ChannelBridge {
       // Start draft streaming if supported
       const draftId = this.startDraftStreaming(senderId)
 
-      // Execute the prompt
+      // Execute the prompt and process response
       await agentManager.prompt(prompt.text)
 
       // Get the response from the session
@@ -235,11 +235,6 @@ export class ChannelBridge {
             })
             .join('\n')
         : (content || 'No response generated.')
-
-      // Stop typing indicators
-      if (stopTyping) {
-        stopTyping()
-      }
 
       // Send the response - use draft if available, otherwise single message
       if (draftId !== null && this.activeDrafts.has(senderId)) {
@@ -275,6 +270,11 @@ export class ChannelBridge {
         source: 'telegram:error',
       })
     } finally {
+      // Always stop typing indicator, regardless of success or failure
+      if (stopTyping) {
+        stopTyping()
+      }
+
       session.processing = false
       this.processingCount--
 
