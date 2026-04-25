@@ -473,6 +473,10 @@ function setStreaming(on: boolean) {
   streaming = on;
   $btnSend.disabled = on;
   $btnAbort.classList.toggle("hidden", !on);
+
+  if (!on) {
+    clearStreamingCursor();
+  }
 }
 
 function setStatus(text: string) {
@@ -487,6 +491,10 @@ function applyState(state: Extract<ServerMessage, { type: "state" }>) {
   $sessionInfo.textContent = `${state.messageCount} msgs`;
   handleCurrentModel(state.model);
   setStatus("Ready");
+}
+
+function clearStreamingCursor() {
+  $messages.querySelectorAll<HTMLElement>(".msg-text.cursor").forEach((el) => el.classList.remove("cursor"));
 }
 
 function scrollBottom() {
