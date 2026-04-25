@@ -769,7 +769,7 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
 
     async send(message: ChannelMessage): Promise<void> {
       const header = message.source ? formatSourceHeader(message.source) : ''
-      const markdown = header ? `${header}\n${message.text}` : message.text
+      const markdown = header ? `${header}${message.text}` : message.text
 
       // Convert Markdown to Telegram HTML
       const full = markdownToTelegramHTML(markdown)

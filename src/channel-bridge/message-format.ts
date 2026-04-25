@@ -16,22 +16,22 @@ export function formatSourceHeader(source: string): string {
   if (source.startsWith('🤖')) {
     const modelRaw = source.replace(/^🤖\s*/, '')
     const short = modelRaw.includes('/') ? modelRaw.split('/').pop()! : modelRaw
-    return `🧠 Pi · ${short}\n───`
+    return `🧠 Pi · ${short}\n───\n`
   }
 
   // Cron job: "cron:job-name"
   if (source.startsWith('cron:')) {
-    return `⏰ ${source}\n───`
+    return `⏰ ${source}\n───\n`
   }
 
   // Channel test: "channel:test"
   if (source.startsWith('channel:')) {
     const label = source.replace('channel:', '')
-    return `🏓 ${label}\n───`
+    return `🏓 ${label}\n───\n`
   }
 
   // Fallback: use source as-is
-  return `📨 ${source}\n───`
+  return `📨 ${source}\n───\n`
 }
 
 /**

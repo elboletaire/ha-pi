@@ -74,7 +74,7 @@ function msgUpdate(ae: Record<string, unknown>) {
   }
 }
 
-const SOURCE_HEADER = '🧠 Pi · claude-3\n───'
+const SOURCE_HEADER = '🧠 Pi · claude-3\n───\n'
 
 // ── startDraftStreaming ───────────────────────────────────────────────────────
 

@@ -266,41 +266,25 @@ export class ChannelBridge {
 
       const activeDraft = this.activeDrafts.get(senderId)
 
-      // If draft streaming is active, finalize the current bubble in place.
-      // If the bubble was already finalized by the event stream, do nothing.
-      if (activeDraft) {
-        if (activeDraft.phase !== 'done') {
-          const finalized = await this.finalizeDraft(
-            senderId,
-            prompt.adapter,
-            prompt.sender,
-            responseText,
-            undefined,
-            modelSource
-          )
-          if (!finalized) {
-            await this.sendMessage(
-              {
-                adapter: prompt.adapter,
-                recipient: prompt.sender,
-                text: responseText,
-                source: modelSource,
-              },
-              undefined
-            )
-          }
-        }
-      } else {
-        await this.sendMessage(
-          {
-            adapter: prompt.adapter,
-            recipient: prompt.sender,
-            text: responseText,
-            source: modelSource,
-          },
-          undefined
-        )
+      // If a streaming draft bubble is still pending (not yet finalized by the event stream),
+      // finalize it now so the draft preview reflects the complete response.
+      if (activeDraft && activeDraft.phase !== 'done') {
+        await this.finalizeDraft(senderId, prompt.adapter, prompt.sender, responseText, undefined, modelSource)
       }
+
+      // Always deliver the permanent message via sendMessage.
+      // sendMessageDraft only shows a transient typing-animation preview — it disappears when
+      // the typing indicator ends and is never stored as a chat message by Telegram.
+      // The authoritative, persistent reply must always be sent via sendMessage.
+      await this.sendMessage(
+        {
+          adapter: prompt.adapter,
+          recipient: prompt.sender,
+          text: responseText,
+          source: modelSource,
+        },
+        undefined
+      )
 
       // Clear abort controller after completion
       const controller = this.abortControllers.get(senderId)

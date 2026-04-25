@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.5 — Fix Telegram bot responses disappearing
+
+### Fixes
+
+- Fixed Telegram bot responses disappearing after generation: `sendMessageDraft` only creates a transient typing-animation preview that auto-expires when the typing indicator ends; the permanent message must always be delivered via `sendMessage`. `processQueue` now unconditionally calls `sendMessage` after generation completes, regardless of draft streaming state
+- Fixed unreachable fallback `sendMessage` in the draft path: because `telegram.ts`'s `sendDraft` silently swallows all API errors (best-effort), `bridge.ts`'s `sendDraft()` always returned `true`, making `finalizeDraft()` always return `true` and the `if (!finalized)` fallback dead code
+- Fixed missing newline between the source header separator (`───`) and message body in all draft-related calls (`finalizeDraft`, `appendDraftToken`, `sendDraftStatus`): `formatSourceHeader` now includes the trailing `\n` so every caller gets the correct format without per-site boilerplate; the redundant manual `\n` in `telegram.ts`'s `send()` is removed accordingly
+
 ## 0.5.4 — Skill discipline overhaul
 
 ### Changed
