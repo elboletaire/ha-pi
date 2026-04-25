@@ -1,0 +1,7 @@
+configuration:
+  agents_md_append:
+    name: Additional agent instructions
+    description: >-
+      Optional multiline text appended to the built-in base instructions on every
+      start. Use this for language preferences, a persona, or Home Assistant-
+      specific context. It is combined with /data/pi-agent/AGENTS.md.

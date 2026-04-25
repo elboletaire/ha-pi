@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3 — Add configuration labels for agent instructions
+
+- Added a friendly label and helper text for `agents_md_append` in the Home Assistant add-on configuration UI
+- Added a translation file so the add-on form can present the field more clearly
+
 ## 0.3.2 — Session history polish and skill install guidance
 
 - Session delete buttons in the history list now stay hidden until you hover a row, which makes the picker less visually noisy
