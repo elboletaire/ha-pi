@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.8 — Fix Telegram session lost when web UI deletes sessions
+
+### Fixed
+
+- **Telegram session file corrupted after web UI deletion**: when all sessions were removed from the web UI while the Telegram bridge had an active session cached in memory, the next incoming message would recreate the session file via `appendFileSync` without writing the session header first. This produced a malformed JSONL file that was not visible in the web UI session list and could not be properly resumed. The bridge now detects this condition (`messageCount > 0` but `sessionFile` no longer exists on disk) and transparently starts a fresh session before processing the message, exactly as `/new` would do.
+
 ## 0.5.7 — Catalan and Spanish translations for configuration options
 
 ### Added

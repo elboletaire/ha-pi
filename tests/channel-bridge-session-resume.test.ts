@@ -16,7 +16,9 @@ import type { SenderSessionRegistry } from '../src/channel-bridge/sender-session
 // vi.hoisted() runs before any module imports, so these values are available
 // inside the vi.mock() factory below.
 
-const mocks = vi.hoisted(() => ({
+const { existsSyncMock, mocks } = vi.hoisted(() => ({
+  existsSyncMock: vi.fn<(path: string) => boolean>().mockReturnValue(true),
+  mocks: {
   init: vi.fn<(sessionFile?: string) => Promise<void>>().mockResolvedValue(undefined),
   getState: vi.fn().mockReturnValue({
     sessionFile: '/sessions/current.jsonl',
@@ -35,7 +37,16 @@ const mocks = vi.hoisted(() => ({
   switchSession: vi.fn().mockResolvedValue(undefined),
   abort: vi.fn().mockResolvedValue(undefined),
   getAvailableModels: vi.fn().mockReturnValue([]),
-  listSessions: vi.fn().mockResolvedValue([]),
+    listSessions: vi.fn().mockResolvedValue([]),
+  },
+}))
+
+// ── node:fs mock ────────────────────────────────────────────────────────────
+// Controls existsSync behaviour for the cached-session-file-deleted check in
+// ChannelBridge.getAgentManager(). Default: file exists (returns true).
+
+vi.mock('node:fs', () => ({
+  existsSync: existsSyncMock,
 }))
 
 // ── AgentManager class mock ───────────────────────────────────────────────────
@@ -119,6 +130,8 @@ beforeEach(() => {
   mocks.newSession.mockResolvedValue(undefined)
   mocks.switchSession.mockResolvedValue(undefined)
   mocks.listSessions.mockResolvedValue([])
+  // Default: session file exists on disk
+  existsSyncMock.mockReturnValue(true)
 })
 
 // ── getAgentManager / init() ──────────────────────────────────────────────────
@@ -343,5 +356,94 @@ describe('ChannelBridge — persistSessionFile', () => {
     ;(bridge as any).persistSessionFile('telegram:42', fakeAgent)
 
     expect(registry.set).not.toHaveBeenCalled()
+  })
+})
+
+// ── Session file deleted while manager is cached in memory ────────────────────────
+
+describe('ChannelBridge — session file deleted while manager is cached', () => {
+  it('calls newSession() when the cached session file no longer exists on disk', async () => {
+    const registry = makeMockRegistry()
+    const bridge = makeBridge(registry)
+
+    // First message — initialises and caches the AgentManager
+    await (bridge as any).handleIncomingMessage(makeIncomingMessage('hello'))
+    await new Promise((r) => setTimeout(r, 0))
+
+    // Simulate: session now has prior messages and its file was deleted
+    mocks.getState.mockReturnValue({
+      sessionFile: '/sessions/active.jsonl',
+      sessionId: 'abc123',
+      model: 'test/test-model',
+      isStreaming: false,
+      thinkingLevel: 'off',
+      messageCount: 5, // session was used before
+    })
+    existsSyncMock.mockReturnValue(false) // session file was deleted
+
+    // After newSession() the agent reports a brand-new session
+    mocks.newSession.mockImplementationOnce(async () => {
+      mocks.getState.mockReturnValue({
+        sessionFile: '/sessions/fresh.jsonl',
+        sessionId: 'xyz789',
+        model: 'test/test-model',
+        isStreaming: false,
+        thinkingLevel: 'off',
+        messageCount: 0,
+      })
+    })
+
+    // Second message — manager is cached but file was deleted
+    await (bridge as any).handleIncomingMessage(makeIncomingMessage('hello again'))
+
+    expect(mocks.newSession).toHaveBeenCalledOnce()
+
+    // Registry must be updated to the fresh session path
+    const setCalls = (registry.set as ReturnType<typeof vi.fn>).mock.calls
+    const senderCalls = setCalls.filter((c) => c[0] === 'telegram:123')
+    expect(senderCalls.at(-1)?.[1]).toBe('/sessions/fresh.jsonl')
+  })
+
+  it('does not call newSession() when the session file still exists on disk', async () => {
+    const registry = makeMockRegistry()
+    const bridge = makeBridge(registry)
+
+    // First message
+    await (bridge as any).handleIncomingMessage(makeIncomingMessage('hello'))
+    await new Promise((r) => setTimeout(r, 0))
+
+    // Session has prior messages but the file is intact (normal operation)
+    mocks.getState.mockReturnValue({
+      sessionFile: '/sessions/active.jsonl',
+      sessionId: 'abc123',
+      model: 'test/test-model',
+      isStreaming: false,
+      thinkingLevel: 'off',
+      messageCount: 5,
+    })
+    // existsSyncMock stays true (default — file exists)
+
+    // Second message
+    await (bridge as any).handleIncomingMessage(makeIncomingMessage('hello again'))
+
+    expect(mocks.newSession).not.toHaveBeenCalled()
+  })
+
+  it('does not call newSession() when session has no messages yet (new session, file not written yet)', async () => {
+    const registry = makeMockRegistry()
+    const bridge = makeBridge(registry)
+
+    // First message — manager cached with a brand-new session (messageCount: 0, default)
+    await (bridge as any).handleIncomingMessage(makeIncomingMessage('hello'))
+    await new Promise((r) => setTimeout(r, 0))
+
+    // File doesn't exist yet (normal for a fresh session before first assistant response)
+    existsSyncMock.mockReturnValue(false)
+    // getState still reports messageCount: 0 (no messages yet, default)
+
+    // Second message
+    await (bridge as any).handleIncomingMessage(makeIncomingMessage('hello again'))
+
+    expect(mocks.newSession).not.toHaveBeenCalled()
   })
 })

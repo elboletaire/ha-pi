@@ -9,6 +9,7 @@
  * - Session storage shared with web UI
  */
 
+import { existsSync } from 'node:fs'
 import type {
   ChannelAdapter,
   IncomingMessage,
@@ -365,7 +366,23 @@ export class ChannelBridge {
    */
   private async getAgentManager(senderId: string): Promise<AgentManager> {
     if (this.agentManagers.has(senderId)) {
-      return this.agentManagers.get(senderId)!
+      const existing = this.agentManagers.get(senderId)!
+
+      // Guard: if the session file was deleted (e.g. via the web UI) while this
+      // manager was cached in memory, the SDK's _persist() would recreate the
+      // file via appendFileSync without writing the session header first.
+      // Detect this by checking whether the file still exists when the session
+      // has already accumulated messages (messageCount > 0 means it was previously
+      // written; messageCount === 0 means it's a fresh session whose file hasn't
+      // been written yet — that is normal and should not trigger a reset).
+      const state = existing.getState()
+      if (state?.sessionFile && state.messageCount > 0 && !existsSync(state.sessionFile)) {
+        log.info(`Session file deleted for ${senderId}, starting a new session`)
+        await existing.newSession()
+        this.persistSessionFile(senderId, existing)
+      }
+
+      return existing
     }
 
     const agentManager = new AgentManager(this.provider, this.modelId, this.resourceLoader, this.authStorage)
