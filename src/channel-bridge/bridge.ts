@@ -21,6 +21,7 @@ import type {
 import { AgentManager } from '../agent-manager'
 import { processCommand } from './commands'
 import { log, PATHS } from '../options'
+import { SenderSessionRegistry } from './sender-session-registry'
 import { startTypingLoop } from './typing'
 import { AuthStorage } from '@mariozechner/pi-coding-agent'
 import type { ResourceLoader } from '@mariozechner/pi-coding-agent'
@@ -79,6 +80,8 @@ export class ChannelBridge {
   private stopTypingFunctions: Map<string, () => void> = new Map()
   /** Timestamp of the last throttled draft send per sender, for token-stream rate limiting. */
   private lastDraftSent: Map<string, number> = new Map()
+  /** Persists senderId → sessionFile across server restarts. */
+  private senderSessionRegistry: SenderSessionRegistry
 
   constructor(config: {
     provider: string
@@ -91,6 +94,12 @@ export class ChannelBridge {
     streamingDrafts?: boolean
     /** Minimum ms between draft token updates; lower = smoother but more API calls (default: 500). */
     streamingIntervalMs?: number
+    /**
+     * Injectable SenderSessionRegistry instance (for testing).
+     * Defaults to a file-backed registry at
+     * `${PATHS.piAgentDir}/bridge-sessions.json`.
+     */
+    senderSessionRegistry?: SenderSessionRegistry
   }) {
     this.provider = config.provider
     this.modelId = config.modelId
@@ -100,6 +109,9 @@ export class ChannelBridge {
     this.typingIndicators = config.typingIndicators ?? true
     this.streamingDrafts = config.streamingDrafts ?? true
     this.streamingIntervalMs = config.streamingIntervalMs ?? 500
+    this.senderSessionRegistry =
+      config.senderSessionRegistry ??
+      new SenderSessionRegistry(`${PATHS.piAgentDir}/bridge-sessions.json`)
   }
 
   /**
@@ -173,6 +185,10 @@ export class ChannelBridge {
         },
         command.markup as InlineKeyboardMarkup | undefined
       )
+
+      // Commands like /new and /session <ID> change the active session file.
+      // Persist the updated mapping so the next restart resumes correctly.
+      this.persistSessionFile(senderId, agentManager)
 
       return
     }
@@ -292,6 +308,9 @@ export class ChannelBridge {
         controller.abort()
         this.abortControllers.delete(senderId)
       }
+
+      // Persist the session file so that the next restart resumes this conversation.
+      this.persistSessionFile(senderId, agentManager)
     } catch (err: any) {
       log.error(`Error processing message for ${senderId}:`, err.message)
 
@@ -324,7 +343,25 @@ export class ChannelBridge {
   }
 
   /**
+   * Save the current session file for `senderId` into the registry.
+   * Called after init, after commands, and after prompt completion so the
+   * mapping is always up-to-date regardless of how the session changed.
+   */
+  private persistSessionFile(senderId: string, agentManager: AgentManager): void {
+    const sessionFile = agentManager.getState()?.sessionFile
+    if (sessionFile) {
+      this.senderSessionRegistry.set(senderId, sessionFile)
+    }
+  }
+
+  /**
    * Get or create an AgentManager for a sender.
+   *
+   * On first call for a given sender after a server restart the registry is
+   * consulted.  If a session file was recorded from the previous run it is
+   * passed to `AgentManager.init()`, which opens it via `SessionManager.open()`
+   * so the conversation history is preserved.  A missing or corrupted file
+   * transparently falls back to a fresh session.
    */
   private async getAgentManager(senderId: string): Promise<AgentManager> {
     if (this.agentManagers.has(senderId)) {
@@ -338,13 +375,23 @@ export class ChannelBridge {
       this.handleAgentEvent(senderId, event)
     })
 
-    // Initialize the agent manager
+    // Look up the last known session file for this sender.
+    const lastSessionFile = this.senderSessionRegistry.get(senderId)
+    if (lastSessionFile) {
+      log.info(`Resuming session for ${senderId}: ${lastSessionFile}`)
+    }
+
+    // Initialize the agent manager — resumes last session if file exists on disk.
     try {
-      await agentManager.init()
+      await agentManager.init(lastSessionFile)
     } catch (err: any) {
       log.error(`Failed to initialize AgentManager for ${senderId}:`, err.message)
       throw err
     }
+
+    // Persist the session file (may differ from lastSessionFile if the stored
+    // path no longer existed and the SDK created a new session).
+    this.persistSessionFile(senderId, agentManager)
 
     this.agentManagers.set(senderId, agentManager)
     this.unsubscribeFunctions.set(senderId, unsubscribe)

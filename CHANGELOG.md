@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.6 — Telegram session resume and UX improvements
+
+### Added
+
+- **Session resume across restarts**: Telegram conversations now resume where they left off after a server restart. A `SenderSessionRegistry` persists the `senderId → sessionFile` mapping to `bridge-sessions.json` inside the data directory. On startup, each sender's last session is reopened via `SessionManager.open()` instead of always creating a new one via `SessionManager.create()`. The registry is updated after every init, command, and prompt so it always reflects the current session (including after `/new` or `/session <ID>`)
+- **`/s‹id›` session shortcut**: The sessions list now renders each entry as a tappable `/s‹id›` command link (e.g. `/s019dc5e5`) so users can switch sessions with a single tap. The shortcut is not registered in the bot autocomplete menu to keep it uncluttered
+
+### Changed
+
+- **`/sessions` list**: Replaced the broken tab-separated pseudo-table (whose "Name" column mirrored the ID) with a readable per-session block showing the `/s‹id›` link, message count, last-modified date, and the first user message as a preview — so sessions are actually identifiable
+- **`/new` response**: Removed the redundant "Start chatting" inline button. Session ID is now shown as inline code (`` `id` ``)
+- **`AgentManager.init()`**: Accepts an optional `sessionFile` path; uses `SessionManager.open()` when the file exists on disk, falls back to `SessionManager.create()` otherwise
+
 ## 0.5.5 — Fix Telegram bot responses disappearing
 
 ### Fixes

@@ -1,3 +1,4 @@
+import { existsSync } from 'fs'
 import { unlink } from 'fs/promises'
 import {
   createAgentSession,
@@ -32,7 +33,14 @@ export class AgentManager {
     private readonly authStorage: AuthStorage
   ) {}
 
-  async init(): Promise<void> {
+  /**
+   * Initialise the agent.
+   *
+   * @param sessionFile - Optional path to an existing session file.  When
+   *   provided and the file is present on disk the session is resumed via
+   *   `SessionManager.open()`; otherwise a brand-new session is created.
+   */
+  async init(sessionFile?: string): Promise<void> {
     // Set process cwd so bash tool operates in workspace by default
     try {
       process.chdir(PATHS.workspace)
@@ -62,7 +70,10 @@ export class AgentManager {
 
     log.info(`Using model: ${model.provider}/${model.id}`)
 
-    const sessionManager = SessionManager.create(PATHS.workspace)
+    const sessionManager =
+      sessionFile && existsSync(sessionFile)
+        ? SessionManager.open(sessionFile)
+        : SessionManager.create(PATHS.workspace)
 
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,

@@ -54,33 +54,50 @@ function buildSessionKeyboard(sessions: SessionInfo[], _chatId: string): InlineK
   return { inline_keyboard: rows }
 }
 
+/** Format a Date as a compact locale string without seconds (e.g. "4/25/2026, 10:32 PM"). */
+function formatDate(date: Date): string {
+  return (
+    date.toLocaleDateString() +
+    ', ' +
+    date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  )
+}
+
+/** Truncate a string to `max` chars, appending '…' if cut. */
+function truncate(str: string, max: number): string {
+  return str.length <= max ? str : str.slice(0, max) + '…'
+}
+
 /**
- * Build a clean text list of sessions.
+ * Build a readable session list.
+ *
+ * Each session is rendered as a tappable /s‹id› command link followed by a
+ * one-line preview of the first user message, so the user can identify and
+ * switch to a session with a single tap.
+ *
+ * Example:
+ *   /s019dc5e5 · 22 msgs · 4/25/2026, 10:32 PM
+ *   "What does this code do in server.ts?"
  */
 function buildSessionListText(sessions: SessionInfo[]): string {
   if (sessions.length === 0) {
-    return 'No sessions found.'
+    return 'No sessions found.\n\n/new — start a new session'
   }
 
-  const lines: string[] = [`Available sessions:\n\nID\tName\t\t\t\tMsgs\tLast Modified`]
+  const lines: string[] = [`📚 Sessions (${sessions.length}):\n`]
 
   for (const session of sessions) {
-    const id = session.id.slice(0, 8)
-    const name = (session.name || session.id.slice(0, 10)).padEnd(20, ' ')
-    const msgs = session.messageCount.toString().padStart(4, ' ')
-    const last = session.modified.toLocaleString()
+    const shortId = session.id.slice(0, 8)
+    const msgs = session.messageCount
+    const date = formatDate(session.modified)
+    const preview = truncate(session.firstMessage || '(no messages)', 60)
 
-    lines.push(`${id}\t${name}\t${msgs}\t${last}`)
+    lines.push(`/s${shortId} · ${msgs} msgs · ${date}`)
+    lines.push(`"${preview}"`)
+    lines.push('')
   }
 
-  lines.push(
-    '',
-    'Commands:',
-    '  `/sessions` - list all sessions',
-    '  `/session <ID>` - switch to a session',
-    '  `/new` - create a new session',
-    '  `/delete <ID>` - delete a session'
-  )
+  lines.push('Tap a /s‹ID› link to switch · /new to start fresh')
 
   return lines.join('\n')
 }
@@ -94,10 +111,7 @@ export async function handleNewCommand(agentManager: AgentManager): Promise<Comm
     const state = agentManager.getState()
 
     return {
-      text: `✅ New session created.\n\nID: ${state?.sessionId.slice(0, 8)}\nModel: ${state?.model}`,
-      markup: {
-        inline_keyboard: [[{ text: '🔄 Start chatting', callback_data: 'continue_chat' }]],
-      },
+      text: `✅ New session created.\n\nID: \`${state?.sessionId.slice(0, 8)}\`\nModel: ${state?.model}`,
     }
   } catch (err: any) {
     log.error('Failed to create new session:', err.message)
@@ -130,7 +144,13 @@ export async function handleSessionsCommand(agentManager: AgentManager): Promise
 export async function handleSessionCommand(agentManager: AgentManager, sessionPath: string): Promise<CommandResult> {
   try {
     const sessions = await agentManager.listSessions()
-    const session = sessions.find((s) => s.path === sessionPath || s.id === sessionPath)
+    // Match on full path, full ID, or short-ID prefix (>= 6 chars, from /s‹id› shortcuts)
+    const session = sessions.find(
+      (s) =>
+        s.path === sessionPath ||
+        s.id === sessionPath ||
+        (sessionPath.length >= 6 && s.id.startsWith(sessionPath))
+    )
 
     if (!session) {
       return {
@@ -347,6 +367,14 @@ function parseTelegramCommand(text: string): { name: string; args: string } | un
   }
 
   if (!trimmed.startsWith('/')) return undefined
+
+  // /s‹id› shortcut — session switch via short hex ID, not registered in autocomplete.
+  // Must be checked before the general command regex (which would swallow /s019dc5e5
+  // as command name 's019dc5e5' with empty args, never reaching the 'session' case).
+  const shortSwitch = trimmed.match(/^\/s([0-9a-f]{6,})(?:@[a-z0-9_]+)?$/i)
+  if (shortSwitch) {
+    return { name: 'session', args: shortSwitch[1] }
+  }
 
   const [commandToken, ...rest] = trimmed.split(/\s+/)
   const match = commandToken.match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?$/i)
