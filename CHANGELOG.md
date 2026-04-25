@@ -2,10 +2,11 @@
 
 ## Unreleased
 
-## 0.2.2 — Session resume restores chat history
+## 0.2.3 — Session resume hydration + cursor polish
 
 - Resuming a session from the web UI now restores the visible chat transcript from the selected session
 - Added a `session_history` WebSocket payload so the chat view can hydrate after switching sessions or reloading the page
+- The streaming cursor now disappears as soon as the model stops responding and the Send button is re-enabled
 
 ## 0.2.1 — Docker build fix
 
