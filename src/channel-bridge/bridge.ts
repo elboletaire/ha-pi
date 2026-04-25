@@ -221,7 +221,20 @@ export class ChannelBridge {
       const messages = agentManager.getMessages()
       const assistantMessage = messages.findLast((m) => m.role === 'assistant' || m.role === 'ai')
 
-      const responseText = assistantMessage?.content || 'No response generated.'
+      // Handle content that may be an array (pi SDK can return arrays of content blocks)
+      const content = assistantMessage?.content
+      const responseText = Array.isArray(content)
+        ? content
+            .map((block) => {
+              if (typeof block === 'string') return block
+              // Handle different content block types
+              if (typeof block === 'object' && block !== null) {
+                return 'text' in block ? String(block.text) : String(block)
+              }
+              return String(block)
+            })
+            .join('\n')
+        : (content || 'No response generated.')
 
       // Stop typing indicators
       if (stopTyping) {
