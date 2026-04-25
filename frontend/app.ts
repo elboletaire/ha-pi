@@ -34,6 +34,7 @@ const $sessionsList    = document.getElementById("sessions-list")!;
 
 let ws: WebSocket | null = null;
 let streaming = false;
+let currentSessionFile: string | undefined;
 
 // Per-run tracking
 let currentAgentBubble: HTMLElement | null = null;
@@ -493,6 +494,7 @@ function setStatus(text: string) {
 
 function applyState(state: Extract<ServerMessage, { type: "state" }>) {
   streaming = state.isStreaming;
+  currentSessionFile = state.sessionFile;
   $btnSend.disabled = state.isStreaming;
   $btnAbort.classList.toggle("hidden", !state.isStreaming);
   $modelBadge.textContent = state.model ?? "";
@@ -522,10 +524,51 @@ function renderSessionsList(sessions: Array<{ id: string; file: string; name?: s
   }
   for (const s of sessions.sort((a, b) => b.modified.localeCompare(a.modified))) {
     const li = document.createElement("li");
-    li.innerHTML = `
-      <div class="session-first">${escapeHtml(s.name ?? s.firstMessage ?? s.id)}</div>
-      <div class="session-date">${new Date(s.modified).toLocaleString()}</div>
-    `;
+    li.className = "session-row";
+
+    const info = document.createElement("div");
+    info.className = "session-meta";
+
+    const first = document.createElement("div");
+    first.className = "session-first";
+    first.textContent = s.name ?? s.firstMessage ?? s.id;
+
+    const date = document.createElement("div");
+    date.className = "session-date";
+    date.textContent = new Date(s.modified).toLocaleString();
+
+    info.appendChild(first);
+    info.appendChild(date);
+
+    const actions = document.createElement("div");
+    actions.className = "session-actions";
+
+    if (s.file === currentSessionFile) {
+      const badge = document.createElement("span");
+      badge.className = "session-current-badge";
+      badge.textContent = "Current";
+      actions.appendChild(badge);
+    }
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "session-delete-btn";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.title = "Delete this session";
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const message = s.file === currentSessionFile
+        ? "Delete this session and start a fresh one?"
+        : "Delete this session permanently?";
+      if (confirm(message)) {
+        send({ type: "delete_session", sessionFile: s.file });
+      }
+    });
+    actions.appendChild(deleteBtn);
+
+    li.appendChild(info);
+    li.appendChild(actions);
+
     li.addEventListener("click", () => {
       send({ type: "switch_session", sessionFile: s.file });
       $sessionsOverlay.classList.add("hidden");

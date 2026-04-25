@@ -435,8 +435,47 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 #sessions-list li:hover { background: var(--bg-card); }
 #sessions-list li:last-child { border-bottom: none; }
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.session-meta {
+  min-width: 0;
+  flex: 1;
+}
 .session-first { font-size: 13px; color: var(--text-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .session-date  { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.session-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.session-current-badge {
+  font-size: 10px;
+  color: var(--success);
+  border: 1px solid rgba(81, 207, 102, 0.35);
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  cursor: default;
+}
+.session-delete-btn {
+  background: none;
+  border: 1px solid rgba(250, 82, 82, 0.6);
+  color: var(--danger);
+  border-radius: 999px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background .15s, border-color .15s;
+}
+.session-delete-btn:hover {
+  background: rgba(250, 82, 82, 0.12);
+  border-color: var(--danger);
+}
 
 /* -----------------------------------------------------------------------
    Shortcut legend

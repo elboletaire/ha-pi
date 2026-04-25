@@ -26,6 +26,7 @@ type ClientMessage =
   | { type: "logout"; provider: string }
   | { type: "set_api_key"; provider: string; key: string }
   | { type: "clear_api_key"; provider: string }
+  | { type: "delete_session"; sessionFile: string }
   | { type: "get_auth_status" };
 
 /** Messages sent FROM the server to the browser */
@@ -231,6 +232,10 @@ export class WsHandler {
           await this.handleAuthChanged();
           break;
 
+        case "delete_session":
+          await this.handleDeleteSession(msg.sessionFile);
+          break;
+
         case "get_auth_status":
           this.sendAuthStatus();
           this.sendAvailableModels();
@@ -316,6 +321,29 @@ export class WsHandler {
         this.send({ type: "error", message });
       }
     }
+  }
+
+  private async handleDeleteSession(sessionFile: string): Promise<void> {
+    const trimmed = sessionFile.trim();
+    if (!trimmed) {
+      throw new Error("Session file cannot be empty");
+    }
+
+    const current = this.agent.getState();
+    const isCurrentSession = current?.sessionFile === trimmed;
+    if (isCurrentSession && current?.isStreaming) {
+      throw new Error("Stop the current conversation before deleting it.");
+    }
+
+    await this.agent.deleteSession(trimmed);
+
+    if (isCurrentSession) {
+      await this.agent.newSession();
+      this.sendSessionHistory();
+      this.sendState();
+    }
+
+    await this.sendSessions();
   }
 
   private onLoginEvent(event: LoginEvent): void {

@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 — Session history cleanup
+
+- Added a delete button to the web session history list so old conversations can be removed
+- Deleting the currently open session now starts a fresh empty session automatically so the chat stays usable
 
 ## 0.3.0 — Unified providers modal and auth migration
 

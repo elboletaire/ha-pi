@@ -46,6 +46,7 @@ function makeAgent() {
     abort: vi.fn().mockResolvedValue(undefined),
     newSession: vi.fn().mockResolvedValue(undefined),
     switchSession: vi.fn().mockResolvedValue(undefined),
+    deleteSession: vi.fn().mockResolvedValue(undefined),
     init: vi.fn().mockResolvedValue(undefined),
     listSessions: vi.fn().mockResolvedValue([]),
     getMessages: vi.fn().mockReturnValue([]),
@@ -140,6 +141,42 @@ describe("WsHandler", () => {
     const msg = JSON.parse(ws._sent[0]);
     expect(msg.type).toBe("sessions");
     expect(Array.isArray(msg.sessions)).toBe(true);
+  });
+
+  it("routes 'delete_session' and refreshes the session list", async () => {
+    (agent.listSessions as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+    clientSend({ type: "delete_session", sessionFile: "/data/sessions/old.json" });
+    await flushPromises();
+    expect((agent.deleteSession as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith("/data/sessions/old.json");
+    expect(JSON.parse(ws._sent[0]).type).toBe("sessions");
+  });
+
+  it("deleting the current session starts a new one and sends fresh history", async () => {
+    (agent.getState as ReturnType<typeof vi.fn>)
+      .mockReturnValueOnce({
+        isStreaming: false,
+        sessionId: "sess-1",
+        sessionFile: "/data/sessions/sess-1.json",
+        model: "anthropic/claude-3-5-sonnet",
+        thinkingLevel: "medium",
+        messageCount: 4,
+      })
+      .mockReturnValue({
+        isStreaming: false,
+        sessionId: "sess-2",
+        sessionFile: "/data/sessions/sess-2.json",
+        model: "anthropic/claude-3-5-sonnet",
+        thinkingLevel: "medium",
+        messageCount: 0,
+      });
+    (agent.listSessions as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+
+    clientSend({ type: "delete_session", sessionFile: "/data/sessions/sess-1.json" });
+    await flushPromises();
+
+    expect(agent.deleteSession).toHaveBeenCalledWith("/data/sessions/sess-1.json");
+    expect(agent.newSession).toHaveBeenCalled();
+    expect(ws._sent.map((s) => JSON.parse(s).type)).toEqual(["session_history", "state", "sessions"]);
   });
 
   it("silently ignores invalid JSON", async () => {

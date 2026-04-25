@@ -1,3 +1,4 @@
+import { unlink } from "fs/promises";
 import {
   createAgentSession,
   AuthStorage,
@@ -178,6 +179,10 @@ export class AgentManager {
 
   async listSessions() {
     return SessionManager.list(PATHS.workspace);
+  }
+
+  async deleteSession(sessionFile: string): Promise<void> {
+    await unlink(sessionFile);
   }
 
   getState() {

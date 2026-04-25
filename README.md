@@ -18,7 +18,7 @@ additional skills.
 - 👥 Unified Providers modal for OAuth logins and API-key providers
 - ⌨️ Shortcut legend modal in the header, with browser-safe hotkeys
 - 💾 Sessions, skills, settings, and direct Home Assistant config access persist through the add-on mounts
-- 📜 Sessions can be resumed from the web UI and their visible chat history is restored
+- 📜 Sessions can be resumed from the web UI, their visible chat history is restored, and each saved session can be deleted from the history list
 - 🔧 Extend with new skills from within a chat session: `pi install git:...`
 - 📝 Customise the agent persona via the multiline `agents_md_append` add-on option
 - 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, boundaries, and preferred HA service-call pattern clearly

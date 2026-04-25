@@ -85,6 +85,8 @@ The built-in base instructions already describe Pi Agent as a Home Assistant-emb
 - The session list in the web UI behaves like `/resume`
 - Selecting a session restores the visible transcript for that session in the chat view
 - The restored transcript is the current active branch, not the full `/tree` browser
+- Each session row also has a delete button
+- Deleting the current session starts a fresh empty session so the chat stays usable
 - After restoration, new prompts continue from that session as normal
 
 ## Web UI model selector

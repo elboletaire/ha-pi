@@ -31,6 +31,7 @@ export type ClientMessage =
   | { type: "logout"; provider: string }
   | { type: "set_api_key"; provider: string; key: string }
   | { type: "clear_api_key"; provider: string }
+  | { type: "delete_session"; sessionFile: string }
   | { type: "get_auth_status" };
 
 export type LoginEvent =
