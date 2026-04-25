@@ -6,6 +6,9 @@ export interface ProviderStatus {
   auth: { configured: boolean; source?: string; label?: string };
 }
 
+import type { Message as SessionMessage } from "@mariozechner/pi-ai";
+export type { SessionMessage };
+
 export interface AvailableModelSummary {
   provider: string;
   id: string;
@@ -47,6 +50,7 @@ export type ServerMessage =
   | { type: "error"; message: string }
   | { type: "state"; isStreaming: boolean; sessionId: string; sessionFile?: string; model: string | null; thinkingLevel: string; messageCount: number }
   | { type: "sessions"; sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }> }
+  | { type: "session_history"; messages: SessionMessage[] }
   | { type: "available_models"; models: AvailableModelSummary[] }
   | { type: "auth_status"; providers: ProviderStatus[] }
   | LoginEvent;

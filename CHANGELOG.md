@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-- Expanded the built-in agent instructions to document the add-on mounts, HA API access, and workspace/data boundaries up front
-- Fixed the chat Send button staying disabled after a response by waiting for the agent to become idle before publishing the final state
-- Mounted `/config` read/write for all installs so the agent can directly inspect and edit Home Assistant configuration files
+## 0.2.2 — Session resume restores chat history
+
+- Resuming a session from the web UI now restores the visible chat transcript from the selected session
+- Added a `session_history` WebSocket payload so the chat view can hydrate after switching sessions or reloading the page
 
 ## 0.2.1 — Docker build fix
 

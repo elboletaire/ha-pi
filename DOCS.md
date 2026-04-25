@@ -99,6 +99,13 @@ This file is loaded on every new conversation and merged with the built-in base 
 
 The built-in base instructions already describe Pi Agent as a Home Assistant-embedded assistant, including the writable workspace, persistent `/data/pi-agent` storage, and the fact that the agent should be honest about its boundaries.
 
+## Web UI session resume
+
+- The session list in the web UI behaves like `/resume`
+- Selecting a session restores the visible transcript for that session in the chat view
+- The restored transcript is the current active branch, not the full `/tree` browser
+- After restoration, new prompts continue from that session as normal
+
 ## Web UI model selector
 
 - Open the selector with the 🧠 header button or `Alt+Shift+M`

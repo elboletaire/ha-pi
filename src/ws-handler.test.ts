@@ -45,6 +45,7 @@ function makeAgent() {
     newSession: vi.fn().mockResolvedValue(undefined),
     switchSession: vi.fn().mockResolvedValue(undefined),
     listSessions: vi.fn().mockResolvedValue([]),
+    getMessages: vi.fn().mockReturnValue([]),
     getState: vi.fn().mockReturnValue({
       isStreaming: false,
       sessionId: "sess-1",
@@ -102,10 +103,12 @@ describe("WsHandler", () => {
     expect(agent.abort).toHaveBeenCalled();
   });
 
-  it("routes 'get_state' and sends back a state message", async () => {
+  it("routes 'get_state' and sends back history plus a state message", async () => {
     clientSend({ type: "get_state" });
     await flushPromises();
-    const state = JSON.parse(ws._sent[0]);
+    const [history, state] = ws._sent.map((s) => JSON.parse(s));
+    expect(history.type).toBe("session_history");
+    expect(Array.isArray(history.messages)).toBe(true);
     expect(state.type).toBe("state");
     expect(state.sessionId).toBe("sess-1");
     expect(state.isStreaming).toBe(false);
@@ -120,10 +123,11 @@ describe("WsHandler", () => {
     expect(state.type).toBe("state");
   });
 
-  it("routes 'switch_session' with the correct file path", async () => {
+  it("routes 'switch_session' with the correct file path and sends history", async () => {
     clientSend({ type: "switch_session", sessionFile: "/data/sessions/old.json" });
     await flushPromises();
     expect(agent.switchSession).toHaveBeenCalledWith("/data/sessions/old.json");
+    expect(JSON.parse(ws._sent[0]).type).toBe("session_history");
   });
 
   it("routes 'get_sessions' and sends a sessions message", async () => {

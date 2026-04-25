@@ -124,6 +124,10 @@ export class AgentManager {
     await this.session?.abort();
   }
 
+  getMessages() {
+    return this.ensureSession().messages;
+  }
+
   getAvailableModels(): AvailableModelSummary[] {
     return summarizeAvailableModels(this.ensureModelRegistry().getAvailable());
   }

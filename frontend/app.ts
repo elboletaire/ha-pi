@@ -2,7 +2,8 @@ import { renderMarkdown, escapeHtml } from "./renderer";
 import { initSettings, handleAuthStatus, handleLoginEvent } from "./settings";
 import { handleAvailableModels, handleCurrentModel, initModelSelector, openModelSelector } from "./model-selector";
 import { initShortcutsLegend } from "./shortcuts";
-import type { ClientMessage, ServerMessage } from "./protocol";
+import { buildSessionHistoryOps } from "./session-history";
+import type { ClientMessage, ServerMessage, SessionMessage } from "./protocol";
 
 // ---------------------------------------------------------------------------
 // WebSocket connection (auto-reconnect)
@@ -136,6 +137,10 @@ function handleMessage(msg: ServerMessage) {
       renderSessionsList(msg.sessions);
       break;
 
+    case "session_history":
+      void hydrateSessionHistory(msg.messages);
+      break;
+
     case "available_models":
       handleAvailableModels(msg.models);
       break;
@@ -174,57 +179,58 @@ function startAgentTurn() {
 
 function endAgentTurn() {
   setStreaming(false);
-  // Final render pass
-  if (currentAgentBubble && currentRawText) {
-    renderMarkdown(currentRawText).then((html) => {
-      const bubble = currentAgentBubble!.querySelector<HTMLElement>(".msg-text");
-      if (bubble) {
-        bubble.innerHTML = html;
-        bubble.classList.remove("cursor");
-      }
-    });
-  }
+  const bubble = currentAgentBubble;
+  void renderAssistantMarkdown(bubble, currentRawText);
   currentAgentBubble = null;
+  currentRawText = "";
+  currentThinkingEl = null;
+  currentThinkingRaw = "";
+  currentToolEls.clear();
   scrollBottom();
+}
+
+function createAgentBubble(withCursor: boolean): HTMLElement {
+  const msg = document.createElement("div");
+  msg.className = "msg msg-agent";
+
+  // Thinking toggle + block (initially empty/hidden)
+  const thinkToggle = document.createElement("div");
+  thinkToggle.className = "thinking-toggle hidden";
+  thinkToggle.textContent = "▸ Thinking";
+
+  const thinkBlock = document.createElement("div");
+  thinkBlock.className = "thinking-block";
+
+  thinkToggle.addEventListener("click", () => {
+    const open = thinkBlock.classList.toggle("expanded");
+    thinkToggle.textContent = open ? "▾ Thinking" : "▸ Thinking";
+  });
+
+  // Text bubble
+  const bubble = document.createElement("div");
+  bubble.className = "msg-bubble";
+
+  const textEl = document.createElement("div");
+  textEl.className = withCursor ? "msg-text cursor" : "msg-text";
+  bubble.appendChild(textEl);
+
+  msg.appendChild(thinkToggle);
+  msg.appendChild(thinkBlock);
+  msg.appendChild(bubble);
+
+  $messages.appendChild(msg);
+  currentAgentBubble = msg;
+  currentThinkingEl = thinkBlock;
+
+  scrollBottom();
+  return msg;
 }
 
 function ensureAgentBubble(): HTMLElement {
   if (!currentAgentBubble) {
-    const msg = document.createElement("div");
-    msg.className = "msg msg-agent";
-
-    // Thinking toggle + block (initially empty/hidden)
-    const thinkToggle = document.createElement("div");
-    thinkToggle.className = "thinking-toggle hidden";
-    thinkToggle.textContent = "▸ Thinking";
-
-    const thinkBlock = document.createElement("div");
-    thinkBlock.className = "thinking-block";
-
-    thinkToggle.addEventListener("click", () => {
-      const open = thinkBlock.classList.toggle("expanded");
-      thinkToggle.textContent = open ? "▾ Thinking" : "▸ Thinking";
-    });
-
-    // Text bubble
-    const bubble = document.createElement("div");
-    bubble.className = "msg-bubble";
-
-    const textEl = document.createElement("div");
-    textEl.className = "msg-text cursor";
-    bubble.appendChild(textEl);
-
-    msg.appendChild(thinkToggle);
-    msg.appendChild(thinkBlock);
-    msg.appendChild(bubble);
-
-    $messages.appendChild(msg);
-    currentAgentBubble = msg;
-    currentThinkingEl = thinkBlock;
-
-    scrollBottom();
+    createAgentBubble(true);
   }
-  return currentAgentBubble;
+  return currentAgentBubble!;
 }
 
 function appendText(delta: string) {
@@ -260,6 +266,115 @@ function scheduleRender() {
       scrollBottom();
     }
   });
+}
+
+function resetConversation() {
+  setStreaming(false);
+  currentAgentBubble = null;
+  currentRawText = "";
+  currentThinkingEl = null;
+  currentThinkingRaw = "";
+  currentToolEls.clear();
+  renderPending = false;
+  $messages.innerHTML = "";
+}
+
+function renderUserBubble(text: string) {
+  const msg = document.createElement("div");
+  msg.className = "msg msg-user";
+  msg.innerHTML = `<div class="msg-bubble">${escapeHtml(text).replace(/\n/g, "<br>")}</div>`;
+  $messages.appendChild(msg);
+  scrollBottom();
+}
+
+async function renderAssistantMarkdown(bubble: HTMLElement | null, rawText: string) {
+  if (!bubble || !rawText) return;
+  const textEl = bubble.querySelector<HTMLElement>(".msg-text");
+  if (!textEl) return;
+  const html = await renderMarkdown(rawText);
+  textEl.innerHTML = html;
+  textEl.classList.remove("cursor");
+  scrollBottom();
+}
+
+async function hydrateSessionHistory(messages: SessionMessage[]) {
+  resetConversation();
+
+  const ops = buildSessionHistoryOps(messages);
+  for (const op of ops) {
+    switch (op.type) {
+      case "user":
+        if (currentAgentBubble) {
+          await renderAssistantMarkdown(currentAgentBubble, currentRawText);
+          currentAgentBubble = null;
+        }
+        currentToolEls.clear();
+        currentRawText = "";
+        currentThinkingRaw = "";
+        currentThinkingEl = null;
+        renderUserBubble(op.text);
+        break;
+
+      case "assistant_start":
+        if (currentAgentBubble) {
+          await renderAssistantMarkdown(currentAgentBubble, currentRawText);
+        }
+        currentToolEls.clear();
+        currentRawText = "";
+        currentThinkingRaw = "";
+        currentAgentBubble = createAgentBubble(false);
+        break;
+
+      case "assistant_text":
+        currentRawText += op.text;
+        break;
+
+      case "assistant_thinking":
+        if (!currentAgentBubble) {
+          currentAgentBubble = createAgentBubble(false);
+        }
+        currentThinkingRaw += op.text;
+        currentThinkingEl = currentAgentBubble.querySelector<HTMLElement>(".thinking-block");
+        currentThinkingEl?.classList.remove("hidden");
+        if (currentThinkingEl) {
+          currentThinkingEl.textContent = currentThinkingRaw;
+        }
+        const toggle = currentAgentBubble.querySelector<HTMLElement>(".thinking-toggle");
+        toggle?.classList.remove("hidden");
+        break;
+
+      case "assistant_tool_call":
+        if (!currentAgentBubble) {
+          currentAgentBubble = createAgentBubble(false);
+        }
+        addToolBlock(op.id, op.name, op.args);
+        break;
+
+      case "assistant_end":
+        await renderAssistantMarkdown(currentAgentBubble, currentRawText);
+        break;
+
+      case "tool_result": {
+        if (!currentAgentBubble) {
+          currentAgentBubble = createAgentBubble(false);
+        }
+        const els = currentToolEls.get(op.id);
+        if (els) {
+          els.body.textContent = op.output;
+          const statusEl = els.header.querySelector(".tool-status")!;
+          statusEl.className = `tool-status ${op.isError ? "err" : "ok"}`;
+          statusEl.textContent = op.isError ? "✕ error" : "✓ done";
+        } else {
+          addToolBlock(op.id, op.name, {});
+          finaliseToolBlock(op.id, op.output, op.isError);
+        }
+        break;
+      }
+    }
+  }
+
+  await renderAssistantMarkdown(currentAgentBubble, currentRawText);
+  scrollBottom();
 }
 
 // ---------------------------------------------------------------------------

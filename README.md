@@ -17,6 +17,7 @@ additional skills.
 - 🧠 Dynamic model selector that only shows currently available models
 - ⌨️ Shortcut legend modal in the header, with browser-safe hotkeys
 - 💾 Sessions, skills, settings, and direct Home Assistant config access persist through the add-on mounts
+- 📜 Sessions can be resumed from the web UI and their visible chat history is restored
 - 🔧 Extend with new skills from within a chat session: `pi install git:...`
 - 📝 Customise the agent persona via add-on options
 - 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, and boundaries clearly
@@ -42,6 +43,8 @@ additional skills.
 | `agents_md_append` | Extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
 
 The active chat model can be changed from the web UI. Only authenticated models are shown, and the selection persists via pi's saved settings.
+
+The session picker behaves like `/resume`: selecting a session restores its visible chat history into the conversation view.
 
 This add-on mounts `/data` and `/config` read/write, so the agent can work directly with Home Assistant files in addition to using the HA API.
 

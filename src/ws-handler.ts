@@ -38,6 +38,7 @@ type ServerMessage =
   | { type: "error"; message: string }
   | { type: "state"; isStreaming: boolean; sessionId: string; sessionFile?: string; model: string | null; thinkingLevel: string; messageCount: number }
   | { type: "sessions"; sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }> }
+  | { type: "session_history"; messages: ReturnType<AgentManager["getMessages"]> }
   | { type: "available_models"; models: AvailableModelSummary[] }
   | LoginEvent;
 
@@ -170,6 +171,7 @@ export class WsHandler {
 
         case "switch_session":
           await this.agent.switchSession(msg.sessionFile);
+          this.sendSessionHistory();
           this.sendState();
           break;
 
@@ -178,6 +180,7 @@ export class WsHandler {
           break;
 
         case "get_state":
+          this.sendSessionHistory();
           this.sendState();
           break;
 
@@ -289,6 +292,17 @@ export class WsHandler {
       type: "auth_status",
       providers: this.login.getProviders(),
     });
+  }
+
+  private sendSessionHistory(): void {
+    try {
+      this.send({
+        type: "session_history",
+        messages: this.agent.getMessages(),
+      });
+    } catch {
+      // No active session yet — nothing to hydrate.
+    }
   }
 
   private sendAvailableModels(): void {
