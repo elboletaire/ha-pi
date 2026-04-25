@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.3 — Fix external skills missing from Docker image
+
+### Fixes
+
+- Fixed external skills (`find-skills`, `using-superpowers`, `home-assistant-best-practices`) never appearing in `/app/skills/` inside the container: the runtime stage was copying `skills/` from the build context (git checkout) instead of from the builder stage where `install-skills.mjs` actually downloads them
+- Fixed `install-skills.mjs` failing in the builder stage due to `skills/` directory not existing: custom skills are now copied into the builder before `pnpm run build` runs, so both the directory exists and custom skills are present when external ones are merged in
+
 ## 0.5.2 — Fix skill loading after build-time skill refactor
 
 ### Fixes
