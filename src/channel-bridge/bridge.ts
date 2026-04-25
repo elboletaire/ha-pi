@@ -26,6 +26,7 @@ import { AuthStorage } from '@mariozechner/pi-coding-agent'
 import type { ResourceLoader } from '@mariozechner/pi-coding-agent'
 import { createResourceLoader } from '../resource-loader'
 import type { AgentSessionEvent } from '@mariozechner/pi-coding-agent'
+import { formatSourceHeader, markdownToTelegramHTML } from './message-format'
 
 /**
  * Create a unique sender ID for a chat/user.
@@ -49,6 +50,13 @@ function decodeSenderId(filename: string): string {
   return filename.replace(/_/g, ':')
 }
 
+interface ActiveDraftState {
+  draftId: number
+  source: string
+  phase: 'status' | 'text' | 'done'
+  body: string
+}
+
 export class ChannelBridge {
   private adapters: Map<string, ChannelAdapter> = new Map()
   private agentManagers: Map<string, AgentManager> = new Map()
@@ -65,7 +73,8 @@ export class ChannelBridge {
   private streamingDrafts: boolean
   private streamingIntervalMs: number
   private abortControllers: Map<string, AbortController> = new Map()
-  private activeDrafts: Map<string, { draftId: number; text: string }> = new Map()
+  private activeDrafts: Map<string, ActiveDraftState> = new Map()
+  private currentDraftSources: Map<string, string> = new Map()
   /** Cleanup functions for active typing loops, keyed by senderId. */
   private stopTypingFunctions: Map<string, () => void> = new Map()
   /** Timestamp of the last throttled draft send per sender, for token-stream rate limiting. */
@@ -226,8 +235,11 @@ export class ChannelBridge {
         }
       }
 
-      // Start draft streaming if supported
-      const draftId = this.startDraftStreaming(senderId)
+      // Resolve the current model before generation starts so draft bubbles can show
+      // the source header from the very beginning.
+      const stateBeforePrompt = agentManager.getState()
+      const modelSource = stateBeforePrompt?.model ? `🤖 ${stateBeforePrompt.model}` : 'agent'
+      this.currentDraftSources.set(senderId, modelSource)
 
       // Execute the prompt and process response
       await agentManager.prompt(prompt.text)
@@ -252,16 +264,33 @@ export class ChannelBridge {
           ? content
           : 'No response generated.'
 
-      // Get the current model for the message header
-      const state = agentManager.getState()
-      const modelSource = state?.model ? `🤖 ${state.model}` : 'agent'
+      const activeDraft = this.activeDrafts.get(senderId)
 
-      // Send the response - use draft if available, otherwise single message
-      if (draftId !== null && this.activeDrafts.has(senderId)) {
-        // Draft streaming is active — deliver the fully formatted final message
-        await this.finalizeDraft(senderId, prompt.adapter, prompt.sender, responseText, undefined, modelSource)
+      // If draft streaming is active, finalize the current bubble in place.
+      // If the bubble was already finalized by the event stream, do nothing.
+      if (activeDraft) {
+        if (activeDraft.phase !== 'done') {
+          const finalized = await this.finalizeDraft(
+            senderId,
+            prompt.adapter,
+            prompt.sender,
+            responseText,
+            undefined,
+            modelSource
+          )
+          if (!finalized) {
+            await this.sendMessage(
+              {
+                adapter: prompt.adapter,
+                recipient: prompt.sender,
+                text: responseText,
+                source: modelSource,
+              },
+              undefined
+            )
+          }
+        }
       } else {
-        // Send as single message with model in header
         await this.sendMessage(
           {
             adapter: prompt.adapter,
@@ -297,6 +326,7 @@ export class ChannelBridge {
       // Clean up per-sender streaming state (no-op if already cleaned up by event handler)
       this.stopTypingFunctions.delete(senderId)
       this.activeDrafts.delete(senderId)
+      this.currentDraftSources.delete(senderId)
       this.lastDraftSent.delete(senderId)
 
       session.processing = false
@@ -372,11 +402,12 @@ export class ChannelBridge {
    * Handle agent session events.
    *
    * Drives the draft state machine:
-   *   thinking_start       → show “<i>Thinking...</i>” (italic, immediate)
-   *   tool_execution_start → show “<i>Using bash...</i>” (italic, immediate, stops typing loop)
-   *   text_start           → reset accumulated text, stop typing loop
+   *   thinking_start       → show “<i>🤔</i>” (immediate)
+   *   tool_execution_start → show “<i>Using bash...</i>” (immediate, stops typing loop)
+   *   text_start           → switch the active bubble into text mode
    *   text_delta           → append token, throttled send (no parse_mode)
-   *   message_end          → count message (do NOT delete activeDrafts — finalizeDraft owns that)
+   *   text_end             → finalize the active bubble in place
+   *   message_end          → count message (cleanup happens in processQueue)
    */
   private async handleAgentEvent(senderId: string, event: AgentSessionEvent): Promise<void> {
     const session = this.senderSessions.get(senderId)
@@ -385,12 +416,12 @@ export class ChannelBridge {
     const senderIdParts = senderId.split(':')
     const adapter = senderIdParts[0]
     const sender = senderIdParts.slice(1).join(':')
+    const source = this.getDraftSource(senderId)
 
     log.debug(`Agent event for ${senderId}: ${event.type}`)
 
     if (event.type === 'message_end') {
       session.messageCount++
-      // NOTE: intentionally NOT deleting activeDrafts — processQueue.finalizeDraft handles cleanup
       return
     }
 
@@ -399,28 +430,162 @@ export class ChannelBridge {
       if (!ae) return
 
       if (ae.type === 'thinking_start') {
-        // Model is reasoning — show italic status, bypass throttle
-        await this.setDraftStatus(senderId, adapter, sender, '<i>Thinking...</i>')
-      } else if (ae.type === 'text_start') {
-        // Final response is about to stream — reset accumulated text (silent, no send)
         const active = this.activeDrafts.get(senderId)
-        if (active) active.text = ''
-        // Stop typing indicator — streaming text provides the feedback instead
+        if (active?.phase === 'text' && active.body) {
+          await this.finalizeDraft(senderId, adapter, sender, active.body, undefined, active.source)
+        }
+        await this.sendDraftStatus(senderId, adapter, sender, source, '<i>🤔</i>')
+        this.stopTypingFunctions.get(senderId)?.()
+        this.stopTypingFunctions.delete(senderId)
+      } else if (ae.type === 'text_start') {
+        await this.transitionToText(senderId, adapter, sender, source)
         this.stopTypingFunctions.get(senderId)?.()
         this.stopTypingFunctions.delete(senderId)
       } else if (ae.type === 'text_delta') {
-        // Append token and throttle-send
-        await this.appendDraftToken(senderId, adapter, sender, ae.delta)
+        await this.appendDraftToken(senderId, adapter, sender, source, ae.delta)
+      } else if (ae.type === 'text_end') {
+        const active = this.activeDrafts.get(senderId)
+        if (active?.phase === 'text') {
+          await this.finalizeDraft(senderId, adapter, sender, active.body, undefined, active.source)
+        }
       }
       return
     }
 
     if (event.type === 'tool_execution_start') {
-      // Show which tool is running — bypass throttle, stop typing indicator
-      await this.setDraftStatus(senderId, adapter, sender, `<i>Using ${event.toolName}...</i>`)
+      const active = this.activeDrafts.get(senderId)
+      if (active?.phase === 'text' && active.body) {
+        await this.finalizeDraft(senderId, adapter, sender, active.body, undefined, active.source)
+      }
+      await this.sendDraftStatus(senderId, adapter, sender, source, `<i>Using ${event.toolName}...</i>`)
       this.stopTypingFunctions.get(senderId)?.()
       this.stopTypingFunctions.delete(senderId)
     }
+  }
+
+  /**
+   * Get the source label for an active draft segment.
+   */
+  private getDraftSource(senderId: string): string {
+    return this.currentDraftSources.get(senderId) ?? 'agent'
+  }
+
+  /**
+   * Start draft streaming for a sender.
+   * Returns the draft ID if streaming is enabled and the adapter supports it, null otherwise.
+   */
+  private startDraftStreaming(senderId: string, source = this.getDraftSource(senderId)): number | null {
+    if (!this.streamingDrafts) return null
+    const channelAdapter = this.adapters.get('bidirectional')
+    if (!channelAdapter || !channelAdapter.sendDraft) return null
+
+    const draftId = ++this.draftCounter
+    this.activeDrafts.set(senderId, { draftId, source, phase: 'status', body: '' })
+    return draftId
+  }
+
+  /**
+   * Get the currently active draft, creating a new one if needed.
+   */
+  private ensureActiveDraft(senderId: string, source = this.getDraftSource(senderId)): ActiveDraftState | null {
+    const active = this.activeDrafts.get(senderId)
+    if (active && active.phase !== 'done') {
+      return active
+    }
+
+    const draftId = this.startDraftStreaming(senderId, source)
+    if (draftId === null) return null
+    return this.activeDrafts.get(senderId) ?? null
+  }
+
+  /**
+   * Overwrite the current draft with a complete status message.
+   * Sends immediately with HTML parse_mode so italic tags render correctly.
+   * Bypasses the token-stream throttle — status changes are infrequent.
+   */
+  private async sendDraftStatus(
+    senderId: string,
+    adapter: string,
+    recipient: string,
+    source: string,
+    html: string
+  ): Promise<void> {
+    const active = this.ensureActiveDraft(senderId, source)
+    if (!active) return
+
+    active.phase = 'status'
+    active.body = html
+    this.lastDraftSent.set(senderId, Date.now())
+    await this.sendDraft(adapter, recipient, active.draftId, `${formatSourceHeader(active.source)}${html}`, 'HTML')
+  }
+
+  /**
+   * Switch the active draft into text mode.
+   */
+  private async transitionToText(senderId: string, adapter: string, recipient: string, source: string): Promise<void> {
+    const active = this.ensureActiveDraft(senderId, source)
+    if (!active || active.phase === 'text') return
+
+    active.phase = 'text'
+    active.body = ''
+    this.lastDraftSent.delete(senderId)
+    await this.sendDraft(adapter, recipient, active.draftId, formatSourceHeader(active.source))
+  }
+
+  /**
+   * Append a streamed token to the current draft and send it throttled.
+   * No parse_mode — partial markdown cannot be safely rendered mid-stream.
+   */
+  private async appendDraftToken(
+    senderId: string,
+    adapter: string,
+    recipient: string,
+    source: string,
+    delta: string
+  ): Promise<void> {
+    const active = this.ensureActiveDraft(senderId, source)
+    if (!active) return
+
+    if (active.phase !== 'text') {
+      await this.transitionToText(senderId, adapter, recipient, source)
+    }
+
+    const current = this.activeDrafts.get(senderId)
+    if (!current) return
+
+    current.phase = 'text'
+    current.body += delta
+    const lastSent = this.lastDraftSent.get(senderId) ?? 0
+    if (Date.now() - lastSent < this.streamingIntervalMs) return
+    this.lastDraftSent.set(senderId, Date.now())
+    await this.sendDraft(adapter, recipient, current.draftId, `${formatSourceHeader(current.source)}${current.body}`)
+  }
+
+  /**
+   * Finalize draft: deliver the fully-formatted final message.
+   * Replaces any previous status with the complete response.
+   */
+  private async finalizeDraft(
+    senderId: string,
+    adapter: string,
+    recipient: string,
+    text: string,
+    markup?: InlineKeyboardMarkup,
+    source?: string
+  ): Promise<boolean> {
+    const active = this.activeDrafts.get(senderId)
+    if (!active || active.phase === 'done') return false
+
+    const draftSource = source ?? active.source ?? this.getDraftSource(senderId)
+    const fullText = markdownToTelegramHTML(`${formatSourceHeader(draftSource)}${text}`)
+
+    this.lastDraftSent.set(senderId, Date.now())
+    const sent = await this.sendDraft(adapter, recipient, active.draftId, fullText, 'HTML')
+    if (!sent) return false
+
+    active.phase = 'done'
+    active.body = text
+    return true
   }
 
   /**
@@ -459,6 +624,7 @@ export class ChannelBridge {
 
   /**
    * Send a draft update via the adapter.
+   * Returns true when the update was handed off to the adapter, false on failure.
    * @param parseMode - Pass 'HTML' for complete status messages; omit for raw token streams.
    */
   private async sendDraft(
@@ -467,78 +633,18 @@ export class ChannelBridge {
     draftId: number,
     text: string,
     parseMode?: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     const channelAdapter = this.adapters.get('bidirectional')
-    if (!channelAdapter || !channelAdapter.sendDraft) return
+    if (!channelAdapter || !channelAdapter.sendDraft) return false
 
     try {
       await channelAdapter.sendDraft(recipient, draftId, text, parseMode)
+      return true
     } catch (err: any) {
       log.debug(`Failed to send draft: ${err.message}`)
       // Best-effort — draft streaming is optional
+      return false
     }
-  }
-
-  /**
-   * Start draft streaming for a sender.
-   * Returns the draft ID if streaming is enabled and the adapter supports it, null otherwise.
-   */
-  private startDraftStreaming(senderId: string): number | null {
-    if (!this.streamingDrafts) return null
-    const channelAdapter = this.adapters.get('bidirectional')
-    if (!channelAdapter || !channelAdapter.sendDraft) return null
-
-    const draftId = ++this.draftCounter
-    this.activeDrafts.set(senderId, { draftId, text: '' })
-    return draftId
-  }
-
-  /**
-   * Overwrite the current draft with a complete status message.
-   * Sends immediately with HTML parse_mode so italic tags render correctly.
-   * Bypasses the token-stream throttle — status changes are infrequent.
-   */
-  private async setDraftStatus(senderId: string, adapter: string, recipient: string, html: string): Promise<void> {
-    const active = this.activeDrafts.get(senderId)
-    if (!active) return
-    active.text = html
-    this.lastDraftSent.set(senderId, Date.now())
-    await this.sendDraft(adapter, recipient, active.draftId, html, 'HTML')
-  }
-
-  /**
-   * Append a streamed token to the current draft and send it throttled.
-   * No parse_mode — partial markdown cannot be safely rendered mid-stream.
-   */
-  private async appendDraftToken(senderId: string, adapter: string, recipient: string, delta: string): Promise<void> {
-    const active = this.activeDrafts.get(senderId)
-    if (!active) return
-    active.text += delta
-    const lastSent = this.lastDraftSent.get(senderId) ?? 0
-    if (Date.now() - lastSent < this.streamingIntervalMs) return
-    this.lastDraftSent.set(senderId, Date.now())
-    await this.sendDraft(adapter, recipient, active.draftId, active.text)
-  }
-
-  /**
-   * Finalize draft: deliver the fully-formatted final message.
-   * @param text - The final response text (from getMessages, passed through markdownToTelegramHTML by adapter).
-   */
-  private async finalizeDraft(
-    senderId: string,
-    adapter: string,
-    recipient: string,
-    text: string,
-    markup?: InlineKeyboardMarkup,
-    source?: string
-  ): Promise<void> {
-    const active = this.activeDrafts.get(senderId)
-    if (!active) return
-
-    await this.sendMessage({ adapter, recipient, text, source: source ?? 'agent' }, markup)
-
-    this.activeDrafts.delete(senderId)
-    this.lastDraftSent.delete(senderId)
   }
 
   /**

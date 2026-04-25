@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { ChannelBridge } from '../src/channel-bridge/bridge'
 import type { ChannelAdapter } from '../src/channel-bridge/types'
 
@@ -39,10 +39,18 @@ function createBridge(
 }
 
 /** Seed activeDrafts AND senderSessions so event-handler tests don't need a full processQueue run. */
-function seedDraft(bridge: ChannelBridge, senderId: string, text = '') {
+function seedDraft(
+  bridge: ChannelBridge,
+  senderId: string,
+  body = '',
+  phase: 'status' | 'text' | 'done' = 'status',
+  source = '🤖 anthropic/claude-3'
+) {
   const [adapter, ...rest] = senderId.split(':')
   const sender = rest.join(':')
-  ;(bridge as any).activeDrafts.set(senderId, { draftId: 1, text })
+  ;(bridge as any).currentDraftSources.set(senderId, source)
+  ;(bridge as any).draftCounter = Math.max((bridge as any).draftCounter ?? 0, 1)
+  ;(bridge as any).activeDrafts.set(senderId, { draftId: 1, source, phase, body })
   if (!(bridge as any).senderSessions.has(senderId)) {
     ;(bridge as any).senderSessions.set(senderId, {
       adapter,
@@ -66,6 +74,8 @@ function msgUpdate(ae: Record<string, unknown>) {
   }
 }
 
+const SOURCE_HEADER = '🧠 Pi · claude-3\n───'
+
 // ── startDraftStreaming ───────────────────────────────────────────────────────
 
 describe('startDraftStreaming', () => {
@@ -87,14 +97,19 @@ describe('startDraftStreaming', () => {
     const id = (bridge as any).startDraftStreaming('telegram:123')
     expect(typeof id).toBe('number')
     expect(id).toBeGreaterThan(0)
-    expect((bridge as any).activeDrafts.get('telegram:123')).toEqual({ draftId: id, text: '' })
+    expect((bridge as any).activeDrafts.get('telegram:123')).toEqual({
+      draftId: id,
+      source: 'agent',
+      phase: 'status',
+      body: '',
+    })
   })
 })
 
-// ── thinking_start → <i>Thinking...</i> ──────────────────────────────────────
+// ── thinking_start → source header + 🤔 ──────────────────────────────────────
 
 describe('handleAgentEvent — thinking_start', () => {
-  it('overwrites draft with italic thinking status and sends with HTML parseMode', async () => {
+  it('renders the header immediately and sends the thinking emoji', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter)
     seedDraft(bridge, 'telegram:123')
@@ -105,8 +120,12 @@ describe('handleAgentEvent — thinking_start', () => {
     )
 
     expect(adapter.sendDraft).toHaveBeenCalledOnce()
-    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, '<i>Thinking...</i>', 'HTML')
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('<i>Thinking...</i>')
+    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, `${SOURCE_HEADER}<i>🤔</i>`, 'HTML')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'status',
+      body: '<i>🤔</i>',
+    })
   })
 
   it('is a no-op when no active draft exists (streamingDrafts off or adapter unsupported)', async () => {
@@ -122,10 +141,10 @@ describe('handleAgentEvent — thinking_start', () => {
   })
 })
 
-// ── tool_execution_start → <i>Using {tool}...</i> ────────────────────────────
+// ── tool_execution_start → source header + Using {tool}... ───────────────────
 
 describe('handleAgentEvent — tool_execution_start', () => {
-  it('overwrites draft with the tool name and sends with HTML parseMode', async () => {
+  it('renders the header immediately and sends the tool name', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter)
     seedDraft(bridge, 'telegram:123')
@@ -138,8 +157,12 @@ describe('handleAgentEvent — tool_execution_start', () => {
     })
 
     expect(adapter.sendDraft).toHaveBeenCalledOnce()
-    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, '<i>Using bash...</i>', 'HTML')
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('<i>Using bash...</i>')
+    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, `${SOURCE_HEADER}<i>Using bash...</i>`, 'HTML')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'status',
+      body: '<i>Using bash...</i>',
+    })
   })
 
   it('shows different tool names for sequential tool calls', async () => {
@@ -161,7 +184,7 @@ describe('handleAgentEvent — tool_execution_start', () => {
     })
 
     expect(adapter.sendDraft).toHaveBeenCalledTimes(2)
-    expect(adapter.sendDraft).toHaveBeenLastCalledWith('123', 1, '<i>Using curl...</i>', 'HTML')
+    expect(adapter.sendDraft).toHaveBeenLastCalledWith('123', 1, `${SOURCE_HEADER}<i>Using curl...</i>`, 'HTML')
   })
 
   it('stops the typing indicator when a tool starts', async () => {
@@ -184,21 +207,26 @@ describe('handleAgentEvent — tool_execution_start', () => {
   })
 })
 
-// ── text_start → silent reset ─────────────────────────────────────────────────
+// ── text_start → header-only draft, then raw token streaming ─────────────────
 
 describe('handleAgentEvent — text_start', () => {
-  it('resets accumulated text without sending a draft update', async () => {
+  it('switches the bubble into text mode and clears the status body', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter)
-    seedDraft(bridge, 'telegram:123', '<i>Thinking...</i>')
+    seedDraft(bridge, 'telegram:123', '<i>🤔</i>', 'status')
 
     await (bridge as any).handleAgentEvent(
       'telegram:123',
       msgUpdate({ type: 'text_start', contentIndex: 0, partial: {} })
     )
 
-    expect(adapter.sendDraft).not.toHaveBeenCalled()
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('')
+    expect(adapter.sendDraft).toHaveBeenCalledOnce()
+    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, SOURCE_HEADER, undefined)
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'text',
+      body: '',
+    })
   })
 
   it('stops the typing indicator', async () => {
@@ -225,20 +253,24 @@ describe('handleAgentEvent — text_delta', () => {
   it('appends the delta to draft text', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter, { streamingIntervalMs: 0 })
-    seedDraft(bridge, 'telegram:123', 'Hello')
+    seedDraft(bridge, 'telegram:123', 'Hello', 'text')
 
     await (bridge as any).handleAgentEvent(
       'telegram:123',
       msgUpdate({ type: 'text_delta', contentIndex: 0, delta: ' world', partial: {} })
     )
 
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('Hello world')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'text',
+      body: 'Hello world',
+    })
   })
 
   it('sends the accumulated text without parseMode', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter, { streamingIntervalMs: 0 })
-    seedDraft(bridge, 'telegram:123', '')
+    seedDraft(bridge, 'telegram:123', '', 'text')
     // lastDraftSent not set → defaults to 0 → throttle always passes
 
     await (bridge as any).handleAgentEvent(
@@ -247,14 +279,13 @@ describe('handleAgentEvent — text_delta', () => {
     )
 
     expect(adapter.sendDraft).toHaveBeenCalledOnce()
-    // parseMode is undefined for token streams
-    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, 'Hi', undefined)
+    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, `${SOURCE_HEADER}Hi`, undefined)
   })
 
   it('throttles rapid token updates', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter, { streamingIntervalMs: 10_000 })
-    seedDraft(bridge, 'telegram:123', '')
+    seedDraft(bridge, 'telegram:123', '', 'text')
     // Simulate "just sent" so the throttle window is active
     ;(bridge as any).lastDraftSent.set('telegram:123', Date.now())
 
@@ -264,14 +295,18 @@ describe('handleAgentEvent — text_delta', () => {
     )
 
     // Text was accumulated but API call was suppressed
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('Hello')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'text',
+      body: 'Hello',
+    })
     expect(adapter.sendDraft).not.toHaveBeenCalled()
   })
 
   it('bypasses throttle after interval elapses', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter, { streamingIntervalMs: 1 })
-    seedDraft(bridge, 'telegram:123', '')
+    seedDraft(bridge, 'telegram:123', '', 'text')
     // lastDraftSent set to the distant past
     ;(bridge as any).lastDraftSent.set('telegram:123', 0)
 
@@ -286,7 +321,7 @@ describe('handleAgentEvent — text_delta', () => {
   it('status messages (thinking/tool) bypass throttle even within interval', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter, { streamingIntervalMs: 10_000 })
-    seedDraft(bridge, 'telegram:123', '')
+    seedDraft(bridge, 'telegram:123', '', 'text')
     ;(bridge as any).lastDraftSent.set('telegram:123', Date.now())
 
     // Status event should still fire despite throttle window being active
@@ -298,7 +333,7 @@ describe('handleAgentEvent — text_delta', () => {
     })
 
     expect(adapter.sendDraft).toHaveBeenCalledOnce()
-    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, '<i>Using bash...</i>', 'HTML')
+    expect(adapter.sendDraft).toHaveBeenCalledWith('123', 1, `${SOURCE_HEADER}<i>Using bash...</i>`, 'HTML')
   })
 })
 
@@ -308,7 +343,7 @@ describe('handleAgentEvent — message_end', () => {
   it('increments messageCount but does NOT delete the active draft', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter)
-    seedDraft(bridge, 'telegram:123', 'some streamed text')
+    seedDraft(bridge, 'telegram:123', 'some streamed text', 'text')
 
     await (bridge as any).handleAgentEvent('telegram:123', {
       type: 'message_end',
@@ -320,56 +355,51 @@ describe('handleAgentEvent — message_end', () => {
   })
 })
 
-// ── finalizeDraft uses the passed text, not active.text ───────────────────────
+// ── finalizeDraft ────────────────────────────────────────────────────────────
 
 describe('finalizeDraft', () => {
-  it('sends the explicitly passed text, ignoring active.text', async () => {
+  it('updates draft with final HTML and marks the segment done', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter)
-    seedDraft(bridge, 'telegram:123', 'raw accumulated tokens')
+    seedDraft(bridge, 'telegram:123', '<i>🤔</i>', 'text')
 
-    await (bridge as any).finalizeDraft(
+    const finalized = await (bridge as any).finalizeDraft(
       'telegram:123',
       'telegram',
       '123',
-      'Final formatted response',
+      '**Final formatted response**',
       undefined,
       '🤖 anthropic/claude-3'
     )
 
-    expect(adapter.send).toHaveBeenCalledOnce()
-    const call = (adapter.send as ReturnType<typeof vi.fn>).mock.calls[0][0]
-    expect(call.text).toBe('Final formatted response')
-    expect(call.source).toBe('🤖 anthropic/claude-3')
+    expect(finalized).toBe(true)
+    expect(adapter.sendDraft).toHaveBeenCalledOnce()
+    const call = (adapter.sendDraft as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(call[2]).toContain('🧠 Pi · claude-3')
+    expect(call[2]).toContain('<b>Final formatted response</b>')
+    expect(call[3]).toBe('HTML')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'done',
+      body: '**Final formatted response**',
+    })
   })
 
-  it('cleans up activeDrafts and lastDraftSent after sending', async () => {
+  it('returns false when the draft entry is missing', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter)
-    seedDraft(bridge, 'telegram:123', 'text')
-    ;(bridge as any).lastDraftSent.set('telegram:123', Date.now())
 
-    await (bridge as any).finalizeDraft('telegram:123', 'telegram', '123', 'Final', undefined, 'agent')
+    const result = await (bridge as any).finalizeDraft('telegram:123', 'telegram', '123', 'Final', undefined, 'agent')
 
-    expect((bridge as any).activeDrafts.has('telegram:123')).toBe(false)
-    expect((bridge as any).lastDraftSent.has('telegram:123')).toBe(false)
-  })
-
-  it('is a no-op when the draft entry was already removed', async () => {
-    const adapter = createMockAdapter()
-    const bridge = createBridge(adapter)
-    // activeDrafts deliberately empty
-
-    await (bridge as any).finalizeDraft('telegram:123', 'telegram', '123', 'Final', undefined, 'agent')
-
-    expect(adapter.send).not.toHaveBeenCalled()
+    expect(result).toBe(false)
+    expect(adapter.sendDraft).not.toHaveBeenCalled()
   })
 })
 
 // ── full state-machine sequence ───────────────────────────────────────────────
 
 describe('draft state machine — full sequence', () => {
-  it('think → tool → stream → finalize produces the correct draft progression', async () => {
+  it('think → tool → stream → finalize → think again produces distinct bubbles', async () => {
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter, { streamingIntervalMs: 0 })
     seedDraft(bridge, 'telegram:123')
@@ -379,7 +409,11 @@ describe('draft state machine — full sequence', () => {
       'telegram:123',
       msgUpdate({ type: 'thinking_start', contentIndex: 0, partial: {} })
     )
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('<i>Thinking...</i>')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'status',
+      body: '<i>🤔</i>',
+    })
 
     // 2. Tool starts executing
     await (bridge as any).handleAgentEvent('telegram:123', {
@@ -388,14 +422,22 @@ describe('draft state machine — full sequence', () => {
       toolName: 'bash',
       args: {},
     })
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('<i>Using bash...</i>')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'status',
+      body: '<i>Using bash...</i>',
+    })
 
     // 3. Final response begins — text resets silently
     await (bridge as any).handleAgentEvent(
       'telegram:123',
       msgUpdate({ type: 'text_start', contentIndex: 0, partial: {} })
     )
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'text',
+      body: '',
+    })
 
     // 4. Tokens stream in
     for (const token of ['Hello', ', ', 'world', '!']) {
@@ -404,13 +446,40 @@ describe('draft state machine — full sequence', () => {
         msgUpdate({ type: 'text_delta', contentIndex: 0, delta: token, partial: {} })
       )
     }
-    expect((bridge as any).activeDrafts.get('telegram:123').text).toBe('Hello, world!')
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'text',
+      body: 'Hello, world!',
+    })
 
     // 5. Finalize with fully formatted text
-    await (bridge as any).finalizeDraft('telegram:123', 'telegram', '123', '**Hello**, world!', undefined, 'agent')
+    const finalized = await (bridge as any).finalizeDraft(
+      'telegram:123',
+      'telegram',
+      '123',
+      '**Hello**, world!',
+      undefined,
+      'agent'
+    )
+    expect(finalized).toBe(true)
+    expect((bridge as any).activeDrafts.get('telegram:123')).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'done',
+      body: '**Hello**, world!',
+    })
 
-    const lastSend = (adapter.send as ReturnType<typeof vi.fn>).mock.calls[0][0]
-    expect(lastSend.text).toBe('**Hello**, world!')
-    expect((bridge as any).activeDrafts.has('telegram:123')).toBe(false)
+    // 6. If the model starts thinking again, a new bubble should be created
+    await (bridge as any).handleAgentEvent(
+      'telegram:123',
+      msgUpdate({ type: 'thinking_start', contentIndex: 1, partial: {} })
+    )
+    const secondBubble = (bridge as any).activeDrafts.get('telegram:123')
+    expect(secondBubble).toMatchObject({
+      source: '🤖 anthropic/claude-3',
+      phase: 'status',
+      body: '<i>🤔</i>',
+    })
+    expect(secondBubble.draftId).toBeGreaterThan(1)
+    expect(adapter.sendDraft).toHaveBeenCalled()
   })
 })
