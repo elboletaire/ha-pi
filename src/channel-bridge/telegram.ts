@@ -979,15 +979,24 @@ function markdownToTelegramHTML(text: string): string {
   // Escape HTML special characters (but not inside code blocks)
   const escapeHTML = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-  // Step 1: Protect code blocks from processing
+  // Step 1: Protect inline code FIRST - this prevents backtick content from being escaped later
+  const inlineCodes: string[] = []
+  let result = text.replace(/`([^`]+)`/g, (match, code) => {
+    const placeholder = `___INLINECODE_${inlineCodes.length}___`
+    // Escape HTML in the code content so special chars are preserved in the final output
+    inlineCodes.push(`<code>${escapeHTML(code)}</code>`)
+    return placeholder
+  })
+
+  // Step 2: Protect code blocks from processing
   const codeBlocks: string[] = []
-  let result = text.replace(/```([\s\S]*?)```/g, (match, code) => {
+  result = result.replace(/```([\s\S]*?)```/g, (match, code) => {
     const placeholder = `___CODEBLOCK_${codeBlocks.length}___`
     codeBlocks.push(`<pre>${escapeHTML(code.trim())}</pre>`)
     return placeholder
   })
 
-  // Step 2: Convert Markdown tables to aligned text (before protecting inline code)
+  // Step 3: Convert Markdown tables to aligned text
   const tables: string[] = []
   result = result.replace(/(?:^\|.+\|$\n?)+/gm, (match) => {
     const placeholder = `___TABLE_${tables.length}___`
@@ -995,27 +1004,19 @@ function markdownToTelegramHTML(text: string): string {
     return placeholder
   })
 
-  // Step 3: Protect inline code
-  const inlineCodes: string[] = []
-  result = result.replace(/`([^`]+)`/g, (match, code) => {
-    const placeholder = `___INLINECODE_${inlineCodes.length}___`
-    inlineCodes.push(`<code>${escapeHTML(code)}</code>`)
-    return placeholder
-  })
-
-  // Step 4: Now safe to escape remaining HTML
+  // Step 4: Escape remaining HTML in non-code content
   result = escapeHTML(result)
 
-  // Step 5: Convert Markdown to HTML
+  // Step 5: Convert remaining Markdown to HTML
   let html = result
 
   // Headers (### Header → <b>Header</b>)
   html = html.replace(/^#{1,6}\s+(.+)$/gm, '<b>$1</b>')
 
-  // Bold (**text** or __text__) - but not our placeholders
+  // Bold (**text** or __text__) - placeholders are safe as they contain no asterisks/underscores
   html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(?<!_)__(?!_)(.+?)(?<!_)__(?!_)/g, '<b>$1</b>')
 
-  // Italic (*text* or _text_) - but not in URLs or placeholders
+  // Italic (*text* or _text_) - use word boundary checks to avoid URLs
   html = html
     .replace(/(?<!\w)\*(.+?)\*(?!\w)/g, '<i>$1</i>')
     .replace(/(?<!\w)(?<!_)_(?!_)(.+?)(?<!_)_(?!_)(?!\w)/g, '<i>$1</i>')
@@ -1023,7 +1024,7 @@ function markdownToTelegramHTML(text: string): string {
   // Links [text](url) → <a href="url">text</a>
   html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
 
-  // Step 6: Restore tables, code blocks and inline code
+  // Step 6: Restore protected content (tables, code blocks, inline code)
   tables.forEach((table, i) => {
     html = html.replace(`___TABLE_${i}___`, table)
   })
