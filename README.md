@@ -28,14 +28,14 @@ additional skills.
 1. Add this repository to your HA add-on store
 2. Install **Pi Agent**
 3. Start the add-on
-4. Open the Providers modal in the web UI and add API keys or sign in with OAuth providers
-5. Click **Open Web UI** or find **Pi Agent** in your sidebar
+4. Click **Open Web UI** or find **Pi Agent** in your sidebar
+5. Open the Providers modal in the web UI and add API keys or sign in with OAuth providers
 
 ## Configuration
 
-| Option | Description |
-|--------|-------------|
-| `log_level` | Server log verbosity (`debug`, `info`, `warn`, `error`) |
+| Option             | Description                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `log_level`        | Server log verbosity (`debug`, `info`, `warn`, `error`)                                |
 | `agents_md_append` | Free-form extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
 
 API keys and OAuth tokens are managed from the web UI's Providers modal and stored in `/data/pi-agent/auth.json`.

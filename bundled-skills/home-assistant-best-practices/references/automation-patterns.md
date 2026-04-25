@@ -3,6 +3,7 @@
 This document covers native Home Assistant automation constructs that should be used instead of templates.
 
 ## Table of Contents
+
 1. [Native Conditions](#native-conditions)
 2. [Trigger Types](#trigger-types)
 3. [Wait Actions](#wait-actions)
@@ -191,7 +192,7 @@ When you must use a template, use the shorthand syntax:
 # Shorthand (preferred when template is necessary)
 conditions:
   - "{{ trigger.to_state.attributes.brightness > 100 }}"
-  
+
 # Long form (equivalent)
 conditions:
   - condition: template
@@ -295,7 +296,7 @@ Fires at sunrise/sunset with optional offset.
 trigger:
   - trigger: sun
     event: sunset
-    offset: "-00:30:00"  # 30 minutes before sunset
+    offset: '-00:30:00' # 30 minutes before sunset
 ```
 
 ### Event Trigger
@@ -324,8 +325,8 @@ Fires on MQTT messages.
 ```yaml
 trigger:
   - trigger: mqtt
-    topic: "zigbee2mqtt/button/action"
-    payload: "single"
+    topic: 'zigbee2mqtt/button/action'
+    payload: 'single'
 ```
 
 ### Device Trigger (Use Sparingly)
@@ -355,20 +356,20 @@ Event-driven wait. More efficient than polling.
 - wait_for_trigger:
     - trigger: state
       entity_id: binary_sensor.door
-      to: "off"
+      to: 'off'
   timeout:
     minutes: 5
-  continue_on_timeout: false  # Stop automation if timeout
+  continue_on_timeout: false # Stop automation if timeout
 
 # Wait for any of multiple triggers
 - wait_for_trigger:
     - trigger: state
       entity_id: binary_sensor.door
-      to: "off"
+      to: 'off'
     - trigger: event
       event_type: mobile_app_notification_action
       event_data:
-        action: "CLOSE_DOOR"
+        action: 'CLOSE_DOOR'
 ```
 
 ### wait_template (Use Sparingly)
@@ -383,6 +384,7 @@ Polls until template is true. **Immediately continues if already true.**
 ```
 
 **Key difference:**
+
 - `wait_for_trigger` waits for a **change** to occur
 - `wait_template` waits for a **condition** to be true (passes immediately if already true)
 
@@ -394,16 +396,16 @@ Both waits set `wait.completed` and `wait.remaining`:
 - wait_for_trigger:
     - trigger: state
       entity_id: binary_sensor.door
-      to: "off"
+      to: 'off'
   timeout:
     minutes: 5
 
 - if:
-    - "{{ not wait.completed }}"
+    - '{{ not wait.completed }}'
   then:
     - action: notify.mobile_app
       data:
-        message: "Door still open after 5 minutes!"
+        message: 'Door still open after 5 minutes!'
 ```
 
 ---
@@ -420,16 +422,16 @@ New triggers are ignored while running. A warning is logged.
 
 ```yaml
 automation:
-  - alias: "Doorbell notification"
+  - alias: 'Doorbell notification'
     mode: single
     trigger:
       - trigger: state
         entity_id: binary_sensor.doorbell
-        to: "on"
+        to: 'on'
     action:
       - action: notify.mobile_app
         data:
-          message: "Someone at the door!"
+          message: 'Someone at the door!'
 ```
 
 ### restart
@@ -439,7 +441,7 @@ Stops the current run and starts fresh. Timer-based actions are reset.
 **Best for:** Motion-activated lights with timeout, retriggerable delays.
 
 ```yaml
-mode: restart  # Re-trigger resets the timer
+mode: restart # Re-trigger resets the timer
 ```
 
 See `references/examples.yaml` Example 1 for a complete motion-light automation using restart + wait_for_trigger.
@@ -452,19 +454,19 @@ Queues new triggers to run after current run completes.
 
 ```yaml
 automation:
-  - alias: "Garage door controller"
+  - alias: 'Garage door controller'
     mode: queued
-    max: 5  # Maximum queue size
+    max: 5 # Maximum queue size
     trigger:
       - trigger: state
         entity_id: input_boolean.garage_door_trigger
-        to: "on"
+        to: 'on'
     action:
       - action: cover.toggle
         target:
           entity_id: cover.garage_door
       - delay:
-          seconds: 20  # Wait for door to fully open/close
+          seconds: 20 # Wait for door to fully open/close
 ```
 
 ### parallel
@@ -475,22 +477,22 @@ Runs multiple instances simultaneously.
 
 ```yaml
 automation:
-  - alias: "Window open too long"
+  - alias: 'Window open too long'
     mode: parallel
-    max: 10  # Maximum parallel runs
+    max: 10 # Maximum parallel runs
     trigger:
       - trigger: state
         entity_id:
           - binary_sensor.window_bedroom
           - binary_sensor.window_kitchen
           - binary_sensor.window_living
-        to: "on"
+        to: 'on'
         for:
           minutes: 30
     action:
       - action: notify.mobile_app
         data:
-          message: "{{ trigger.to_state.name }} has been open for 30 minutes"
+          message: '{{ trigger.to_state.name }} has been open for 30 minutes'
 ```
 
 ### max_exceeded
@@ -499,9 +501,9 @@ Control logging when max runs are exceeded:
 
 ```yaml
 automation:
-  - alias: "Quiet automation"
+  - alias: 'Quiet automation'
     mode: single
-    max_exceeded: silent  # No warning logged
+    max_exceeded: silent # No warning logged
 ```
 
 ---
@@ -517,7 +519,7 @@ actions:
   - if:
       - condition: state
         entity_id: sun.sun
-        state: "below_horizon"
+        state: 'below_horizon'
     then:
       - action: light.turn_on
         target:
@@ -537,7 +539,7 @@ actions:
   - choose:
       - conditions:
           - condition: trigger
-            id: "morning"
+            id: 'morning'
         sequence:
           - action: scene.turn_on
             target:
@@ -545,7 +547,7 @@ actions:
 
       - conditions:
           - condition: trigger
-            id: "evening"
+            id: 'evening'
         sequence:
           - action: scene.turn_on
             target:
@@ -565,25 +567,25 @@ Assign IDs to triggers for use in conditions and choose:
 
 ```yaml
 automation:
-  - alias: "Multi-trigger automation"
+  - alias: 'Multi-trigger automation'
     trigger:
       - trigger: state
         entity_id: binary_sensor.motion
-        to: "on"
-        id: "motion_on"
+        to: 'on'
+        id: 'motion_on'
 
       - trigger: state
         entity_id: binary_sensor.motion
-        to: "off"
+        to: 'off'
         for:
           minutes: 5
-        id: "motion_off"
+        id: 'motion_off'
 
     action:
       - choose:
           - conditions:
               - condition: trigger
-                id: "motion_on"
+                id: 'motion_on'
             sequence:
               - action: light.turn_on
                 target:
@@ -591,7 +593,7 @@ automation:
 
           - conditions:
               - condition: trigger
-                id: "motion_off"
+                id: 'motion_off'
             sequence:
               - action: light.turn_off
                 target:

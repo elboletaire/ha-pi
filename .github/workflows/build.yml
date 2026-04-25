@@ -3,7 +3,7 @@ name: Build & push Docker images
 on:
   push:
     branches: [main]
-    tags: ["v*.*.*"]
+    tags: ['v*.*.*']
   pull_request:
     branches: [main]
 
@@ -36,7 +36,13 @@ jobs:
         run: |
           VERSION=$(grep '^version:' config.yaml | sed 's/version:[[:space:]]*"\?\([^"]*\)"\?/\1/')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building version $VERSION for ${{ matrix.arch }}"
+          # For PR builds, use PR number as tag; for pushes, use version
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "tag=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Building ${{ steps.meta.outputs.tag }} for ${{ matrix.arch }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -59,7 +65,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.IMAGE_BASE }}/${{ matrix.arch }}:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE_BASE }}/${{ matrix.arch }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_BASE }}/${{ matrix.arch }}:latest
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}

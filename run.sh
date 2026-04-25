@@ -25,6 +25,11 @@ MODEL=$(get_option 'model' 'claude-sonnet-4-5-20250929')
 LOG_LEVEL=$(get_option 'log_level' 'info')
 AGENTS_APPEND=$(get_option 'agents_md_append' '')
 
+# Telegram configuration
+TELEGRAM_ENABLED=$(get_option 'telegram_enabled' 'false')
+TELEGRAM_TOKEN=$(get_option 'telegram_bot_token' '')
+TELEGRAM_CHAT_IDS=$(get_option 'telegram_allowed_chat_ids' '')
+
 # ---------------------------------------------------------------------------
 # Legacy API key options → auth.json migration
 # We now keep API credentials in /data/pi-agent/auth.json so the web UI can
@@ -111,7 +116,28 @@ fi
 # ---------------------------------------------------------------------------
 log_info "Starting Pi Agent server (provider=${PROVIDER}, model=${MODEL})"
 
+# Build Telegram flags if enabled
+TELEGRAM_FLAGS=""
+if [ "$TELEGRAM_ENABLED" = "true" ]; then
+  TELEGRAM_FLAGS="--telegram-enabled true"
+  
+  if [ -n "$TELEGRAM_TOKEN" ]; then
+    TELEGRAM_FLAGS="$TELEGRAM_FLAGS --telegram-bot-token \"${TELEGRAM_TOKEN}\""
+  else
+    log_warn "Telegram enabled but no bot token provided. Bridge will not start."
+  fi
+  
+  if [ -n "$TELEGRAM_CHAT_IDS" ]; then
+    TELEGRAM_FLAGS="$TELEGRAM_FLAGS --telegram-allowed-chat-ids \"${TELEGRAM_CHAT_IDS}\""
+  else
+    log_info "Telegram enabled with no allowed chat IDs (all chats permitted)"
+  fi
+else
+  log_info "Telegram bridge disabled in configuration"
+fi
+
 exec node /app/dist/server.js \
   --provider "${PROVIDER}" \
   --model "${MODEL}" \
-  --log-level "${LOG_LEVEL}"
+  --log-level "${LOG_LEVEL}" \
+  $TELEGRAM_FLAGS

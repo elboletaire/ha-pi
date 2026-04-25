@@ -3,6 +3,7 @@
 This document covers Home Assistant's built-in helpers and integrations that should be used instead of template sensors or complex automations.
 
 ## Table of Contents
+
 1. [Numeric Aggregation](#numeric-aggregation) - min_max, statistics
 2. [Rate and Change](#rate-and-change) - derivative, threshold
 3. [Time-Based Tracking](#time-based-tracking) - utility_meter, history_stats, integration (Riemann sum)
@@ -20,11 +21,12 @@ This document covers Home Assistant's built-in helpers and integrations that sho
 **Use for:** Combining multiple sensors to get min, max, mean, median, sum, or last value across all of them.
 
 **Instead of:**
+
 ```yaml
 # WRONG - Template sensor for averaging
 template:
   - sensor:
-      - name: "Average Temperature"
+      - name: 'Average Temperature'
         state: >
           {{ ((states('sensor.temp_bedroom') | float) +
               (states('sensor.temp_living') | float) +
@@ -32,11 +34,12 @@ template:
 ```
 
 **Use this:**
+
 ```yaml
 # RIGHT - min_max helper
 sensor:
   - platform: min_max
-    name: "Average Temperature"
+    name: 'Average Temperature'
     type: mean
     entity_ids:
       - sensor.temp_bedroom
@@ -47,11 +50,13 @@ sensor:
 **Available types:** `min`, `max`, `mean`, `median`, `last`, `sum`
 
 **Key behaviors:**
+
 - Ignores `unknown` states (except `sum` which goes to unknown)
 - Returns error if unit of measurement differs between sensors
 - For spiky values, filter with statistics sensor first
 
 **Common uses:**
+
 - Average house temperature from multiple room sensors
 - Maximum power consumption across circuits
 - Sum of all solar panel production sensors
@@ -63,20 +68,22 @@ sensor:
 **Use for:** Statistical analysis over time for a single sensor (mean, median, stdev, change, variance, etc.).
 
 **Instead of:**
+
 ```yaml
 # WRONG - Complex template tracking history
 template:
   - sensor:
-      - name: "Temperature Change"
+      - name: 'Temperature Change'
         state: "{{ states('sensor.temp') | float - state_attr('sensor.temp', 'last_value') | float(0) }}"
 ```
 
 **Use this:**
+
 ```yaml
 # RIGHT - Statistics helper
 sensor:
   - platform: statistics
-    name: "Temperature Change (5 min)"
+    name: 'Temperature Change (5 min)'
     entity_id: sensor.temperature
     state_characteristic: change
     max_age:
@@ -85,6 +92,7 @@ sensor:
 ```
 
 **Available characteristics:**
+
 - `mean`, `median`, `average_linear`, `average_step`, `average_timeless`
 - `standard_deviation`, `variance`
 - `change`, `change_second`, `change_sample`
@@ -94,11 +102,13 @@ sensor:
 - `value_max`, `value_min`, `quantiles`
 
 **Key behaviors:**
+
 - Time-based (`max_age`) vs count-based (`sampling_size`) buffering
 - If using `max_age`, ensure frequent enough readings to cover the period
 - Different from Long-Term Statistics (which is automatic for sensors with `state_class`)
 
 **Common uses:**
+
 - Humidity change over last hour
 - Standard deviation of power readings (detect anomalies)
 - Count of motion sensor activations in last 24 hours
@@ -112,20 +122,22 @@ sensor:
 **Use for:** Calculating rate of change over time.
 
 **Instead of:**
+
 ```yaml
 # WRONG - Template calculating delta manually
 template:
   - sensor:
-      - name: "Power Rate"
+      - name: 'Power Rate'
         state: "{{ (states('sensor.power') | float - states('sensor.power_previous') | float) / 60 }}"
 ```
 
 **Use this:**
+
 ```yaml
 # RIGHT - Derivative helper
 sensor:
   - platform: derivative
-    name: "Power Rate of Change"
+    name: 'Power Rate of Change'
     source: sensor.power
     unit_time: min
     time_window:
@@ -133,16 +145,19 @@ sensor:
 ```
 
 **Parameters:**
+
 - `unit_time`: s, min, h, d - determines output unit (e.g., W/min)
 - `time_window`: Smoothing window using Simple Moving Average
 - `round`: Decimal places for output
 
 **Key behaviors:**
+
 - Without `time_window`, calculates between consecutive updates only
 - Can show large negative spikes when source resets to 0 (total_increasing sensors)
 - Use `force_update` option if source updates infrequently
 
 **Common uses:**
+
 - Energy production rate (kW from kWh sensor)
 - Temperature change rate (detect HVAC efficiency)
 - Water flow rate from cumulative meter
@@ -154,31 +169,35 @@ sensor:
 **Use for:** Creating a binary sensor that turns on/off when a numeric sensor crosses a threshold.
 
 **Instead of:**
+
 ```yaml
 # WRONG - Template binary sensor
 template:
   - binary_sensor:
-      - name: "High Temperature"
+      - name: 'High Temperature'
         state: "{{ states('sensor.temperature') | float > 25 }}"
 ```
 
 **Use this:**
+
 ```yaml
 # RIGHT - Threshold helper
 binary_sensor:
   - platform: threshold
-    name: "High Temperature"
+    name: 'High Temperature'
     entity_id: sensor.temperature
     upper: 25
     hysteresis: 1
 ```
 
 **Parameters:**
+
 - `upper`: Threshold for "on" when value exceeds
 - `lower`: Threshold for "on" when value drops below
 - `hysteresis`: Buffer zone to prevent rapid toggling
 
 **Hysteresis explained:**
+
 ```
 With upper: 25 and hysteresis: 1:
 - Turns ON when value rises ABOVE 26 (25 + 1)
@@ -186,6 +205,7 @@ With upper: 25 and hysteresis: 1:
 ```
 
 **Common uses:**
+
 - Low battery warning (lower threshold)
 - High humidity alert
 - Air quality threshold alerts
@@ -200,15 +220,16 @@ With upper: 25 and hysteresis: 1:
 **Use for:** Tracking consumption with periodic resets (energy, water, gas billing cycles).
 
 **Instead of:**
+
 ```yaml
 # WRONG - Automation with counter tracking monthly usage
 automation:
-  - alias: "Reset monthly energy"
+  - alias: 'Reset monthly energy'
     trigger:
       - trigger: time
-        at: "00:00:00"
+        at: '00:00:00'
     condition:
-      - "{{ now().day == 1 }}"
+      - '{{ now().day == 1 }}'
     action:
       - action: input_number.set_value
         target:
@@ -218,6 +239,7 @@ automation:
 ```
 
 **Use this:**
+
 ```yaml
 # RIGHT - Utility meter
 utility_meter:
@@ -232,6 +254,7 @@ utility_meter:
 **Cycle options:** `quarter-hourly`, `hourly`, `daily`, `weekly`, `monthly`, `bimonthly`, `quarterly`, `yearly`
 
 **Advanced features:**
+
 - **Tariffs:** Track peak/off-peak separately
 - **Offset:** Start cycle on specific day (e.g., billing date)
 - **Cron:** Custom reset schedules
@@ -249,12 +272,13 @@ utility_meter:
 ```
 
 Then use automation to switch tariffs:
+
 ```yaml
 automation:
-  - alias: "Switch to peak tariff"
+  - alias: 'Switch to peak tariff'
     trigger:
       - trigger: time
-        at: "07:00:00"
+        at: '07:00:00'
     action:
       - action: utility_meter.select_tariff
         target:
@@ -264,6 +288,7 @@ automation:
 ```
 
 **Common uses:**
+
 - Daily/monthly energy consumption
 - Water usage per billing cycle
 - Gas consumption tracking
@@ -277,24 +302,27 @@ automation:
 ```yaml
 sensor:
   - platform: history_stats
-    name: "Lights on today"
+    name: 'Lights on today'
     entity_id: light.living_room
-    state: "on"
+    state: 'on'
     type: time
-    start: "{{ now().replace(hour=0, minute=0, second=0) }}"
-    end: "{{ now() }}"
+    start: '{{ now().replace(hour=0, minute=0, second=0) }}'
+    end: '{{ now() }}'
 ```
 
 **Types:**
+
 - `time`: Duration in hours
 - `ratio`: Percentage of time
 - `count`: Number of state changes to the monitored state
 
 **Key behaviors:**
+
 - Limited by recorder's `purge_keep_days`
 - Updates when source changes or once per minute
 
 **Common uses:**
+
 - How long lights were on today
 - Percentage of time home was occupied
 - Count of door openings per day
@@ -308,7 +336,7 @@ sensor:
 ```yaml
 sensor:
   - platform: integration
-    name: "Solar Energy"
+    name: 'Solar Energy'
     source: sensor.solar_power
     unit_prefix: k
     unit_time: h
@@ -317,15 +345,18 @@ sensor:
 ```
 
 **Methods:**
+
 - `left`: Uses previous value for interval (recommended for sparse data)
 - `right`: Uses new value for interval
 - `trapezoidal`: Averages previous and new (can overestimate with gaps)
 
 **Key behaviors:**
+
 - For solar/sensors with gaps, use `left` method
 - `max_sub_interval` forces updates even when source doesn't change
 
 **Common uses:**
+
 - Convert solar power (W) to energy production (kWh)
 - Convert water flow rate to total consumption
 - Convert gas flow to total usage
@@ -341,14 +372,15 @@ sensor:
 ```yaml
 input_boolean:
   guest_mode:
-    name: "Guest Mode"
+    name: 'Guest Mode'
     icon: mdi:account-group
   vacation_mode:
-    name: "Vacation Mode"
+    name: 'Vacation Mode'
     icon: mdi:airplane
 ```
 
 **Common uses:**
+
 - Guest mode (disable certain automations)
 - Vacation mode
 - Manual override flags
@@ -361,17 +393,18 @@ input_boolean:
 ```yaml
 input_number:
   target_temperature:
-    name: "Target Temperature"
+    name: 'Target Temperature'
     min: 15
     max: 30
     step: 0.5
-    unit_of_measurement: "°C"
+    unit_of_measurement: '°C'
     mode: slider
 ```
 
 **Modes:** `slider`, `box`
 
 **Common uses:**
+
 - User-adjustable thresholds
 - Target temperatures
 - Timer durations
@@ -384,16 +417,17 @@ input_number:
 ```yaml
 input_select:
   hvac_mode:
-    name: "HVAC Mode"
+    name: 'HVAC Mode'
     options:
-      - "auto"
-      - "cool"
-      - "heat"
-      - "off"
+      - 'auto'
+      - 'cool'
+      - 'heat'
+      - 'off'
     icon: mdi:thermostat
 ```
 
 **Common uses:**
+
 - Scene selection
 - Mode selection
 - Status tracking
@@ -406,7 +440,7 @@ input_select:
 ```yaml
 input_text:
   notification_message:
-    name: "Custom Notification"
+    name: 'Custom Notification'
     min: 0
     max: 255
     mode: text
@@ -415,6 +449,7 @@ input_text:
 **Modes:** `text`, `password`
 
 **Common uses:**
+
 - Custom messages
 - Temporary storage
 - User notes
@@ -426,16 +461,17 @@ input_text:
 ```yaml
 input_datetime:
   morning_alarm:
-    name: "Morning Alarm"
+    name: 'Morning Alarm'
     has_time: true
     has_date: false
   next_vacation:
-    name: "Next Vacation"
+    name: 'Next Vacation'
     has_date: true
     has_time: false
 ```
 
 **Common uses:**
+
 - Alarm times
 - Schedule times (wake-up, lights off)
 - Future dates (vacation, events)
@@ -447,11 +483,12 @@ input_datetime:
 ```yaml
 input_button:
   doorbell:
-    name: "Doorbell"
+    name: 'Doorbell'
     icon: mdi:bell
 ```
 
 **Common uses:**
+
 - Manual triggers for automations
 - Dashboard buttons
 - Test triggers
@@ -465,6 +502,7 @@ input_button:
 **Use for:** Tracking counts with increment/decrement/reset.
 
 **Instead of:**
+
 ```yaml
 # WRONG - input_number with automation
 input_number:
@@ -472,7 +510,7 @@ input_number:
     min: 0
     max: 100
 automation:
-  - alias: "Increment coffee"
+  - alias: 'Increment coffee'
     trigger: ...
     action:
       - action: input_number.set_value
@@ -481,11 +519,12 @@ automation:
 ```
 
 **Use this:**
+
 ```yaml
 # RIGHT - Counter helper
 counter:
   coffee_count:
-    name: "Coffees Today"
+    name: 'Coffees Today'
     initial: 0
     step: 1
     minimum: 0
@@ -496,10 +535,12 @@ counter:
 **Actions:** `counter.increment`, `counter.decrement`, `counter.reset`, `counter.set_value`
 
 **Key behaviors:**
+
 - `restore: true` preserves value across restarts
 - Respects min/max boundaries
 
 **Common uses:**
+
 - Daily counts (coffees, workouts)
 - Usage tracking
 - Sequential numbering
@@ -511,6 +552,7 @@ counter:
 **Use for:** Countdown timers that fire events when finished.
 
 **Instead of:**
+
 ```yaml
 # WRONG - Delay in automation
 action:
@@ -518,22 +560,24 @@ action:
       minutes: 5
   - action: notify.mobile_app
     data:
-      message: "Timer done!"
+      message: 'Timer done!'
 ```
 
 **Use this for pausable/restartable timers:**
+
 ```yaml
 # RIGHT - Timer helper
 timer:
   laundry:
-    name: "Laundry Timer"
-    duration: "01:00:00"
+    name: 'Laundry Timer'
+    duration: '01:00:00'
     restore: true
 ```
 
 **Actions:** `timer.start`, `timer.pause`, `timer.cancel`, `timer.finish`, `timer.change`
 
 **Events fired:**
+
 - `timer.started`
 - `timer.paused`
 - `timer.cancelled`
@@ -541,11 +585,13 @@ timer:
 - `timer.restarted`
 
 **Key behaviors:**
+
 - Can be started with custom duration: `timer.start` with `duration: "00:30:00"`
 - `restore: true` continues timer after restart
 - Can be controlled from dashboard
 
 **Common uses:**
+
 - Laundry/dryer reminders
 - Cooking timers
 - Activity timers with pause/resume
@@ -561,27 +607,29 @@ timer:
 ```yaml
 schedule:
   work_hours:
-    name: "Work Hours"
+    name: 'Work Hours'
     monday:
-      - from: "09:00:00"
-        to: "17:00:00"
+      - from: '09:00:00'
+        to: '17:00:00'
     tuesday:
-      - from: "09:00:00"
-        to: "17:00:00"
+      - from: '09:00:00'
+        to: '17:00:00'
     # ... etc
 ```
 
 **Key behaviors:**
+
 - Creates a binary sensor that's `on` during scheduled times
 - Can have multiple blocks per day
 - Editable via UI
 
 **Instead of:**
+
 ```yaml
 # WRONG - Template with weekday checks
 template:
   - binary_sensor:
-      - name: "Work Hours"
+      - name: 'Work Hours'
         state: >
           {{ now().weekday() < 5 and 
              now().hour >= 9 and 
@@ -589,6 +637,7 @@ template:
 ```
 
 **Common uses:**
+
 - Work hours / business hours
 - Quiet hours
 - HVAC schedules
@@ -603,18 +652,19 @@ template:
 ```yaml
 binary_sensor:
   - platform: tod
-    name: "Morning"
-    after: "06:00"
-    before: "12:00"
-    
+    name: 'Morning'
+    after: '06:00'
+    before: '12:00'
+
   - platform: tod
-    name: "Night Time"
+    name: 'Night Time'
     after: sunset
-    after_offset: "01:00:00"
+    after_offset: '01:00:00'
     before: sunrise
 ```
 
 **Common uses:**
+
 - Time-of-day modes (morning, afternoon, evening, night)
 - Daylight/darkness detection
 - Simple time-based conditions
@@ -630,43 +680,47 @@ binary_sensor:
 ```yaml
 group:
   all_lights:
-    name: "All Lights"
+    name: 'All Lights'
     entities:
       - light.living_room
       - light.bedroom
       - light.kitchen
-    all: false  # ON if ANY member is on
-    
+    all: false # ON if ANY member is on
+
   security_sensors:
-    name: "Security Sensors"
+    name: 'Security Sensors'
     entities:
       - binary_sensor.front_door
       - binary_sensor.back_door
       - binary_sensor.window
-    all: true  # ON only if ALL members are on
+    all: true # ON only if ALL members are on
 ```
 
 **Parameters:**
+
 - `all: false` (default): Group is ON if ANY member is ON (OR logic)
 - `all: true`: Group is ON only if ALL members are ON (AND logic)
 
 **Key behaviors:**
+
 - Groups inherit the domain of their members
 - Light groups can be controlled as a single entity
 - Binary sensor groups useful for "any door open" logic
 
 **Instead of:**
+
 ```yaml
 # WRONG - Template binary sensor for any-on logic
 template:
   - binary_sensor:
-      - name: "Any Door Open"
+      - name: 'Any Door Open'
         state: >
           {{ is_state('binary_sensor.front_door', 'on') or
              is_state('binary_sensor.back_door', 'on') }}
 ```
 
 **Common uses:**
+
 - All lights in an area
 - Any motion sensor active
 - All doors/windows closed
@@ -676,21 +730,21 @@ template:
 
 ## Decision Matrix
 
-| Need | Helper | Not |
-|------|--------|-----|
-| Average of multiple sensors | `min_max` (type: mean) | Template with math |
-| Sum of multiple sensors | `min_max` (type: sum) | Template with math |
-| Average over time | `statistics` | Template tracking history |
-| Rate of change | `derivative` | Template calculating delta |
-| On/off at threshold | `threshold` | Template binary sensor |
-| Consumption per period | `utility_meter` | Counter with reset automation |
-| Time in state | `history_stats` | Template tracking timestamps |
-| Power to energy | `integration` | Template approximating |
-| User toggle | `input_boolean` | - |
-| User number | `input_number` | - |
-| User selection | `input_select` | - |
-| Count events | `counter` | input_number + automation |
-| Countdown timer | `timer` | delay + input_datetime |
-| Weekly schedule | `schedule` | Template with weekday checks |
-| Time of day mode | `tod` | Template with time checks |
-| Any-on / all-on | `group` | Template binary sensor |
+| Need                        | Helper                 | Not                           |
+| --------------------------- | ---------------------- | ----------------------------- |
+| Average of multiple sensors | `min_max` (type: mean) | Template with math            |
+| Sum of multiple sensors     | `min_max` (type: sum)  | Template with math            |
+| Average over time           | `statistics`           | Template tracking history     |
+| Rate of change              | `derivative`           | Template calculating delta    |
+| On/off at threshold         | `threshold`            | Template binary sensor        |
+| Consumption per period      | `utility_meter`        | Counter with reset automation |
+| Time in state               | `history_stats`        | Template tracking timestamps  |
+| Power to energy             | `integration`          | Template approximating        |
+| User toggle                 | `input_boolean`        | -                             |
+| User number                 | `input_number`         | -                             |
+| User selection              | `input_select`         | -                             |
+| Count events                | `counter`              | input_number + automation     |
+| Countdown timer             | `timer`                | delay + input_datetime        |
+| Weekly schedule             | `schedule`             | Template with weekday checks  |
+| Time of day mode            | `tod`                  | Template with time checks     |
+| Any-on / all-on             | `group`                | Template binary sensor        |

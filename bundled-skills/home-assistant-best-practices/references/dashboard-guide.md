@@ -43,6 +43,7 @@ Patterns and decisions for designing Home Assistant Lovelace dashboards.
 ```
 
 **url_path rules:**
+
 - New dashboards must contain a hyphen: `my-dashboard` (not `mydashboard`)
 - Use `lovelace` to target the built-in default dashboard
 - `dashboard_id`: internal identifier (returned on create, used for update/delete)
@@ -52,12 +53,12 @@ Patterns and decisions for designing Home Assistant Lovelace dashboards.
 
 ## View Types
 
-| Type | Use for |
-|------|---------|
+| Type       | Use for                                                |
+| ---------- | ------------------------------------------------------ |
 | `sections` | Most dashboards (RECOMMENDED) — grid-based, responsive |
-| `panel` | Full-screen single cards (maps, cameras, iframes) |
-| `sidebar` | Two-column layouts with primary/secondary content |
-| `masonry` | Legacy — auto-arranges cards, less control |
+| `panel`    | Full-screen single cards (maps, cameras, iframes)      |
+| `sidebar`  | Two-column layouts with primary/secondary content      |
+| `masonry`  | Legacy — auto-arranges cards, less control             |
 
 ### View Configuration
 
@@ -79,13 +80,13 @@ Patterns and decisions for designing Home Assistant Lovelace dashboards.
 
 ## Built-in Cards
 
-| Category | Cards |
-|----------|-------|
-| **Modern Primary** | tile, area, button, grid |
-| **Container** | vertical-stack, horizontal-stack, grid |
-| **Logic** | conditional, entity-filter |
-| **Display** | sensor, history-graph, statistics-graph, gauge, energy, calendar |
-| **Legacy Control** | entity, entities, light, thermostat (use tile instead) |
+| Category           | Cards                                                            |
+| ------------------ | ---------------------------------------------------------------- |
+| **Modern Primary** | tile, area, button, grid                                         |
+| **Container**      | vertical-stack, horizontal-stack, grid                           |
+| **Logic**          | conditional, entity-filter                                       |
+| **Display**        | sensor, history-graph, statistics-graph, gauge, energy, calendar |
+| **Legacy Control** | entity, entities, light, thermostat (use tile instead)           |
 
 **Default:** Use `tile` card for most entities. Use `references/dashboard-cards.md` to look up all 37 card types or fetch card-specific docs.
 
@@ -97,11 +98,8 @@ Patterns and decisions for designing Home Assistant Lovelace dashboards.
   "entity": "climate.bedroom",
   "name": "Master Bedroom",
   "icon": "mdi:thermostat",
-  "features": [
-    {"type": "target-temperature"},
-    {"type": "climate-hvac-modes", "style": "dropdown"}
-  ],
-  "tap_action": {"action": "more-info"}
+  "features": [{ "type": "target-temperature" }, { "type": "climate-hvac-modes", "style": "dropdown" }],
+  "tap_action": { "action": "more-info" }
 }
 ```
 
@@ -113,9 +111,9 @@ Patterns and decisions for designing Home Assistant Lovelace dashboards.
   "columns": 3,
   "square": false,
   "cards": [
-    {"type": "tile", "entity": "light.kitchen"},
-    {"type": "tile", "entity": "light.dining"},
-    {"type": "tile", "entity": "light.hallway"}
+    { "type": "tile", "entity": "light.kitchen" },
+    { "type": "tile", "entity": "light.dining" },
+    { "type": "tile", "entity": "light.hallway" }
   ]
 }
 ```
@@ -126,14 +124,14 @@ Patterns and decisions for designing Home Assistant Lovelace dashboards.
 
 Quick controls available on tile, area, humidifier, and thermostat cards.
 
-| Domain | Feature types |
-|--------|--------------|
+| Domain  | Feature types                                                                           |
+| ------- | --------------------------------------------------------------------------------------- |
 | Climate | `climate-hvac-modes`, `climate-fan-modes`, `climate-preset-modes`, `target-temperature` |
-| Light | `light-brightness`, `light-color-temp` |
-| Cover | `cover-open-close`, `cover-position`, `cover-tilt` |
-| Fan | `fan-speed`, `fan-direction`, `fan-oscillate` |
-| Media | `media-player-playback`, `media-player-volume-slider` |
-| Other | `toggle`, `button`, `alarm-modes`, `lock-commands`, `numeric-input` |
+| Light   | `light-brightness`, `light-color-temp`                                                  |
+| Cover   | `cover-open-close`, `cover-position`, `cover-tilt`                                      |
+| Fan     | `fan-speed`, `fan-direction`, `fan-oscillate`                                           |
+| Media   | `media-player-playback`, `media-player-volume-slider`                                   |
+| Other   | `toggle`, `button`, `alarm-modes`, `lock-commands`, `numeric-input`                     |
 
 Feature `style` options: `"dropdown"` or `"icons"`
 
@@ -143,9 +141,9 @@ Feature `style` options: `"dropdown"` or `"icons"`
 
 ```json
 {
-  "tap_action": {"action": "toggle"},
-  "hold_action": {"action": "more-info"},
-  "double_tap_action": {"action": "navigate", "navigation_path": "/lovelace/lights"}
+  "tap_action": { "action": "toggle" },
+  "hold_action": { "action": "more-info" },
+  "double_tap_action": { "action": "navigate", "navigation_path": "/lovelace/lights" }
 }
 ```
 
@@ -156,8 +154,8 @@ Action types: `toggle`, `call-service`, `more-info`, `navigate`, `url`, `none`
 ```json
 {
   "visibility": [
-    {"condition": "user", "users": ["user_id_hex"]},
-    {"condition": "state", "entity": "sun.sun", "state": "above_horizon"}
+    { "condition": "user", "users": ["user_id_hex"] },
+    { "condition": "state", "entity": "sun.sun", "state": "above_horizon" }
   ]
 }
 ```
@@ -173,24 +171,26 @@ Use custom JavaScript cards when built-in cards don't support your visualization
 ```javascript
 class MyCard extends HTMLElement {
   setConfig(config) {
-    if (!config.entity) throw new Error("Please define an entity");
-    this.config = config;
+    if (!config.entity) throw new Error('Please define an entity')
+    this.config = config
   }
   set hass(hass) {
     if (!this.content) {
       this.innerHTML = `<ha-card header="${this.config.title || 'My Card'}">
         <div class="card-content"></div>
-      </ha-card>`;
-      this.content = this.querySelector(".card-content");
+      </ha-card>`
+      this.content = this.querySelector('.card-content')
     }
-    const state = hass.states[this.config.entity];
-    this.content.innerHTML = state ? `State: ${state.state}` : "Entity not found";
+    const state = hass.states[this.config.entity]
+    this.content.innerHTML = state ? `State: ${state.state}` : 'Entity not found'
   }
-  getCardSize() { return 2; }
+  getCardSize() {
+    return 2
+  }
 }
-customElements.define("my-card", MyCard);
-window.customCards = window.customCards || [];
-window.customCards.push({ type: "my-card", name: "My Card", description: "A custom card" });
+customElements.define('my-card', MyCard)
+window.customCards = window.customCards || []
+window.customCards.push({ type: 'my-card', name: 'My Card', description: 'A custom card' })
 ```
 
 Usage: `{"type": "custom:my-card", "entity": "sensor.temperature"}`
@@ -250,12 +250,12 @@ entities:
 
 ## HACS Integration
 
-| Use case | Solution |
-|----------|----------|
-| Popular community card | HACS — search and install via HACS API |
-| Small custom styling | Inline CSS — register via HA dashboard resource API |
-| One-off custom card | Inline module — register via HA dashboard resource API |
-| Large/complex card | HACS or filesystem (`/config/www/`) |
+| Use case               | Solution                                               |
+| ---------------------- | ------------------------------------------------------ |
+| Popular community card | HACS — search and install via HACS API                 |
+| Small custom styling   | Inline CSS — register via HA dashboard resource API    |
+| One-off custom card    | Inline module — register via HA dashboard resource API |
+| Large/complex card     | HACS or filesystem (`/config/www/`)                    |
 
 ### Finding and Installing Cards
 
@@ -286,30 +286,54 @@ Search HACS for community cards by name/category, review repository details, the
       "sections": [
         {
           "title": "Quick Actions",
-          "cards": [{
-            "type": "grid",
-            "columns": 4,
-            "square": false,
-            "cards": [
-              {"type": "button", "name": "Lights", "icon": "mdi:lightbulb", "tap_action": {"action": "navigate", "navigation_path": "/lovelace/lights"}},
-              {"type": "button", "name": "Climate", "icon": "mdi:thermostat", "tap_action": {"action": "navigate", "navigation_path": "/lovelace/climate"}},
-              {"type": "button", "name": "Security", "icon": "mdi:shield-home", "tap_action": {"action": "navigate", "navigation_path": "/lovelace/security"}},
-              {"type": "button", "name": "Energy", "icon": "mdi:lightning-bolt", "tap_action": {"action": "navigate", "navigation_path": "/lovelace/energy"}}
-            ]
-          }]
+          "cards": [
+            {
+              "type": "grid",
+              "columns": 4,
+              "square": false,
+              "cards": [
+                {
+                  "type": "button",
+                  "name": "Lights",
+                  "icon": "mdi:lightbulb",
+                  "tap_action": { "action": "navigate", "navigation_path": "/lovelace/lights" }
+                },
+                {
+                  "type": "button",
+                  "name": "Climate",
+                  "icon": "mdi:thermostat",
+                  "tap_action": { "action": "navigate", "navigation_path": "/lovelace/climate" }
+                },
+                {
+                  "type": "button",
+                  "name": "Security",
+                  "icon": "mdi:shield-home",
+                  "tap_action": { "action": "navigate", "navigation_path": "/lovelace/security" }
+                },
+                {
+                  "type": "button",
+                  "name": "Energy",
+                  "icon": "mdi:lightning-bolt",
+                  "tap_action": { "action": "navigate", "navigation_path": "/lovelace/energy" }
+                }
+              ]
+            }
+          ]
         },
         {
           "title": "Favorites",
-          "cards": [{
-            "type": "grid",
-            "columns": 3,
-            "square": false,
-            "cards": [
-              {"type": "tile", "entity": "light.living_room", "features": [{"type": "light-brightness"}]},
-              {"type": "tile", "entity": "climate.bedroom", "features": [{"type": "target-temperature"}]},
-              {"type": "tile", "entity": "lock.front_door"}
-            ]
-          }]
+          "cards": [
+            {
+              "type": "grid",
+              "columns": 3,
+              "square": false,
+              "cards": [
+                { "type": "tile", "entity": "light.living_room", "features": [{ "type": "light-brightness" }] },
+                { "type": "tile", "entity": "climate.bedroom", "features": [{ "type": "target-temperature" }] },
+                { "type": "tile", "entity": "lock.front_door" }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -322,15 +346,17 @@ Search HACS for community cards by name/category, review repository details, the
       "sections": [
         {
           "title": "Living Room",
-          "cards": [{
-            "type": "grid",
-            "columns": 3,
-            "cards": [
-              {"type": "tile", "entity": "light.overhead", "features": [{"type": "light-brightness"}]},
-              {"type": "tile", "entity": "light.lamp", "features": [{"type": "light-brightness"}]},
-              {"type": "tile", "entity": "light.accent", "features": [{"type": "light-color-temp"}]}
-            ]
-          }]
+          "cards": [
+            {
+              "type": "grid",
+              "columns": 3,
+              "cards": [
+                { "type": "tile", "entity": "light.overhead", "features": [{ "type": "light-brightness" }] },
+                { "type": "tile", "entity": "light.lamp", "features": [{ "type": "light-brightness" }] },
+                { "type": "tile", "entity": "light.accent", "features": [{ "type": "light-color-temp" }] }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -342,13 +368,13 @@ Search HACS for community cards by name/category, review repository details, the
 
 ## Common Pitfalls
 
-| Issue | Solution |
-|-------|----------|
-| url_path rejected | New dashboards need a hyphen: `my-dashboard` not `mydashboard`. Use `lovelace` for the default dashboard. |
-| Entity not found | Use full entity ID: `light.living_room` not `living_room` |
-| Features not working | Match feature type to entity domain (e.g., `light-brightness` only works on `light.*`) |
-| Custom card not loading | Check resource type is `module` and verify URL is accessible |
-| Card too large for inline | Use HACS or filesystem instead |
+| Issue                     | Solution                                                                                                  |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- |
+| url_path rejected         | New dashboards need a hyphen: `my-dashboard` not `mydashboard`. Use `lovelace` for the default dashboard. |
+| Entity not found          | Use full entity ID: `light.living_room` not `living_room`                                                 |
+| Features not working      | Match feature type to entity domain (e.g., `light-brightness` only works on `light.*`)                    |
+| Custom card not loading   | Check resource type is `module` and verify URL is accessible                                              |
+| Card too large for inline | Use HACS or filesystem instead                                                                            |
 
 ---
 
@@ -361,6 +387,7 @@ Search HACS for community cards by name/category, review repository details, the
 - Use **area** cards with navigation for hierarchical organization
 
 **Legacy patterns to avoid:**
+
 - Single-view dashboards with all cards in one long scroll
 - Excessive use of vertical-stack/horizontal-stack instead of grid
 - Masonry view (auto-layout) — use sections for precise control

@@ -1,14 +1,14 @@
-name: "Pi Agent"
-description: "AI coding agent with Home Assistant integration, accessible from the HA web UI."
-version: "0.3.3"
-slug: "pi-agent"
-image: "ghcr.io/elboletaire/ha-pi/{arch}"
+name: 'Pi Agent'
+description: 'AI coding agent with Home Assistant integration, accessible from the HA web UI.'
+version: '0.3.3'
+slug: 'pi-agent'
+image: 'ghcr.io/elboletaire/ha-pi/{arch}'
 init: false
 homeassistant_api: true
 ingress: true
 ingress_port: 3000
 panel_icon: mdi:robot
-panel_title: "Pi Agent"
+panel_title: 'Pi Agent'
 arch:
   - aarch64
   - amd64
@@ -16,10 +16,17 @@ map:
   - data:rw
   - config:rw
 options:
-  log_level: "info"
+  log_level: 'info'
   # Freeform AGENTS.md text appended to the built-in base instructions.
   # The add-on UI shows a label and helper text for this field.
-  agents_md_append: ""
+  agents_md_append: ''
+  # Telegram Bot configuration (optional)
+  telegram_enabled: false
+  telegram_bot_token: ''
+  telegram_allowed_chat_ids: '' # Comma-separated list of chat IDs (required if enabled)
 schema:
   log_level: list(debug|info|warn|error)
   agents_md_append: str?
+  telegram_enabled: bool
+  telegram_bot_token: password
+  telegram_allowed_chat_ids: str
