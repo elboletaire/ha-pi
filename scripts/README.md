@@ -20,6 +20,10 @@ The script:
 | ----------------------------- | ----------------------- | --------------------------------------------------------------------------------- |
 | find-skills                   | vercel-labs/skills      | `npx skills add vercel-labs/skills --skill find-skills -y`                        |
 | home-assistant-best-practices | homeassistant-ai/skills | `npx skills add homeassistant-ai/skills --skill home-assistant-best-practices -y` |
+| executing-plans               | obra/superpowers        | `npx skills add obra/superpowers --skill executing-plans -y`                      |
+| systematic-debugging          | obra/superpowers        | `npx skills add obra/superpowers --skill systematic-debugging -y`                 |
+| writing-plans                 | obra/superpowers        | `npx skills add obra/superpowers --skill writing-plans -y`                        |
+| test-driven-development       | obra/superpowers        | `npx skills add obra/superpowers --skill test-driven-development -y`              |
 
 ### Custom Skills
 
@@ -62,9 +66,13 @@ const EXTERNAL_SKILLS = [
 
 ```
 skills/
-├── find-skills/                # External skill (auto-installed)
+├── find-skills/                    # External skill (auto-installed)
 ├── home-assistant-best-practices/  # External skill (auto-installed)
-└── home-assistant-management/  # Custom skill (committed to git)
+├── executing-plans/                # External skill (auto-installed)
+├── systematic-debugging/           # External skill (auto-installed)
+├── writing-plans/                  # External skill (auto-installed)
+├── test-driven-development/        # External skill (auto-installed)
+└── home-assistant-management/      # Custom skill (committed to git)
 ```
 
 ### Why Store Skills in `skills/`?
