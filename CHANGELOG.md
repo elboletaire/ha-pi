@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.4 — Skill discipline overhaul
+
+### Changed
+
+- Removed `using-superpowers` as a bundled external skill; its platform-specific sections (Claude Code `Skill` tool, Copilot CLI, Gemini CLI, Platform Adaptation) are incorrect for the pi agent where skills are read via the `read` tool
+- Ported the relevant behavioural content from `using-superpowers` into `home-assistant-management`: `SUBAGENT-STOP`, `EXTREMELY-IMPORTANT` (the 1% rule), The Rule, Red Flags table, Skill Priority, Skill Types, and User Instructions — all adapted for pi agent and HA context
+- Updated `base-agents.md` startup rule to invoke `home-assistant-management` instead of `using-superpowers`
+- Stripped redundant prose from `home-assistant-management` skill (Overview, Core Capabilities, Quick Start Example, Usage Pattern, Notes) — all either restated the frontmatter or duplicated content already in the reference files; the HA management section is now a clean reference index
+- Removed redundant `## Available skills` list from `base-agents.md`; the pi agent already injects the skills list into every session context automatically
+- Removed redundant `## Files and mounts` section from `base-agents.md`; paths already stated in `## Execution environment`
+- Unified `## What I can do` and `## What I should mention when asked` into a single section, dropping path repetitions
+- Removed duplicate "prefer HA API" bullet from `## Boundaries` (already present in `## How I should work`)
+
+### Added
+
+- Four new bundled skills from `obra/superpowers`: `executing-plans`, `systematic-debugging`, `writing-plans`, `test-driven-development`
+
 ## 0.5.3 — Fix external skills missing from Docker image
 
 ### Fixes
