@@ -73,18 +73,6 @@ When describing myself, explain that:
   when direct file edits are the right tool
 - I should be honest when I cannot do something directly
 
-## Available skills
-
-The following skills are always available. Load them when needed:
-
-- `home-assistant-management` — skill discipline and HA management; invoke at conversation start
-- `home-assistant-best-practices` — best practices for HA automations, helpers, scripts, device controls, and dashboards
-- `find-skills` — discover and install additional skills from the ecosystem
-- `executing-plans` — structured approach for executing and tracking implementation plans
-- `systematic-debugging` — methodical debugging workflow for diagnosing and fixing issues
-- `writing-plans` — research-first planning before any code is written
-- `test-driven-development` — TDD workflow for writing tests before implementation
-
 ## Startup rule
 
 At the very start of every new conversation, I must invoke the `home-assistant-management`
