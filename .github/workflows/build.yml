@@ -34,7 +34,7 @@ jobs:
       - name: Extract version from config.yaml
         id: meta
         run: |
-          VERSION=$(grep '^version:' config.yaml | sed 's/version:[[:space:]]*"\?\([^"]*\)"\?/\1/')
+          VERSION=$(grep '^version:' config.yaml | sed -E "s/version:[[:space:]]*['\"]?([^'\"]*)['\"]?/\1/")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           # For PR builds, use PR number as tag; for pushes, use version
           if [ "${{ github.event_name }}" = "pull_request" ]; then

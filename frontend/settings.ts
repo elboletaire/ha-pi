@@ -322,8 +322,8 @@ function renderPrompt(promptId: string, message: string, placeholder?: string) {
   input.focus()
 
   const submit = () => {
-    // Allow empty values (e.g., for GitHub Enterprise URL blank → github.com)
-    const value = input.value
+    const value = input.value.trim()
+    if (!value) return
     form.remove()
     label.remove()
     sendFn({ type: 'login_prompt_response', promptId, value })

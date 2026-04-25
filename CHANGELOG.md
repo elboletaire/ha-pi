@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 — Telegram bot integration
+
+### Features
+
+- Added full Telegram bot integration via channel bridge architecture
+- Text message support for chat interactions via Telegram
+- Voice message support with Wyoming STT transcription (Vosk)
+- PDF document extraction and processing (up to 10MB)
+- Photo and text document sharing support
+- Typing indicators for better user experience
+- Interactive commands and skill execution through Telegram
+- Configurable allowed chat IDs for security
+- New `telegram_enabled`, `telegram_bot_token`, and `telegram_allowed_chat_ids` options in add-on config
+- Channel bridge architecture enabling multi-channel support (WebSocket + Telegram)
+- Session management across channels with state synchronization via `~/.pi/agent/sessions/`
+- Updated build workflow to include Telegram bot support
+- Comprehensive documentation: TELEGRAM_SETUP.md, TELEGRAM_BOT_PLAN.md, TELEGRAM_CONFIGURATION.md, and channel-bridge docs
 
 ### Fixes
 
