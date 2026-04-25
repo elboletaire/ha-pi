@@ -4,11 +4,13 @@ import { WebSocketServer } from "ws";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { AuthStorage } from "@mariozechner/pi-coding-agent";
-import { parseServerArgs, setLogLevel, log, PATHS } from "./options";
+import { parseServerArgs, setLogLevel, log, PATHS, type AddOnOptions } from "./options";
 import { createResourceLoader } from "./resource-loader";
 import { AgentManager } from "./agent-manager";
 import { LoginManager } from "./login-manager";
 import { WsHandler } from "./ws-handler";
+import type { ChannelBridge } from "./channel-bridge/bridge.js";
+import { startTelegramBridge, createAuthStorage as createBridgeAuthStorage, createBridgeResourceLoader } from "./channel-bridge/index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(__dirname, "..", "public");
@@ -32,6 +34,38 @@ async function main() {
     resourceLoader,
     authStorage
   );
+
+  // -------------------------------------------------------------------------
+  // Initialize Telegram bridge (if configured)
+  // -------------------------------------------------------------------------
+  let telegramBridge: ChannelBridge | null = null;
+  
+  if (opts.telegramConfig?.enabled) {
+    log.info("Starting Telegram bridge...");
+    
+    try {
+      const bridgeResourceLoader = await createBridgeResourceLoader();
+      const bridgeAuthStorage = createBridgeAuthStorage();
+      
+      telegramBridge = await startTelegramBridge({
+        provider: opts.provider,
+        modelId: opts.model,
+        token: opts.telegramConfig.botToken,
+        allowedChatIds: opts.telegramConfig.allowedChatIds.length > 0 
+          ? opts.telegramConfig.allowedChatIds 
+          : undefined, // Empty array means all chats
+        authStorage: bridgeAuthStorage,
+        resourceLoader: bridgeResourceLoader,
+      });
+      
+      log.info(`Telegram bridge started successfully`);
+    } catch (err: any) {
+      log.error(`Failed to start Telegram bridge: ${err.message}`);
+      log.error("The web UI will continue to work, but Telegram messages will not be processed.");
+    }
+  } else if (opts.telegramConfig?.enabled === false) {
+    log.info("Telegram bridge disabled in configuration");
+  }
 
   let initError: string | null = null;
   try {
@@ -117,8 +151,19 @@ async function main() {
   });
 
   // Graceful shutdown
-  const shutdown = () => {
+  const shutdown = async () => {
     log.info("Shutting down...");
+    
+    // Stop Telegram bridge if running
+    if (telegramBridge) {
+      try {
+        await telegramBridge.stop();
+        log.info("Telegram bridge stopped.");
+      } catch (err: any) {
+        log.error(`Error stopping Telegram bridge: ${err.message}`);
+      }
+    }
+    
     httpServer.close(() => process.exit(0));
   };
   process.on("SIGTERM", shutdown);

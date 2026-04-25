@@ -1,9 +1,16 @@
 import { readFileSync, existsSync } from "fs";
 
+export interface TelegramConfig {
+  enabled: boolean;
+  botToken: string;
+  allowedChatIds: string[]; // Empty array means all chats allowed
+}
+
 export interface AddOnOptions {
   provider: string;
   model: string;
   logLevel: "debug" | "info" | "warn" | "error";
+  telegramConfig?: TelegramConfig;
 }
 
 // Path constants — overridable via env vars for local dev / testing
@@ -26,13 +33,40 @@ export function parseServerArgs(): AddOnOptions {
   };
 
   const logLevel = get("--log-level", "info");
+  const provider = get("--provider", "anthropic");
+  const model = get("--model", "claude-sonnet-4-5-20250929");
+
+  // Parse Telegram configuration
+  const telegramEnabled = get("--telegram-enabled", "false") === "true";
+  const telegramToken = get("--telegram-bot-token", "");
+  const telegramChatIdsRaw = get("--telegram-allowed-chat-ids", "");
+  
+  let telegramConfig: TelegramConfig | undefined = undefined;
+  
+  if (telegramEnabled) {
+    if (!telegramToken) {
+      log.warn("Telegram enabled but no bot token provided. Telegram bridge will not start.");
+    } else {
+      const allowedChatIds = telegramChatIdsRaw
+        .split(",")
+        .map(id => id.trim())
+        .filter(id => id.length > 0);
+      
+      telegramConfig = {
+        enabled: true,
+        botToken: telegramToken,
+        allowedChatIds,
+      };
+    }
+  }
 
   return {
-    provider: get("--provider", "anthropic"),
-    model: get("--model", "claude-sonnet-4-5-20250929"),
+    provider,
+    model,
     logLevel: (["debug", "info", "warn", "error"].includes(logLevel)
       ? logLevel
       : "info") as AddOnOptions["logLevel"],
+    telegramConfig,
   };
 }
 
