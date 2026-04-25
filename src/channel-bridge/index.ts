@@ -19,14 +19,14 @@
  *   });
  */
 
-import { ChannelBridge } from './bridge.js'
+import { ChannelBridge } from './bridge'
 // Import the built-in Telegram adapter
-import { createTelegramAdapter } from './telegram.js'
-import type { AdapterConfig } from './types.js'
-import { log, PATHS } from '../options.js'
+import { createTelegramAdapter } from './telegram'
+import type { AdapterConfig } from './types'
+import { log, PATHS } from '../options'
 import { AuthStorage } from '@mariozechner/pi-coding-agent'
 import type { ResourceLoader } from '@mariozechner/pi-coding-agent'
-import { createResourceLoader } from '../resource-loader.js'
+import { createResourceLoader } from '../resource-loader'
 
 /**
  * Configuration for starting the Telegram bridge.

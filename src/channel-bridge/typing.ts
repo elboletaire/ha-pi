@@ -5,8 +5,8 @@
  * this provides a polling-based typing indicator refresh mechanism.
  */
 
-import type { ChannelAdapter } from './types.js'
-import { log } from '../options.js'
+import type { ChannelAdapter } from './types'
+import { log } from '../options'
 
 /**
  * Configuration for the typing indicator loop.

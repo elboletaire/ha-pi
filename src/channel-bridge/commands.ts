@@ -5,10 +5,10 @@
  * Commands are processed before reaching the AgentManager.
  */
 
-import type { CommandResult, TelegramMarkup, InlineKeyboardMarkup, InlineKeyboardButton } from './types.js'
-import { AgentManager } from '../agent-manager.js'
-import { log } from '../options.js'
 import type { SessionInfo } from '@mariozechner/pi-coding-agent'
+import { AgentManager } from '../agent-manager'
+import { log } from '../options'
+import type { CommandResult, InlineKeyboardButton, InlineKeyboardMarkup } from './types'
 
 /**
  * Build a reply keyboard markup for session selection.
@@ -398,7 +398,7 @@ export function getCommandsForTelegram(): Array<{ command: string; description: 
     { name: 'whoami', description: 'Show current user information' },
     { name: 'help', description: 'Show help and available commands' },
   ]
-  
+
   return allCommands
     .filter((c) => c.name !== 'start') // Telegram handles /start natively
     .map((c) => ({

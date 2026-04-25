@@ -25,20 +25,20 @@
  */
 
 import * as fs from 'node:fs'
-import * as path from 'node:path'
 import * as os from 'node:os'
+import * as path from 'node:path'
+import { convertToPcm } from './audio-convert'
+import { getCommandsForTelegram } from './commands'
+import { extractPdfText } from './pdf-extract'
 import type {
+  AdapterConfig,
   ChannelAdapter,
   ChannelMessage,
-  AdapterConfig,
-  OnIncomingMessage,
-  IncomingMessage,
   IncomingAttachment,
-} from '../types.ts'
-import { getCommandsForTelegram } from './commands.ts'
-import { convertToPcm } from './audio-convert.ts'
-import { transcribeAudio, type WyomingSttOptions } from './wyoming-stt.ts'
-import { extractPdfText } from './pdf-extract.ts'
+  IncomingMessage,
+  OnIncomingMessage,
+} from './types'
+import { transcribeAudio, type WyomingSttOptions } from './wyoming-stt'
 
 const MAX_LENGTH = 4096
 const MAX_FILE_SIZE = 1_048_576 // 1MB — for text documents inlined into prompt

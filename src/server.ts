@@ -9,12 +9,12 @@ import { createResourceLoader } from './resource-loader'
 import { AgentManager } from './agent-manager'
 import { LoginManager } from './login-manager'
 import { WsHandler } from './ws-handler'
-import type { ChannelBridge } from './channel-bridge/bridge.js'
+import type { ChannelBridge } from './channel-bridge/bridge'
 import {
   startTelegramBridge,
   createAuthStorage as createBridgeAuthStorage,
   createBridgeResourceLoader,
-} from './channel-bridge/index.js'
+} from './channel-bridge/index'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PUBLIC_DIR = join(__dirname, '..', 'public')

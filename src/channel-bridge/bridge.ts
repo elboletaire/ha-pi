@@ -17,14 +17,14 @@ import type {
   QueuedPrompt,
   CommandResult,
   InlineKeyboardMarkup,
-} from './types.js'
-import { AgentManager } from '../agent-manager.js'
-import { processCommand } from './commands.js'
-import { log, PATHS } from '../options.js'
-import { startTypingLoop } from './typing.js'
+} from './types'
+import { AgentManager } from '../agent-manager'
+import { processCommand } from './commands'
+import { log, PATHS } from '../options'
+import { startTypingLoop } from './typing'
 import { AuthStorage } from '@mariozechner/pi-coding-agent'
 import type { ResourceLoader } from '@mariozechner/pi-coding-agent'
-import { createResourceLoader } from '../resource-loader.js'
+import { createResourceLoader } from '../resource-loader'
 import type { AgentSessionEvent } from '@mariozechner/pi-coding-agent'
 
 /**
