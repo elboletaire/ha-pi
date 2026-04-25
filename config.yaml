@@ -18,7 +18,7 @@ map:
 options:
   log_level: "info"
   # Freeform AGENTS.md text appended to the built-in base instructions.
-  # This is saved as a multiline textarea in the add-on UI.
+  # The add-on UI shows a label and helper text for this field.
   agents_md_append: ""
 schema:
   log_level: list(debug|info|warn|error)

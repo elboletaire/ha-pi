@@ -8,14 +8,14 @@ Controls how much the add-on logs to the HA log viewer. Use `debug` when trouble
 
 ### `agents_md_append`
 
-Multiline freeform text appended to the agent's system context on every start. Use this to:
+Free-form text appended to the agent's system context on every start. Use this to:
 - Set a language: `Always respond in Catalan.`
 - Set a persona: `You are a concise, no-nonsense assistant.`
 - Add house-specific context: `My main lights are in group.living_room.`
 
 This is **separate** from `/data/pi-agent/AGENTS.md`. Both are loaded; the options value
-is applied first, then the file. In the Home Assistant add-on UI, this field is shown as a
-multiline textarea.
+is applied first, then the file. In the Home Assistant add-on UI, this field has a custom
+label and helper text to explain its purpose.
 
 ## Providers modal
 

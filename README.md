@@ -20,7 +20,7 @@ additional skills.
 - 💾 Sessions, skills, settings, and direct Home Assistant config access persist through the add-on mounts
 - 📜 Sessions can be resumed from the web UI, their visible chat history is restored, and each saved session can be deleted from the history list
 - 🔧 Ask the bot to "find and install this skill" from chat using the bundled `find-skills` skill
-- 📝 Customise the agent persona via the multiline `agents_md_append` add-on option
+- 📝 Customise the agent persona via the `agents_md_append` add-on option
 - 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, boundaries, and preferred HA service-call pattern clearly
 
 ## Installation
@@ -36,7 +36,7 @@ additional skills.
 | Option | Description |
 |--------|-------------|
 | `log_level` | Server log verbosity (`debug`, `info`, `warn`, `error`) |
-| `agents_md_append` | Multiline extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
+| `agents_md_append` | Free-form extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
 
 API keys and OAuth tokens are managed from the web UI's Providers modal and stored in `/data/pi-agent/auth.json`.
 
