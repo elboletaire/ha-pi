@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2 — Session history polish and skill install guidance
+
+- Session delete buttons in the history list now stay hidden until you hover a row, which makes the picker less visually noisy
+- Added git to the runtime image so git-based skill installs work reliably inside the container
+- Updated the README to point users at the chat-driven "find and install this skill" flow instead of the raw `pi install git:...` command
+
 ## 0.3.1 — Session history cleanup
 
 - Added a delete button to the web session history list so old conversations can be removed

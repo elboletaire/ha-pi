@@ -19,7 +19,7 @@ additional skills.
 - ⌨️ Shortcut legend modal in the header, with browser-safe hotkeys
 - 💾 Sessions, skills, settings, and direct Home Assistant config access persist through the add-on mounts
 - 📜 Sessions can be resumed from the web UI, their visible chat history is restored, and each saved session can be deleted from the history list
-- 🔧 Extend with new skills from within a chat session: `pi install git:...`
+- 🔧 Ask the bot to "find and install this skill" from chat using the bundled `find-skills` skill
 - 📝 Customise the agent persona via the multiline `agents_md_append` add-on option
 - 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, boundaries, and preferred HA service-call pattern clearly
 
@@ -52,7 +52,7 @@ The built-in agent instructions also explain what the assistant is, what it can 
 
 Everything in `/data/pi-agent/` persists across container upgrades and is backed up by HA:
 
-- **Install skills**: from a chat session, run `pi install git:owner/repo`
+- **Install skills**: ask the bot to "find and install this skill" from a chat session
 - **Edit agent instructions**: create or edit `/data/pi-agent/AGENTS.md`
 - **Working files**: created by the agent in `/data/workspace/`
 

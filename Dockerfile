@@ -25,8 +25,9 @@ FROM ${BUILD_FROM}
 
 # bash: required by run.sh
 # jq: used to parse /data/options.json (HAOS add-on options)
+# git: used by many skill installers and git-based skill fetches
 # curl/python3: used for direct Home Assistant API/service-call workflows
-RUN apk add --no-cache bash jq curl python3
+RUN apk add --no-cache bash jq git curl python3
 
 WORKDIR /app
 
