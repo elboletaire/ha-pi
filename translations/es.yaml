@@ -1,0 +1,29 @@
+configuration:
+  log_level:
+    name: Nivel de registro
+    description: >-
+      Controla la verbosidad de los registros. Usa 'debug' para solución de
+      problemas detallada, 'info' para operación normal, o 'warn'/'error' para
+      registros mínimos.
+  agents_md_append:
+    name: Instrucciones adicionales del agente
+    description: >-
+      Texto libre opcional que se añade a las instrucciones base integradas en
+      cada inicio. Úsalo para preferencias de idioma, una personalidad o contexto
+      específico de Home Assistant. Se combina con /data/pi-agent/AGENTS.md.
+  telegram_enabled:
+    name: Habilitar Telegram
+    description: >-
+      Cuando está habilitado, el agente puede enviar y recibir mensajes mediante
+      un bot de Telegram. Requiere un token válido del bot y IDs de chat permitidos configurados.
+  telegram_bot_token:
+    name: Token del bot de Telegram
+    description: >-
+      El token de API obtenido de @BotFather al crear tu bot de Telegram.
+      Guárdalo en secreto y nunca lo commitas al control de versiones.
+  telegram_allowed_chat_ids:
+    name: IDs de chat permitidos de Telegram
+    description: >-
+      Lista separada por comas de IDs de chat de Telegram que pueden interactuar
+      con el agente. Obtén tu ID de chat enviando un mensaje a tu bot y
+      comprobando la respuesta de la API, o usa una herramienta como @userinfobot.

@@ -1,7 +1,28 @@
 configuration:
+  log_level:
+    name: Logging level
+    description: >-
+      Controls the verbosity of logs. Use 'debug' for detailed troubleshooting,
+      'info' for normal operation, or 'warn'/'error' for minimal logging.
   agents_md_append:
     name: Additional agent instructions
     description: >-
       Optional free-form text appended to the built-in base instructions on every
       start. Use this for language preferences, a persona, or Home Assistant-
       specific context. It is combined with /data/pi-agent/AGENTS.md.
+  telegram_enabled:
+    name: Enable Telegram
+    description: >-
+      When enabled, the agent can send and receive messages via Telegram bot.
+      Requires a valid bot token and allowed chat IDs to be configured.
+  telegram_bot_token:
+    name: Telegram bot token
+    description: >-
+      The API token obtained from @BotFather when creating your Telegram bot.
+      Keep this secret and never commit it to version control.
+  telegram_allowed_chat_ids:
+    name: Allowed Telegram chat IDs
+    description: >-
+      Comma-separated list of Telegram chat IDs that are allowed to interact
+      with the agent. Get your chat ID by sending a message to your bot and
+      checking the API response, or use a tool like @userinfobot.

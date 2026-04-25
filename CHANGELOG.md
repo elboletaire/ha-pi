@@ -1,6 +1,21 @@
 # Changelog
 
-## 0.5.6 — Telegram session resume and UX improvements
+## 0.5.7 — Catalan and Spanish translations for configuration options
+
+### Added
+
+- **Catalan translations**: New `translations/ca.yaml` file with complete translations for all configuration options (log_level, agents_md_append, telegram_enabled, telegram_bot_token, telegram_allowed_chat_ids)
+- **Spanish translations**: New `translations/es.yaml` file with complete translations for all configuration options
+- **Comprehensive config translations**: Updated `translations/en.yaml` to include friendly labels and descriptions for all 5 configuration options:
+  - `log_level`: Logging level controls with usage guidance
+  - `telegram_enabled`: Telegram notifications toggle with requirements
+  - `telegram_bot_token`: Bot API token with security guidance
+  - `telegram_allowed_chat_ids`: Chat ID list with setup instructions
+- **Enhanced translation tests**: Updated test suite to verify all configuration options have proper name and description fields
+
+### Changed
+
+- Bumped version from 0.5.6 to 0.5.7
 
 ### Added
 
