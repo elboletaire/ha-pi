@@ -979,20 +979,22 @@ function markdownToTelegramHTML(text: string): string {
   // Escape HTML special characters (but not inside code blocks)
   const escapeHTML = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-  // Step 1: Protect inline code FIRST - this prevents backtick content from being escaped later
-  const inlineCodes: string[] = []
-  let result = text.replace(/`([^`]+)`/g, (match, code) => {
-    const placeholder = `___INLINECODE_${inlineCodes.length}___`
-    // Escape HTML in the code content so special chars are preserved in the final output
-    inlineCodes.push(`<code>${escapeHTML(code)}</code>`)
+  // Step 1: Protect code blocks FIRST — must happen before inline code so that
+  // backticks inside triple-backtick fences are not extracted as inline code spans.
+  const codeBlocks: string[] = []
+  let result = text.replace(/```([\s\S]*?)```/g, (match, code) => {
+    const placeholder = `___CODEBLOCK_${codeBlocks.length}___`
+    codeBlocks.push(`<pre>${escapeHTML(code.trim())}</pre>`)
     return placeholder
   })
 
-  // Step 2: Protect code blocks from processing
-  const codeBlocks: string[] = []
-  result = result.replace(/```([\s\S]*?)```/g, (match, code) => {
-    const placeholder = `___CODEBLOCK_${codeBlocks.length}___`
-    codeBlocks.push(`<pre>${escapeHTML(code.trim())}</pre>`)
+  // Step 2: Protect inline code — safe now because triple-backtick regions are already
+  // replaced with placeholders, so their content cannot be captured here.
+  const inlineCodes: string[] = []
+  result = result.replace(/`([^`]+)`/g, (match, code) => {
+    const placeholder = `___INLINECODE_${inlineCodes.length}___`
+    // Escape HTML in the code content so special chars are preserved in the final output
+    inlineCodes.push(`<code>${escapeHTML(code)}</code>`)
     return placeholder
   })
 

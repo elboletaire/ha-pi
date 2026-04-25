@@ -191,23 +191,24 @@ export class ChannelBridge {
     session.processing = true
     this.processingCount++
 
+    // Declare outside try so finally can always reach it
+    let stopTyping: (() => void) | null = null
+
     try {
       const prompt = session.queue.shift()!
 
       const agentManager = await this.getAgentManager(senderId)
 
       // Start typing indicators
-      let stopTyping: (() => void) | null = null
       if (this.typingIndicators) {
         const channelAdapter = this.adapters.get('bidirectional')
         if (channelAdapter?.sendTyping) {
-          const { stop } = startTypingLoop({
+          stopTyping = startTypingLoop({
             adapter: channelAdapter,
             recipient: prompt.sender,
             intervalMs: 4000,
             maxRefreshes: 30, // Allow up to 2 minutes of typing
           })
-          stopTyping = stop
         }
       }
 
@@ -219,22 +220,23 @@ export class ChannelBridge {
 
       // Get the response from the session
       const messages = agentManager.getMessages()
-      const assistantMessage = messages.findLast((m) => m.role === 'assistant' || m.role === 'ai')
+      const assistantMessage = messages
+        .slice()
+        .reverse()
+        .find((m) => (m as { role: string }).role === 'assistant' || (m as { role: string }).role === 'ai')
 
-      // Handle content that may be an array (pi SDK can return arrays of content blocks)
-      const content = assistantMessage?.content
+      // Handle content that may be an array (pi SDK returns (TextContent | ThinkingContent | ToolCall)[]).
+      // Only type==='text' blocks are extracted; tool calls and thinking blocks are skipped
+      // to avoid [object Object] appearing in the final message.
+      const content = (assistantMessage as { content?: unknown } | undefined)?.content
       const responseText = Array.isArray(content)
         ? content
-            .map((block) => {
-              if (typeof block === 'string') return block
-              // Handle different content block types
-              if (typeof block === 'object' && block !== null) {
-                return 'text' in block ? String(block.text) : String(block)
-              }
-              return String(block)
-            })
-            .join('\n')
-        : (content || 'No response generated.')
+            .filter((block) => (block as { type?: string }).type === 'text')
+            .map((block) => (block as { type: 'text'; text: string }).text)
+            .join('\n') || 'No response generated.'
+        : typeof content === 'string'
+          ? content
+          : 'No response generated.'
 
       // Get the current model for the message header
       const state = agentManager.getState()
@@ -243,7 +245,7 @@ export class ChannelBridge {
       // Send the response - use draft if available, otherwise single message
       if (draftId !== null && this.activeDrafts.has(senderId)) {
         // Draft streaming is active, finalize it
-        await this.finalizeDraft(senderId, prompt.adapter, prompt.sender)
+        await this.finalizeDraft(senderId, prompt.adapter, prompt.sender, undefined, modelSource)
       } else {
         // Send as single message with model in header
         await this.sendMessage(
@@ -268,8 +270,8 @@ export class ChannelBridge {
 
       // Send error message back to user
       await this.sendMessage({
-        adapter: 'telegram',
-        recipient: session?.sender || 'unknown',
+        adapter: session.adapter,
+        recipient: session.sender,
         text: `❌ Error: ${err.message}`,
         source: 'telegram:error',
       })
@@ -457,7 +459,8 @@ export class ChannelBridge {
     senderId: string,
     adapter: string,
     recipient: string,
-    markup?: InlineKeyboardMarkup
+    markup?: InlineKeyboardMarkup,
+    source?: string
   ): Promise<void> {
     const active = this.activeDrafts.get(senderId)
     if (!active) return
@@ -467,7 +470,7 @@ export class ChannelBridge {
         adapter,
         recipient,
         text: active.text,
-        source: 'agent',
+        source: source ?? 'agent',
       },
       markup
     )
