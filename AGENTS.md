@@ -77,6 +77,29 @@ fix: correct login timeout handling
 chore: update dependencies
 ```
 
+### Releasing a New Version
+
+When bumping the version, **all of the following files must be updated** in the same commit:
+
+| File | Field |
+|------|-------|
+| `config.yaml` | `version:` — this is what Home Assistant reads to display the addon version |
+| `package.json` | `"version"` |
+| `CHANGELOG.md` | new section header |
+
+Before committing, always verify every occurrence of the old version string has been replaced:
+
+```bash
+grep -r "0\.OLD\.VERSION" --include="*.yaml" --include="*.json" --include="*.md" .
+```
+
+The release commit must be tagged and pushed:
+
+```bash
+git tag vX.Y.Z
+git push && git push origin vX.Y.Z
+```
+
 ### Pull Requests
 
 - Reference related issues in the PR description
