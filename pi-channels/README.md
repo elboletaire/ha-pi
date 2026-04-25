@@ -67,6 +67,7 @@ pi install /path/to/pi-channels
 4. No adapter found? Returns `{ ok: false }` (silent unless caller checks callback)
 
 When the **chat bridge** is enabled:
+
 1. Incoming messages (e.g. from Telegram polling) hit `channel:receive`
 2. The bridge serializes per sender (one prompt at a time, FIFO queue)
 3. **Persistent mode** (default): each sender gets a long-lived `pi --mode rpc` subprocess with conversation memory
@@ -139,21 +140,21 @@ When pi-cron fires a job with `channel: "ops"`, the route resolves it to the con
 
 ### Bridge configuration
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `enabled` | `false` | Enable on startup. Also via `--chat-bridge` flag or `/chat-bridge on`. |
-| `sessionMode` | `"persistent"` | Default session mode. `"persistent"` = RPC subprocess with conversation memory. `"stateless"` = isolated subprocess per message. |
-| `sessionRules` | `[]` | Per-sender overrides. Array of `{ match, mode }` rules. Patterns match against `adapter:senderId` keys using glob syntax (`*`, `?`). First match wins. |
-| `idleTimeoutMinutes` | `30` | Idle timeout for persistent sessions. After inactivity, the subprocess is killed. Context is saved and restored on the next message. |
-| `maxQueuePerSender` | `5` | Max pending messages per sender before rejecting new ones. |
-| `timeoutMs` | `300000` | Per-prompt timeout in ms (default: 5 min). |
-| `maxConcurrent` | `2` | Max senders processed in parallel. |
-| `model` | `null` | Model override for subprocess (e.g. `"anthropic/claude-sonnet-4-20250514"`). `null` = use pi's default. |
-| `typingIndicators` | `true` | Send typing indicators while processing. |
-| `commands` | `true` | Handle bot commands (`/start`, `/help`, `/abort`, `/status`, `/new`, `/model`). |
-| `streamingDrafts` | `true` | Stream partial responses via Telegram's `sendMessageDraft` API (Bot API 9.3+). Shows text as it's generated. Only works in private chats with persistent sessions. |
-| `streamingIntervalMs` | `500` | Minimum interval between draft updates in ms. Lower = smoother but more API calls. |
-| `extensions` | `[]` | Extension paths to load in bridge subprocesses. Subprocess runs with `--no-extensions` by default to avoid conflicts (e.g. port collisions). List only what the bridge agent needs. |
+| Key                   | Default        | Description                                                                                                                                                                         |
+| --------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`             | `false`        | Enable on startup. Also via `--chat-bridge` flag or `/chat-bridge on`.                                                                                                              |
+| `sessionMode`         | `"persistent"` | Default session mode. `"persistent"` = RPC subprocess with conversation memory. `"stateless"` = isolated subprocess per message.                                                    |
+| `sessionRules`        | `[]`           | Per-sender overrides. Array of `{ match, mode }` rules. Patterns match against `adapter:senderId` keys using glob syntax (`*`, `?`). First match wins.                              |
+| `idleTimeoutMinutes`  | `30`           | Idle timeout for persistent sessions. After inactivity, the subprocess is killed. Context is saved and restored on the next message.                                                |
+| `maxQueuePerSender`   | `5`            | Max pending messages per sender before rejecting new ones.                                                                                                                          |
+| `timeoutMs`           | `300000`       | Per-prompt timeout in ms (default: 5 min).                                                                                                                                          |
+| `maxConcurrent`       | `2`            | Max senders processed in parallel.                                                                                                                                                  |
+| `model`               | `null`         | Model override for subprocess (e.g. `"anthropic/claude-sonnet-4-20250514"`). `null` = use pi's default.                                                                             |
+| `typingIndicators`    | `true`         | Send typing indicators while processing.                                                                                                                                            |
+| `commands`            | `true`         | Handle bot commands (`/start`, `/help`, `/abort`, `/status`, `/new`, `/model`).                                                                                                     |
+| `streamingDrafts`     | `true`         | Stream partial responses via Telegram's `sendMessageDraft` API (Bot API 9.3+). Shows text as it's generated. Only works in private chats with persistent sessions.                  |
+| `streamingIntervalMs` | `500`          | Minimum interval between draft updates in ms. Lower = smoother but more API calls.                                                                                                  |
+| `extensions`          | `[]`           | Extension paths to load in bridge subprocesses. Subprocess runs with `--no-extensions` by default to avoid conflicts (e.g. port collisions). List only what the bridge agent needs. |
 
 ## Chat bridge
 
@@ -186,6 +187,7 @@ pi --chat-bridge
 ### Session modes
 
 **Persistent** (`"persistent"`, default) — each sender gets a long-lived `pi --mode rpc` subprocess:
+
 - Conversation context carries over — the agent remembers previous messages
 - Sessions auto-restart if the subprocess crashes
 - Idle sessions are killed after `idleTimeoutMinutes` — context is saved to disk and restored on next message
@@ -195,6 +197,7 @@ pi --chat-bridge
 - Best for: **private chats, conversational interactions**
 
 **Stateless** (`"stateless"`) — each message spawns an isolated `pi -p --no-session` subprocess:
+
 - No memory between messages — each prompt is independent
 - Lower resource usage (no long-running processes)
 - Best for: **group chats, ops channels, webhook triggers, one-shot commands**
@@ -235,31 +238,31 @@ This means your Telegram conversations survive idle periods without losing conte
 
 When `commands` is enabled, messages starting with `/` are handled directly without routing to the agent:
 
-| Command | Description |
-|---------|-------------|
-| `/start` | Welcome message with quick action grid |
-| `/help` | List all available commands |
-| `/abort` | Cancel the currently running prompt |
-| `/status` | Show session info (mode, model, queue, uptime, context status) |
-| `/new` | Reset session — clears queue, conversation context, and saved history |
-| `/model` | Show current model or switch (`/model anthropic/claude-sonnet-4-20250514`) |
-| `/model <name>` | Change model — session restarts with context preserved |
-| `/whoami` | Show your chat ID, display name, and adapter |
-| `/ping` | Health check — is the bot alive? |
-| `/menu` | Toggle quick action reply keyboard (tap again or `/menu off` to hide) |
+| Command         | Description                                                                |
+| --------------- | -------------------------------------------------------------------------- |
+| `/start`        | Welcome message with quick action grid                                     |
+| `/help`         | List all available commands                                                |
+| `/abort`        | Cancel the currently running prompt                                        |
+| `/status`       | Show session info (mode, model, queue, uptime, context status)             |
+| `/new`          | Reset session — clears queue, conversation context, and saved history      |
+| `/model`        | Show current model or switch (`/model anthropic/claude-sonnet-4-20250514`) |
+| `/model <name>` | Change model — session restarts with context preserved                     |
+| `/whoami`       | Show your chat ID, display name, and adapter                               |
+| `/ping`         | Health check — is the bot alive?                                           |
+| `/menu`         | Toggle quick action reply keyboard (tap again or `/menu off` to hide)      |
 
 **Shortcut commands** — routed as prompts to the agent:
 
-| Command | Description |
-|---------|-------------|
-| `/cal` | Calendar — view today's events and upcoming 7 days |
-| `/cal <request>` | Calendar — custom request (e.g. `/cal create meeting tomorrow 3pm`) |
-| `/crm` | CRM — show upcoming reminders and recent interactions |
-| `/crm <request>` | CRM — custom request (e.g. `/crm find John`) |
-| `/time` | Time tracking — today's report and weekly summary |
-| `/time <request>` | Time tracking — custom request (e.g. `/time log 2h bugfix`) |
-| `/idea <text>` | Save a quick idea to daily memory |
-| `/brain <topic>` | Start a brainstorming session |
+| Command           | Description                                                         |
+| ----------------- | ------------------------------------------------------------------- |
+| `/cal`            | Calendar — view today's events and upcoming 7 days                  |
+| `/cal <request>`  | Calendar — custom request (e.g. `/cal create meeting tomorrow 3pm`) |
+| `/crm`            | CRM — show upcoming reminders and recent interactions               |
+| `/crm <request>`  | CRM — custom request (e.g. `/crm find John`)                        |
+| `/time`           | Time tracking — today's report and weekly summary                   |
+| `/time <request>` | Time tracking — custom request (e.g. `/time log 2h bugfix`)         |
+| `/idea <text>`    | Save a quick idea to daily memory                                   |
+| `/brain <topic>`  | Start a brainstorming session                                       |
 
 > Shortcut commands work with any pi extensions you have loaded — they simply construct natural-language prompts that get sent to the agent.
 
@@ -269,11 +272,11 @@ Commands work in both private and group chats. In groups, `/command@botname` for
 
 ### Bridge events
 
-| Event | When | Payload |
-|-------|------|---------|
-| `bridge:enqueue` | Message queued | `{ id, adapter, sender, queueDepth }` |
-| `bridge:start` | Prompt processing starts | `{ id, adapter, sender, text, persistent }` |
-| `bridge:complete` | Prompt done | `{ id, adapter, sender, ok, durationMs, persistent }` |
+| Event             | When                     | Payload                                               |
+| ----------------- | ------------------------ | ----------------------------------------------------- |
+| `bridge:enqueue`  | Message queued           | `{ id, adapter, sender, queueDepth }`                 |
+| `bridge:start`    | Prompt processing starts | `{ id, adapter, sender, text, persistent }`           |
+| `bridge:complete` | Prompt done              | `{ id, adapter, sender, ok, durationMs, persistent }` |
 
 ## Built-in adapters
 
@@ -297,31 +300,31 @@ Full-featured bidirectional adapter with rich media support.
 }
 ```
 
-| Option | Required | Description |
-|--------|----------|-------------|
-| `botToken` | ✅ | Telegram Bot API token. Use `"env:VAR"` syntax for security. |
-| `polling` | No | Enable long polling for incoming messages (default: `false`). Required for bridge. |
-| `parseMode` | No | Message formatting: `"Markdown"` or `"HTML"` (default: plain text). |
-| `pollingTimeout` | No | Long polling timeout in seconds (default: `30`). |
-| `allowedChatIds` | No | Whitelist of chat IDs that can interact with the bot. If omitted, all chats are allowed. **Recommended for security.** |
-| `voiceTranscription` | No | Wyoming STT server connection for voice-to-text. See [Voice transcription](#voice-transcription-config). |
+| Option               | Required | Description                                                                                                            |
+| -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `botToken`           | ✅       | Telegram Bot API token. Use `"env:VAR"` syntax for security.                                                           |
+| `polling`            | No       | Enable long polling for incoming messages (default: `false`). Required for bridge.                                     |
+| `parseMode`          | No       | Message formatting: `"Markdown"` or `"HTML"` (default: plain text).                                                    |
+| `pollingTimeout`     | No       | Long polling timeout in seconds (default: `30`).                                                                       |
+| `allowedChatIds`     | No       | Whitelist of chat IDs that can interact with the bot. If omitted, all chats are allowed. **Recommended for security.** |
+| `voiceTranscription` | No       | Wyoming STT server connection for voice-to-text. See [Voice transcription](#voice-transcription-config).               |
 
 **Capabilities:**
 
-| Feature | Details |
-|---------|---------|
-| **Text messages** | Full bidirectional — send and receive |
-| **Photos** | Downloaded and passed as image attachments (up to 10MB) |
-| **Text documents** | Downloaded, content inlined into prompt (up to 1MB). Supports: `.md`, `.txt`, `.json`, `.csv`, `.py`, `.ts`, `.sql`, and [50+ extensions](src/adapters/telegram.ts) |
-| **PDFs** | Text extracted via `pdftotext` with raw fallback (up to 10MB) |
-| **Voice messages** | Transcribed via Wyoming STT — ffmpeg converts OGA→PCM, then sent to STT server (up to 20MB) |
-| **File sending** | `sendFile()` auto-picks `sendPhoto` for images, `sendDocument` for others |
-| **Streaming drafts** | Real-time response streaming via `sendMessageDraft` (Bot API 9.3+) |
-| **Typing indicators** | Auto-refreshed every 4 seconds while processing |
-| **Markdown → HTML** | Converts Markdown to Telegram HTML: bold, italic, code blocks, inline code, headers, links, tables |
-| **Message splitting** | Auto-splits messages over 4096 chars at newline boundaries |
-| **Callback queries** | Inline keyboard button taps routed as text messages |
-| **Command sync** | Bot menu auto-synced with registered commands via `setMyCommands` |
+| Feature               | Details                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Text messages**     | Full bidirectional — send and receive                                                                                                                               |
+| **Photos**            | Downloaded and passed as image attachments (up to 10MB)                                                                                                             |
+| **Text documents**    | Downloaded, content inlined into prompt (up to 1MB). Supports: `.md`, `.txt`, `.json`, `.csv`, `.py`, `.ts`, `.sql`, and [50+ extensions](src/adapters/telegram.ts) |
+| **PDFs**              | Text extracted via `pdftotext` with raw fallback (up to 10MB)                                                                                                       |
+| **Voice messages**    | Transcribed via Wyoming STT — ffmpeg converts OGA→PCM, then sent to STT server (up to 20MB)                                                                         |
+| **File sending**      | `sendFile()` auto-picks `sendPhoto` for images, `sendDocument` for others                                                                                           |
+| **Streaming drafts**  | Real-time response streaming via `sendMessageDraft` (Bot API 9.3+)                                                                                                  |
+| **Typing indicators** | Auto-refreshed every 4 seconds while processing                                                                                                                     |
+| **Markdown → HTML**   | Converts Markdown to Telegram HTML: bold, italic, code blocks, inline code, headers, links, tables                                                                  |
+| **Message splitting** | Auto-splits messages over 4096 chars at newline boundaries                                                                                                          |
+| **Callback queries**  | Inline keyboard button taps routed as text messages                                                                                                                 |
+| **Command sync**      | Bot menu auto-synced with registered commands via `setMyCommands`                                                                                                   |
 
 ### Webhook
 
@@ -346,56 +349,68 @@ Other extensions can register adapters at runtime via the event bus:
 
 ```typescript
 // Outgoing-only adapter
-pi.events.emit("channel:register", {
-  name: "email",
+pi.events.emit('channel:register', {
+  name: 'email',
   adapter: {
-    direction: "outgoing",
+    direction: 'outgoing',
     async send(message) {
       await sendEmail({
         to: message.recipient,
-        subject: message.source || "pi notification",
+        subject: message.source || 'pi notification',
         body: message.text,
-      });
+      })
     },
   },
-});
+})
 
 // Then anyone can send via it
-pi.events.emit("channel:send", {
-  adapter: "email",
-  recipient: "user@example.com",
-  text: "Deploy complete!",
-  source: "ci/cd",
-});
+pi.events.emit('channel:send', {
+  adapter: 'email',
+  recipient: 'user@example.com',
+  text: 'Deploy complete!',
+  source: 'ci/cd',
+})
 ```
 
 Bidirectional adapters can also receive messages and support typing + file sending:
 
 ```typescript
-pi.events.emit("channel:register", {
-  name: "discord",
+pi.events.emit('channel:register', {
+  name: 'discord',
   adapter: {
-    direction: "bidirectional",
-    async send(message) { /* send to Discord channel */ },
-    async start(onMessage) { /* listen for incoming messages */ },
-    async stop() { /* cleanup connections */ },
-    async sendTyping(recipient) { /* show typing indicator */ },
-    async sendFile(recipient, filePath, caption) { /* upload file */ },
-    async sendDraft(recipient, draftId, text) { /* streaming preview */ },
+    direction: 'bidirectional',
+    async send(message) {
+      /* send to Discord channel */
+    },
+    async start(onMessage) {
+      /* listen for incoming messages */
+    },
+    async stop() {
+      /* cleanup connections */
+    },
+    async sendTyping(recipient) {
+      /* show typing indicator */
+    },
+    async sendFile(recipient, filePath, caption) {
+      /* upload file */
+    },
+    async sendDraft(recipient, draftId, text) {
+      /* streaming preview */
+    },
   },
-});
+})
 ```
 
 ## Event API
 
-| Event | Direction | Payload |
-|---|---|---|
-| `channel:send` | → adapter | `{ adapter, recipient, text, source?, metadata?, markup?, callback? }` |
-| `channel:receive` | ← adapter | `{ adapter, sender, text, attachments?, metadata? }` |
-| `channel:register` | register | `{ name, adapter, callback? }` |
-| `channel:remove` | register | `{ name, callback? }` |
-| `channel:list` | query | `{ callback? }` |
-| `channel:test` | → adapter | `{ adapter, recipient, callback? }` |
+| Event              | Direction | Payload                                                                |
+| ------------------ | --------- | ---------------------------------------------------------------------- |
+| `channel:send`     | → adapter | `{ adapter, recipient, text, source?, metadata?, markup?, callback? }` |
+| `channel:receive`  | ← adapter | `{ adapter, sender, text, attachments?, metadata? }`                   |
+| `channel:register` | register  | `{ name, adapter, callback? }`                                         |
+| `channel:remove`   | register  | `{ name, callback? }`                                                  |
+| `channel:list`     | query     | `{ callback? }`                                                        |
+| `channel:test`     | → adapter | `{ adapter, recipient, callback? }`                                    |
 
 Also listens to `cron:job_complete` from pi-cron — automatically routes job output to the channel specified in the job's `channel` field.
 
@@ -403,12 +418,12 @@ Also listens to `cron:job_complete` from pi-cron — automatically routes job ou
 
 The `notify` tool lets the LLM send messages and files directly:
 
-| Action | Description |
-|--------|-------------|
-| `list` | Show configured adapters and routes |
-| `send` | Deliver a text message (requires: `adapter`, `text`) |
+| Action      | Description                                                                   |
+| ----------- | ----------------------------------------------------------------------------- |
+| `list`      | Show configured adapters and routes                                           |
+| `send`      | Deliver a text message (requires: `adapter`, `text`)                          |
 | `send_file` | Send a file/document with optional caption (requires: `adapter`, `file_path`) |
-| `test` | Send a ping to verify adapter connectivity |
+| `test`      | Send a ping to verify adapter connectivity                                    |
 
 ### File sending security
 
@@ -420,11 +435,11 @@ The `send_file` action validates paths against an allowlist to prevent data exfi
 
 ## Pi commands
 
-| Command | Description |
-|---------|-------------|
-| `/chat-bridge` | Show bridge status (sessions, queue, active prompts) |
-| `/chat-bridge on` | Start the chat bridge |
-| `/chat-bridge off` | Stop the chat bridge |
+| Command            | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| `/chat-bridge`     | Show bridge status (sessions, queue, active prompts) |
+| `/chat-bridge on`  | Start the chat bridge                                |
+| `/chat-bridge off` | Stop the chat bridge                                 |
 
 ## File structure
 
@@ -455,11 +470,11 @@ src/
 
 Features degrade gracefully when dependencies are not available:
 
-| Dependency | Used for | Install | Without it |
-|------------|----------|---------|------------|
-| `ffmpeg` | Voice → PCM conversion | `sudo apt install ffmpeg` | Voice messages are ignored |
-| `pdftotext` | PDF text extraction (high quality) | `sudo apt install poppler-utils` | Falls back to basic raw text extraction |
-| Wyoming STT server | Voice-to-text transcription | [Wyoming docs](https://github.com/rhasspy/wyoming) | Voice transcription returns an error |
+| Dependency         | Used for                           | Install                                            | Without it                              |
+| ------------------ | ---------------------------------- | -------------------------------------------------- | --------------------------------------- |
+| `ffmpeg`           | Voice → PCM conversion             | `sudo apt install ffmpeg`                          | Voice messages are ignored              |
+| `pdftotext`        | PDF text extraction (high quality) | `sudo apt install poppler-utils`                   | Falls back to basic raw text extraction |
+| Wyoming STT server | Voice-to-text transcription        | [Wyoming docs](https://github.com/rhasspy/wyoming) | Voice transcription returns an error    |
 
 ### Voice transcription config
 

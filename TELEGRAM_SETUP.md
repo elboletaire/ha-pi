@@ -28,6 +28,7 @@ The Telegram bot allows you to interact with your AI coding agent directly from 
 4. BotFather will provide you with an **API Token** - save this!
 
 Example output from BotFather:
+
 ```
 ✔ New bot was created.
 New bot was created at t.me/my_pi_agent_bot
@@ -55,6 +56,7 @@ You need to know which chat IDs are allowed to use the bot. You can get this in 
 ### Method C: Using the Bot Directly
 
 Send this message to your bot:
+
 ```
 /myid
 ```
@@ -70,13 +72,14 @@ The bot will reply with your chat ID if it's in the allowed list (or a generic I
 3. Click **Configuration** tab
 4. Fill in the fields:
 
-| Field | Value | Description |
-|-------|-------|-------------|
-| **Enable Telegram Bot** | ✅ Checked | Turns on the Telegram integration |
-| **Telegram Bot Token** | `123456789:ABCdef...` | The token from BotFather |
-| **Allowed Chat IDs** | `123456789,-1001234567890` | Comma-separated list of chat IDs |
+| Field                   | Value                      | Description                       |
+| ----------------------- | -------------------------- | --------------------------------- |
+| **Enable Telegram Bot** | ✅ Checked                 | Turns on the Telegram integration |
+| **Telegram Bot Token**  | `123456789:ABCdef...`      | The token from BotFather          |
+| **Allowed Chat IDs**    | `123456789,-1001234567890` | Comma-separated list of chat IDs  |
 
 **Important Security Notes**:
+
 - Only add chat IDs you trust
 - If you leave "Allowed Chat IDs" empty, **ALL** chats can use your bot (not recommended!)
 - Keep your bot token secret - don't share it publicly
@@ -117,6 +120,7 @@ After configuring, restart the Pi Agent add-on:
 3. Check the logs to ensure the Telegram bridge started successfully
 
 Expected log output:
+
 ```
 [pi-agent] Starting Telegram bridge...
 [pi-agent] Registered adapter: bidirectional (bidirectional)
@@ -126,6 +130,7 @@ Expected log output:
 ```
 
 If you see errors, check the logs and verify:
+
 - Bot token is correct
 - Chat IDs are valid
 - Network connectivity to Telegram API
@@ -141,28 +146,30 @@ If you see errors, check the logs and verify:
 
 ### Command Reference
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/start` | Welcome message and help | `/start` |
-| `/new` | Create new session | `/new` |
-| `/sessions` | List all sessions | `/sessions` |
-| `/session <ID>` | Switch to session | `/session a1b2c3d4` |
-| `/delete <ID>` | Delete session | `/delete a1b2c3d4` |
-| `/status` | Show current status | `/status` |
-| `/model [name]` | Show/change model | `/model anthropic/claude-sonnet-4` |
-| `/abort` | Cancel generation | `/abort` |
+| Command         | Description              | Example                            |
+| --------------- | ------------------------ | ---------------------------------- |
+| `/start`        | Welcome message and help | `/start`                           |
+| `/new`          | Create new session       | `/new`                             |
+| `/sessions`     | List all sessions        | `/sessions`                        |
+| `/session <ID>` | Switch to session        | `/session a1b2c3d4`                |
+| `/delete <ID>`  | Delete session           | `/delete a1b2c3d4`                 |
+| `/status`       | Show current status      | `/status`                          |
+| `/model [name]` | Show/change model        | `/model anthropic/claude-sonnet-4` |
+| `/abort`        | Cancel generation        | `/abort`                           |
 
 ### Advanced Features
 
 #### File Support
 
 You can send files to the bot:
+
 - **Photos**: The bot will analyze and discuss them
 - **Documents**: Text documents are processed for content
 - **PDFs**: PDF files are extracted and analyzed
 - **Voice Messages**: Converted to text via STT (if configured)
 
 Example workflow:
+
 1. Send a photo of code
 2. Ask: "Explain what this code does"
 3. The bot will analyze the image and respond
@@ -170,6 +177,7 @@ Example workflow:
 #### Session Sharing
 
 Sessions created in Telegram are accessible from the web UI and vice versa:
+
 - Create a session in the web UI → Access it from Telegram via `/sessions`
 - Start coding in Telegram → Continue in the web UI with same context
 
@@ -180,6 +188,7 @@ Sessions created in Telegram are accessible from the web UI and vice versa:
 **Symptoms**: No response when sending messages to the bot.
 
 **Solutions**:
+
 1. Check add-on logs: `Settings → Add-ons → Pi Agent → Logs`
 2. Verify bot token is correct
 3. Ensure chat ID is in the allowed list
@@ -190,11 +199,13 @@ Sessions created in Telegram are accessible from the web UI and vice versa:
 **Symptoms**: Messages appear all at once instead of streaming.
 
 **Causes**:
+
 - Telegram Bot API version < 9.3
 - Group chat (drafts only work in private chats)
 - Network issues
 
 **Debug**:
+
 ```bash
 # Check Telegram API version support
 curl -s https://api.telegram.org/bot<YOUR_TOKEN>/getMe | jq .version
@@ -205,6 +216,7 @@ curl -s https://api.telegram.org/bot<YOUR_TOKEN>/getMe | jq .version
 **Symptoms**: No typing indicator while agent is processing.
 
 **Solutions**:
+
 - This is normal for some network configurations
 - Check if `typing_indicators` is enabled in bridge config
 - Verify network connectivity to Telegram API
@@ -214,6 +226,7 @@ curl -s https://api.telegram.org/bot<YOUR_TOKEN>/getMe | jq .version
 **Symptoms**: "Chat not allowed" or similar errors.
 
 **Solutions**:
+
 1. Verify chat ID format (users: positive number, groups: negative starting with -100)
 2. Ensure chat ID is in the allowed list (comma-separated, no spaces)
 3. Try adding your current chat ID to the list
@@ -223,6 +236,7 @@ curl -s https://api.telegram.org/bot<YOUR_TOKEN>/getMe | jq .version
 **Symptoms**: Logs show "Telegram bridge disabled" or startup errors.
 
 **Solutions**:
+
 1. Check if `telegram_enabled` is set to `true`
 2. Verify bot token is not empty
 3. Check for network/firewall issues blocking Telegram API
@@ -252,6 +266,7 @@ telegram_allowed_chat_ids: ""
 ### 3. Monitor Usage
 
 Regularly check:
+
 - Add-on logs for unusual activity
 - Session history for unexpected conversations
 - Resource usage (CPU/memory) during heavy usage
@@ -274,6 +289,7 @@ To use a different model for Telegram vs web UI, you'd need to modify the server
 ### Multiple Bots
 
 The current implementation supports one bot per add-on instance. For multiple bots, you'd need:
+
 - Separate add-on instances
 - Different ports/ingress paths
 - Custom configuration

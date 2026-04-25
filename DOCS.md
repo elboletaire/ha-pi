@@ -9,6 +9,7 @@ Controls how much the add-on logs to the HA log viewer. Use `debug` when trouble
 ### `agents_md_append`
 
 Free-form text appended to the agent's system context on every start. Use this to:
+
 - Set a language: `Always respond in Catalan.`
 - Set a persona: `You are a concise, no-nonsense assistant.`
 - Add house-specific context: `My main lights are in group.living_room.`
@@ -101,12 +102,16 @@ The built-in base instructions already describe Pi Agent as a Home Assistant-emb
 ## Troubleshooting
 
 ### "No model available"
+
 Check that the relevant API key or OAuth login is configured in the web UI's Providers modal.
 
 ### Agent doesn't know about my devices
+
 The `home-assistant` skill uses `ha-helper` to query your HA instance. Try asking:
+
 > "What lights do I have in the living room?"
 
 ### Skills I installed are gone after an upgrade
+
 Skills installed via `pi install` are stored in `/data/pi-agent/skills/` which persists
 across upgrades. If they are missing, check that your `/data` backup was restored correctly.

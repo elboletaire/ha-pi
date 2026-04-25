@@ -5,6 +5,7 @@ This document describes how the channel bridge handles message delivery, streami
 ## Overview
 
 The messaging system provides flexible delivery mechanisms:
+
 - **Draft Streaming**: Real-time text updates using Telegram Bot API 9.3+ (when available)
 - **Single Message**: Fallback to complete message delivery (works with all adapters)
 - **Typing Indicators**: Visual feedback during processing
@@ -20,11 +21,13 @@ Agent generates text → Update draft repeatedly → Finalize with complete mess
 ```
 
 **Benefits**:
+
 - Smooth, real-time user experience
 - Users see text as it's generated
 - Reduces perceived latency
 
 **Requirements**:
+
 - Adapter must implement `sendDraft(recipient, draftId, text)`
 - Telegram Bot API 9.3+ or equivalent
 - Private chats only (not supported in groups)
@@ -38,11 +41,13 @@ Agent generates text → Buffer complete response → Send single message
 ```
 
 **Benefits**:
+
 - Universal compatibility
 - Works with all adapters
 - Simpler implementation
 
 **Trade-offs**:
+
 - Users wait until generation completes
 - No visual feedback during processing (unless typing indicators are used)
 
@@ -57,6 +62,7 @@ Typing indicators are sent at regular intervals while the agent is processing:
 3. **Stop**: When response is complete or error occurs
 
 **Configuration**:
+
 - Default interval: 4000ms (4 seconds)
 - Maximum refreshes: 30 (allows up to ~2 minutes)
 - Auto-stops when generation completes
@@ -70,22 +76,22 @@ const { stop } = startTypingLoop({
   recipient: prompt.sender,
   intervalMs: 4000,
   maxRefreshes: 30,
-});
+})
 
 // ... processing happens ...
 
 // Stop when done
-stop();
+stop()
 ```
 
 ### Adapter Support
 
-| Adapter | Typing Indicator | Draft Streaming |
-|---------|-----------------|-----------------|
-| Telegram | ✅ Yes | ✅ Yes (Bot API 9.3+) |
-| Discord | ⚠️ Limited | ❌ No |
-| Slack | ⚠️ Limited | ❌ No |
-| Webhook | ❌ No | ❌ No |
+| Adapter  | Typing Indicator | Draft Streaming       |
+| -------- | ---------------- | --------------------- |
+| Telegram | ✅ Yes           | ✅ Yes (Bot API 9.3+) |
+| Discord  | ⚠️ Limited       | ❌ No                 |
+| Slack    | ⚠️ Limited       | ❌ No                 |
+| Webhook  | ❌ No            | ❌ No                 |
 
 ## Draft Streaming Implementation
 
@@ -93,13 +99,13 @@ stop();
 
 ```typescript
 // 1. Start draft streaming
-const draftId = bridge.startDraftStreaming(senderId); // Returns null if not supported
+const draftId = bridge.startDraftStreaming(senderId) // Returns null if not supported
 
 // 2. Update draft with new text (called as agent generates)
-await bridge.updateDraft(senderId, adapter, recipient, newText);
+await bridge.updateDraft(senderId, adapter, recipient, newText)
 
 // 3. Finalize with complete message
-await bridge.finalizeDraft(senderId, adapter, recipient, markup);
+await bridge.finalizeDraft(senderId, adapter, recipient, markup)
 ```
 
 ### Draft ID Management
@@ -112,6 +118,7 @@ await bridge.finalizeDraft(senderId, adapter, recipient, markup);
 ### Text Clamping
 
 Draft text is automatically clamped to API limits:
+
 - **Telegram**: Maximum 4096 characters per draft
 - Excess text is truncated silently
 - Final message will have full text
@@ -123,20 +130,20 @@ Draft text is automatically clamped to API limits:
 The bridge extracts assistant responses from session messages:
 
 ```typescript
-const messages = agentManager.getMessages();
-const assistantMessage = messages.findLast(
-  (m) => m.role === "assistant" || m.role === "ai"
-);
-const responseText = assistantMessage?.content || "No response generated.";
+const messages = agentManager.getMessages()
+const assistantMessage = messages.findLast((m) => m.role === 'assistant' || m.role === 'ai')
+const responseText = assistantMessage?.content || 'No response generated.'
 ```
 
 **Supported Roles**:
+
 - `assistant` - Standard assistant messages
 - `ai` - Alternative AI role naming
 
 ### Error Handling
 
 If no assistant message is found:
+
 - Fallback text: `"No response generated."`
 - Error logged for debugging
 - User still receives a response (not left hanging)
@@ -189,6 +196,7 @@ Get Response from Session Messages
 ### Draft Streaming Failures
 
 If `sendDraft()` fails:
+
 - Errors are logged but not propagated to user
 - Falls back to single message delivery
 - No disruption to user experience
@@ -196,6 +204,7 @@ If `sendDraft()` fails:
 ### Typing Indicator Failures
 
 If `sendTyping()` fails:
+
 - Silently ignored (best-effort)
 - Processing continues normally
 - User still sees final response
@@ -203,6 +212,7 @@ If `sendTyping()` fails:
 ### Message Delivery Failures
 
 If `sendMessage()` fails:
+
 - Error logged with full details
 - User receives error notification
 - Session state preserved for retry
@@ -213,11 +223,11 @@ If `sendMessage()` fails:
 
 ```typescript
 const bridge = new ChannelBridge({
-  provider: "anthropic",
-  modelId: "claude-sonnet-4-5-20250929",
-  typingIndicators: true,    // Enable typing indicators (default: true)
-  maxConcurrent: 2,          // Max concurrent messages
-});
+  provider: 'anthropic',
+  modelId: 'claude-sonnet-4-5-20250929',
+  typingIndicators: true, // Enable typing indicators (default: true)
+  maxConcurrent: 2, // Max concurrent messages
+})
 ```
 
 ### Adapter Requirements
@@ -227,11 +237,11 @@ For full feature support, adapters should implement:
 ```typescript
 interface ChannelAdapter {
   // Required for all bidirectional adapters
-  send(message: ChannelMessage): Promise<void>;
-  
+  send(message: ChannelMessage): Promise<void>
+
   // Optional but recommended
-  sendTyping?(recipient: string): Promise<void>;
-  sendDraft?(recipient: string, draftId: number, text: string): Promise<void>;
+  sendTyping?(recipient: string): Promise<void>
+  sendDraft?(recipient: string, draftId: number, text: string): Promise<void>
 }
 ```
 
@@ -271,6 +281,7 @@ interface ChannelAdapter {
 ### Unit Tests
 
 Test coverage includes:
+
 - Draft streaming lifecycle
 - Typing indicator timing
 - Fallback to single message
@@ -279,6 +290,7 @@ Test coverage includes:
 ### Integration Tests
 
 End-to-end scenarios:
+
 1. Send message with draft streaming enabled
 2. Verify draft updates received
 3. Confirm final message complete
@@ -288,6 +300,7 @@ End-to-end scenarios:
 ### Manual Testing
 
 To test manually:
+
 ```bash
 # Enable debug logging
 DEBUG=ha-pi:* pnpm dev --provider anthropic --model claude-sonnet-4-5-20250929
@@ -303,14 +316,16 @@ DEBUG=ha-pi:* pnpm dev --provider anthropic --model claude-sonnet-4-5-20250929
 **Symptoms**: User sees complete message at once, no intermediate updates.
 
 **Causes**:
+
 - Bot API version < 9.3
 - Group chat (drafts only work in private chats)
 - Adapter doesn't implement `sendDraft`
 
 **Debug**:
+
 ```typescript
 // Check adapter capabilities
-console.log("Has sendDraft:", adapter.sendDraft !== undefined);
+console.log('Has sendDraft:', adapter.sendDraft !== undefined)
 ```
 
 ### Typing Indicators Not Showing
@@ -318,14 +333,16 @@ console.log("Has sendDraft:", adapter.sendDraft !== undefined);
 **Symptoms**: No typing indicator while agent is processing.
 
 **Causes**:
+
 - `typingIndicators: false` in config
 - Adapter doesn't support `sendTyping`
 - Network issues preventing API calls
 
 **Debug**:
+
 ```typescript
 // Check if adapter has sendTyping
-console.log("Has sendTyping:", adapter.sendTyping !== undefined);
+console.log('Has sendTyping:', adapter.sendTyping !== undefined)
 ```
 
 ### Messages Not Delivered
@@ -333,14 +350,16 @@ console.log("Has sendTyping:", adapter.sendTyping !== undefined);
 **Symptoms**: Agent processes but user never receives response.
 
 **Causes**:
+
 - `sendMessage` implementation missing in adapter
 - Recipient ID incorrect
 - Network connectivity issues
 
 **Debug**:
+
 ```typescript
 // Check adapter has send method
-console.log("Has send:", adapter.send !== undefined);
+console.log('Has send:', adapter.send !== undefined)
 ```
 
 ## Best Practices

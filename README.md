@@ -33,9 +33,9 @@ additional skills.
 
 ## Configuration
 
-| Option | Description |
-|--------|-------------|
-| `log_level` | Server log verbosity (`debug`, `info`, `warn`, `error`) |
+| Option             | Description                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `log_level`        | Server log verbosity (`debug`, `info`, `warn`, `error`)                                |
 | `agents_md_append` | Free-form extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
 
 API keys and OAuth tokens are managed from the web UI's Providers modal and stored in `/data/pi-agent/auth.json`.

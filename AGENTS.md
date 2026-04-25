@@ -62,6 +62,7 @@ Follow conventional commits format: `<type>(scope): description`
 Common scopes: `frontend`, `server`, `config`, `tests`, `skills`
 
 Examples:
+
 ```
 feat(frontend): add delete button to session history
 fix(server): correct login timeout handling
@@ -69,6 +70,7 @@ chore(deps): update vitest to v4.1.5
 ```
 
 Examples without scope:
+
 ```bash
 feat: add WebSocket session persistence
 fix: correct login timeout handling

@@ -34,135 +34,133 @@
  * }
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { loadConfig } from "./config.ts";
-import { ChannelRegistry } from "./registry.ts";
-import { registerChannelEvents, setBridge } from "./events.ts";
-import { registerChannelTool } from "./tool.ts";
-import { ChatBridge } from "./bridge/bridge.ts";
-import { createLogger } from "./logger.ts";
+import type { ExtensionAPI } from '@mariozechner/pi-coding-agent'
+import { loadConfig } from './config.ts'
+import { ChannelRegistry } from './registry.ts'
+import { registerChannelEvents, setBridge } from './events.ts'
+import { registerChannelTool } from './tool.ts'
+import { ChatBridge } from './bridge/bridge.ts'
+import { createLogger } from './logger.ts'
 
 export default function (pi: ExtensionAPI) {
-	const log = createLogger(pi);
-	const registry = new ChannelRegistry();
-	let bridge: ChatBridge | null = null;
+  const log = createLogger(pi)
+  const registry = new ChannelRegistry()
+  let bridge: ChatBridge | null = null
 
-	// ── Flag: --chat-bridge ───────────────────────────────────
+  // ── Flag: --chat-bridge ───────────────────────────────────
 
-	pi.registerFlag("chat-bridge", {
-		description: "Enable the chat bridge on startup (incoming messages → agent → reply)",
-		type: "boolean",
-		default: false,
-	});
+  pi.registerFlag('chat-bridge', {
+    description: 'Enable the chat bridge on startup (incoming messages → agent → reply)',
+    type: 'boolean',
+    default: false,
+  })
 
-	// ── Event API + cron integration ──────────────────────────
+  // ── Event API + cron integration ──────────────────────────
 
-	registerChannelEvents(pi, registry);
+  registerChannelEvents(pi, registry)
 
-	// ── Lifecycle ─────────────────────────────────────────────
+  // ── Lifecycle ─────────────────────────────────────────────
 
-	pi.on("session_start", async (_event, ctx) => {
-		const config = loadConfig(ctx.cwd);
-		registry.loadConfig(config);
+  pi.on('session_start', async (_event, ctx) => {
+    const config = loadConfig(ctx.cwd)
+    registry.loadConfig(config)
 
-		const errors = registry.getErrors();
-		for (const err of errors) {
-			ctx.ui.notify(`pi-channels: ${err.adapter}: ${err.error}`, "warning");
-			log("adapter-error", { adapter: err.adapter, error: err.error }, "ERROR");
-		}
-		log("init", { adapters: Object.keys(config.adapters ?? {}), routes: Object.keys(config.routes ?? {}) });
+    const errors = registry.getErrors()
+    for (const err of errors) {
+      ctx.ui.notify(`pi-channels: ${err.adapter}: ${err.error}`, 'warning')
+      log('adapter-error', { adapter: err.adapter, error: err.error }, 'ERROR')
+    }
+    log('init', { adapters: Object.keys(config.adapters ?? {}), routes: Object.keys(config.routes ?? {}) })
 
-		// Start incoming/bidirectional adapters
-		await registry.startListening();
+    // Start incoming/bidirectional adapters
+    await registry.startListening()
 
-		const startErrors = registry.getErrors().filter(e => e.error.startsWith("Failed to start"));
-		for (const err of startErrors) {
-			ctx.ui.notify(`pi-channels: ${err.adapter}: ${err.error}`, "warning");
-		}
+    const startErrors = registry.getErrors().filter((e) => e.error.startsWith('Failed to start'))
+    for (const err of startErrors) {
+      ctx.ui.notify(`pi-channels: ${err.adapter}: ${err.error}`, 'warning')
+    }
 
-		// Initialize bridge
-		bridge = new ChatBridge(config.bridge, ctx.cwd, registry, pi.events, log);
-		setBridge(bridge);
+    // Initialize bridge
+    bridge = new ChatBridge(config.bridge, ctx.cwd, registry, pi.events, log)
+    setBridge(bridge)
 
-		const flagEnabled = pi.getFlag("--chat-bridge");
-		if (flagEnabled || config.bridge?.enabled) {
-			bridge.start();
-			log("bridge-start", {});
-			ctx.ui.notify("pi-channels: Chat bridge started", "info");
-		}
-	});
+    const flagEnabled = pi.getFlag('--chat-bridge')
+    if (flagEnabled || config.bridge?.enabled) {
+      bridge.start()
+      log('bridge-start', {})
+      ctx.ui.notify('pi-channels: Chat bridge started', 'info')
+    }
+  })
 
-	// ── Settings hot-reload ──────────────────────────────────
+  // ── Settings hot-reload ──────────────────────────────────
 
-	pi.events.on("settings:update", (data: unknown) => {
-		const update = data as Record<string, any>;
-		if (update.channels?.model !== undefined && bridge) {
-			bridge.setModel(update.channels.model);
-			log("settings-model-update", { model: update.channels.model });
-		}
-	});
+  pi.events.on('settings:update', (data: unknown) => {
+    const update = data as Record<string, any>
+    if (update.channels?.model !== undefined && bridge) {
+      bridge.setModel(update.channels.model)
+      log('settings-model-update', { model: update.channels.model })
+    }
+  })
 
-	pi.on("session_shutdown", async () => {
-		if (bridge?.isActive()) log("bridge-stop", {});
-		bridge?.stop();
-		setBridge(null);
-		await registry.stopAll();
-	});
+  pi.on('session_shutdown', async () => {
+    if (bridge?.isActive()) log('bridge-stop', {})
+    bridge?.stop()
+    setBridge(null)
+    await registry.stopAll()
+  })
 
-	// ── Command: /chat-bridge ─────────────────────────────────
+  // ── Command: /chat-bridge ─────────────────────────────────
 
-	pi.registerCommand("chat-bridge", {
-		description: "Manage chat bridge: /chat-bridge [on|off|status]",
-		getArgumentCompletions: (prefix: string) => {
-			return ["on", "off", "status"]
-				.filter(c => c.startsWith(prefix))
-				.map(c => ({ value: c, label: c }));
-		},
-		handler: async (args, ctx) => {
-			const cmd = args?.trim().toLowerCase();
+  pi.registerCommand('chat-bridge', {
+    description: 'Manage chat bridge: /chat-bridge [on|off|status]',
+    getArgumentCompletions: (prefix: string) => {
+      return ['on', 'off', 'status'].filter((c) => c.startsWith(prefix)).map((c) => ({ value: c, label: c }))
+    },
+    handler: async (args, ctx) => {
+      const cmd = args?.trim().toLowerCase()
 
-			if (cmd === "on") {
-				if (!bridge) {
-					ctx.ui.notify("Chat bridge not initialized — no channel config?", "warning");
-					return;
-				}
-				if (bridge.isActive()) {
-					ctx.ui.notify("Chat bridge is already running.", "info");
-					return;
-				}
-				bridge.start();
-				ctx.ui.notify("✓ Chat bridge started", "info");
-				return;
-			}
+      if (cmd === 'on') {
+        if (!bridge) {
+          ctx.ui.notify('Chat bridge not initialized — no channel config?', 'warning')
+          return
+        }
+        if (bridge.isActive()) {
+          ctx.ui.notify('Chat bridge is already running.', 'info')
+          return
+        }
+        bridge.start()
+        ctx.ui.notify('✓ Chat bridge started', 'info')
+        return
+      }
 
-			if (cmd === "off") {
-				if (!bridge?.isActive()) {
-					ctx.ui.notify("Chat bridge is not running.", "info");
-					return;
-				}
-				bridge.stop();
-				ctx.ui.notify("✓ Chat bridge stopped", "info");
-				return;
-			}
+      if (cmd === 'off') {
+        if (!bridge?.isActive()) {
+          ctx.ui.notify('Chat bridge is not running.', 'info')
+          return
+        }
+        bridge.stop()
+        ctx.ui.notify('✓ Chat bridge stopped', 'info')
+        return
+      }
 
-			// Default: status
-			if (!bridge) {
-				ctx.ui.notify("Chat bridge: not initialized", "info");
-				return;
-			}
+      // Default: status
+      if (!bridge) {
+        ctx.ui.notify('Chat bridge: not initialized', 'info')
+        return
+      }
 
-			const stats = bridge.getStats();
-			const lines = [
-				`Chat bridge: ${stats.active ? "🟢 Active" : "⚪ Inactive"}`,
-				`Sessions: ${stats.sessions}`,
-				`Active prompts: ${stats.activePrompts}`,
-				`Queued: ${stats.totalQueued}`,
-			];
-			ctx.ui.notify(lines.join("\n"), "info");
-		},
-	});
+      const stats = bridge.getStats()
+      const lines = [
+        `Chat bridge: ${stats.active ? '🟢 Active' : '⚪ Inactive'}`,
+        `Sessions: ${stats.sessions}`,
+        `Active prompts: ${stats.activePrompts}`,
+        `Queued: ${stats.totalQueued}`,
+      ]
+      ctx.ui.notify(lines.join('\n'), 'info')
+    },
+  })
 
-	// ── LLM tool ──────────────────────────────────────────────
+  // ── LLM tool ──────────────────────────────────────────────
 
-	registerChannelTool(pi, registry);
+  registerChannelTool(pi, registry)
 }

@@ -8,7 +8,7 @@
  *
  * Usage:
  *   import { startTelegramBridge } from "./channel-bridge/index.js";
- *   
+ *
  *   const bridge = await startTelegramBridge({
  *     provider: "anthropic",
  *     modelId: "claude-sonnet-4-5-20250929",
@@ -19,35 +19,35 @@
  *   });
  */
 
-import { ChannelBridge } from "./bridge.js";
+import { ChannelBridge } from './bridge.js'
 // Import the built-in Telegram adapter
-import { createTelegramAdapter } from "../../pi-channels/src/adapters/telegram.js";
-import type { AdapterConfig } from "./types.js";
-import { log, PATHS } from "../options.js";
-import { AuthStorage } from "@mariozechner/pi-coding-agent";
-import type { ResourceLoader } from "@mariozechner/pi-coding-agent";
-import { createResourceLoader } from "../resource-loader.js";
+import { createTelegramAdapter } from '../../pi-channels/src/adapters/telegram.js'
+import type { AdapterConfig } from './types.js'
+import { log, PATHS } from '../options.js'
+import { AuthStorage } from '@mariozechner/pi-coding-agent'
+import type { ResourceLoader } from '@mariozechner/pi-coding-agent'
+import { createResourceLoader } from '../resource-loader.js'
 
 /**
  * Configuration for starting the Telegram bridge.
  */
 export interface TelegramBridgeConfig {
   /** Provider name (e.g., "anthropic") */
-  provider: string;
+  provider: string
   /** Model ID (e.g., "claude-sonnet-4-5-20250929") */
-  modelId: string;
+  modelId: string
   /** Telegram bot token */
-  token: string;
+  token: string
   /** Allowed chat IDs (whitelist for security) */
-  allowedChatIds?: string[];
+  allowedChatIds?: string[]
   /** Maximum concurrent message processing (default: 2) */
-  maxConcurrent?: number;
+  maxConcurrent?: number
   /** Enable typing indicators (default: true) */
-  typingIndicators?: boolean;
+  typingIndicators?: boolean
   /** Auth storage instance */
-  authStorage: AuthStorage;
+  authStorage: AuthStorage
   /** Resource loader instance */
-  resourceLoader: ResourceLoader;
+  resourceLoader: ResourceLoader
 }
 
 /**
@@ -57,7 +57,7 @@ export interface TelegramBridgeConfig {
  * The bridge shares sessions with the web UI via `~/.pi/agent/sessions/`.
  */
 export async function startTelegramBridge(config: TelegramBridgeConfig): Promise<ChannelBridge> {
-  log.info(`Starting Telegram bridge for ${config.provider}/${config.modelId}`);
+  log.info(`Starting Telegram bridge for ${config.provider}/${config.modelId}`)
 
   const bridge = new ChannelBridge({
     provider: config.provider,
@@ -66,29 +66,29 @@ export async function startTelegramBridge(config: TelegramBridgeConfig): Promise
     authStorage: config.authStorage,
     maxConcurrent: config.maxConcurrent ?? 2,
     typingIndicators: config.typingIndicators ?? true,
-  });
+  })
 
   // Create Telegram adapter configuration
   const telegramConfig: AdapterConfig = {
-    type: "telegram",
+    type: 'telegram',
     botToken: config.token,
-    parseMode: "Markdown",
+    parseMode: 'Markdown',
     polling: true,
     pollingTimeout: 30,
     allowedChatIds: config.allowedChatIds,
-  };
+  }
 
   // Create and register the Telegram adapter
-  const telegramAdapter = createTelegramAdapter(telegramConfig);
-  bridge.registerAdapter(telegramAdapter);
+  const telegramAdapter = createTelegramAdapter(telegramConfig)
+  bridge.registerAdapter(telegramAdapter)
 
   // Start the bridge (starts polling)
-  await bridge.start();
+  await bridge.start()
 
-  log.info(`Telegram bridge started. Listening for messages.`);
-  log.info(`Allowed chat IDs: ${config.allowedChatIds?.join(", ") || "none (all)"}`);
+  log.info(`Telegram bridge started. Listening for messages.`)
+  log.info(`Allowed chat IDs: ${config.allowedChatIds?.join(', ') || 'none (all)'}`)
 
-  return bridge;
+  return bridge
 }
 
 /**
@@ -96,26 +96,26 @@ export async function startTelegramBridge(config: TelegramBridgeConfig): Promise
  * Uses the same path as the main server.
  */
 export function createAuthStorage(): AuthStorage {
-  return AuthStorage.create(`${PATHS.piAgentDir}/auth.json`);
+  return AuthStorage.create(`${PATHS.piAgentDir}/auth.json`)
 }
 
 /**
  * Create a default resource loader for the bridge.
  */
 export async function createBridgeResourceLoader(): Promise<ResourceLoader> {
-  return createResourceLoader();
+  return createResourceLoader()
 }
 
 /**
  * Graceful shutdown handler.
  */
 export async function shutdownBridge(bridge: ChannelBridge): Promise<void> {
-  log.info("Shutting down Telegram bridge...");
-  
+  log.info('Shutting down Telegram bridge...')
+
   try {
-    await bridge.stop();
-    log.info("Telegram bridge stopped.");
+    await bridge.stop()
+    log.info('Telegram bridge stopped.')
   } catch (err: any) {
-    log.error("Error stopping Telegram bridge:", err.message);
+    log.error('Error stopping Telegram bridge:', err.message)
   }
 }

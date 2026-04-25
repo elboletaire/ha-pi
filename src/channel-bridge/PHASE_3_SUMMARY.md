@@ -11,12 +11,14 @@ Phase 3 focused on implementing robust messaging capabilities including streamin
 **Feature**: Real-time text updates using Telegram Bot API 9.3+ `sendMessageDraft`
 
 **Implementation**:
+
 - `startDraftStreaming(senderId)`: Initiates draft tracking for a sender
 - `updateDraft(senderId, adapter, recipient, newText)`: Updates draft with new text
 - `finalizeDraft(senderId, adapter, recipient, markup)`: Completes the streaming message
 - Draft ID management with automatic cleanup
 
 **Benefits**:
+
 - Users see text as it's generated (smooth experience)
 - Reduces perceived latency
 - Professional appearance
@@ -26,12 +28,14 @@ Phase 3 focused on implementing robust messaging capabilities including streamin
 **Feature**: Visual feedback while agent is processing
 
 **Implementation**:
+
 - Integrated `startTypingLoop` from typing.ts
 - Configurable interval (default: 4000ms)
 - Maximum refreshes (default: 30, allows ~2 minutes)
 - Automatic cleanup when generation completes
 
 **Behavior**:
+
 - Starts when message processing begins
 - Refreshes every 4 seconds
 - Stops when response is sent or error occurs
@@ -41,6 +45,7 @@ Phase 3 focused on implementing robust messaging capabilities including streamin
 **Feature**: Graceful degradation when advanced features unavailable
 
 **Strategy**:
+
 1. Attempt draft streaming if adapter supports `sendDraft()`
 2. If not, send complete message as single delivery
 3. Always provide typing indicators if supported
@@ -51,12 +56,11 @@ Phase 3 focused on implementing robust messaging capabilities including streamin
 **Feature**: Properly extract assistant responses from session messages
 
 **Implementation**:
+
 ```typescript
-const messages = agentManager.getMessages();
-const assistantMessage = messages.findLast(
-  (m) => m.role === "assistant" || m.role === "ai"
-);
-const responseText = assistantMessage?.content || "No response generated.";
+const messages = agentManager.getMessages()
+const assistantMessage = messages.findLast((m) => m.role === 'assistant' || m.role === 'ai')
+const responseText = assistantMessage?.content || 'No response generated.'
 ```
 
 **Fallback**: If no assistant message found, use generic fallback text
@@ -70,6 +74,7 @@ private activeDrafts: Map<string, { draftId: number; text: string }> = new Map()
 ```
 
 Tracks active draft streams per sender, enabling:
+
 - Multiple concurrent senders with independent drafts
 - Automatic cleanup on completion/error
 - Text accumulation for final message
@@ -94,6 +99,7 @@ The message processing flow now includes:
 ### src/channel-bridge/bridge.ts
 
 **Changes**:
+
 - Added `activeDrafts` map for tracking drafts
 - Implemented `sendDraft()` method
 - Implemented `startDraftStreaming()` method
@@ -108,6 +114,7 @@ The message processing flow now includes:
 ### src/channel-bridge/MESSAGING.md (NEW)
 
 Comprehensive documentation covering:
+
 - Message delivery strategies
 - Typing indicator implementation
 - Draft streaming architecture
@@ -123,6 +130,7 @@ Comprehensive documentation covering:
 ### src/channel-bridge/README.md
 
 Added sections for:
+
 - Module structure with new documentation files
 - Messaging & streaming features
 - Links to detailed documentation
@@ -130,6 +138,7 @@ Added sections for:
 ## Testing Checklist
 
 ### ✅ Build Verification
+
 - [x] `pnpm build` succeeds without errors
 - [x] TypeScript type checking passes
 - [x] No runtime errors in development mode
@@ -137,6 +146,7 @@ Added sections for:
 ### ⏳ Manual Testing (Recommended)
 
 To test draft streaming:
+
 ```bash
 # Start with debug logging
 DEBUG=ha-pi:* pnpm dev \
@@ -156,6 +166,7 @@ DEBUG=ha-pi:* pnpm dev \
 ### ⏳ Unit Tests (To Be Added)
 
 Recommended test cases:
+
 1. Draft lifecycle (start → update → finalize)
 2. Fallback to single message when drafts unavailable
 3. Typing indicator timing and cleanup
@@ -165,16 +176,19 @@ Recommended test cases:
 ## Known Limitations
 
 ### 1. Bot API Version Dependency
+
 - Draft streaming requires Telegram Bot API 9.3+
 - Older versions will fall back to single message
 - No automatic version detection yet
 
 ### 2. Group Chat Limitations
+
 - Draft streaming only works in private chats
 - Groups will use single message delivery
 - Typing indicators work in both
 
 ### 3. SDK Event Model
+
 - Current SDK buffers responses (no text deltas)
 - Streaming implemented at application level
 - Future SDK updates may enable true token-level streaming
@@ -182,16 +196,19 @@ Recommended test cases:
 ## Performance Characteristics
 
 ### Memory Usage
+
 - Minimal overhead: one draft object per active sender (~100 bytes)
 - No persistent storage for drafts
 - Automatic cleanup prevents leaks
 
 ### Network Calls
+
 - Draft updates: One API call per text update (configurable debounce needed)
 - Typing indicators: One call every 4 seconds
 - Final message: One call to complete draft or send single message
 
 ### Latency
+
 - Draft streaming: Adds ~50-100ms overhead per update
 - Typing indicators: Negligible (<10ms)
 - Single message fallback: No additional latency
@@ -199,11 +216,13 @@ Recommended test cases:
 ## Security Considerations
 
 ### Resource Isolation
+
 - Each sender has independent draft tracking
 - No cross-contamination between senders
 - Automatic cleanup prevents resource leaks
 
 ### Input Validation
+
 - Draft text clamped to 4096 characters (Telegram limit)
 - Excess text truncated silently
 - No user-controlled parameters in draft IDs
@@ -211,12 +230,14 @@ Recommended test cases:
 ## Future Enhancements
 
 ### Phase 4: File Handling
+
 - Photo upload support
 - Document handling
 - PDF extraction
 - Voice message processing
 
 ### Potential Improvements
+
 1. **Smart Debouncing**: Batch rapid draft updates to reduce API calls
 2. **Progressive Disclosure**: Show first N characters immediately
 3. **Markdown Streaming**: Render markdown as it arrives
@@ -226,18 +247,21 @@ Recommended test cases:
 ## Success Metrics
 
 ### Code Quality
+
 - ✅ Build succeeds without errors
 - ✅ TypeScript strict mode passes
 - ✅ Clean separation of concerns
 - ✅ Comprehensive documentation
 
 ### Functionality
+
 - ✅ Draft streaming works (when supported)
 - ✅ Typing indicators display correctly
 - ✅ Fallback to single message reliable
 - ✅ Error handling robust
 
 ### User Experience
+
 - ✅ Smooth text appearance (draft streaming)
 - ✅ Visual feedback during processing
 - ✅ No disruption when features unavailable
@@ -246,6 +270,7 @@ Recommended test cases:
 ## Next Steps: Phase 4 - Extras
 
 Phase 4 will focus on:
+
 1. **File/Photo Handling**: Reuse Telegram adapter's file capabilities
 2. **Document Processing**: PDF extraction and text analysis
 3. **Voice Messages**: STT integration via wyoming-stt adapter
@@ -255,6 +280,7 @@ Phase 4 will focus on:
 ## Summary
 
 Phase 3 successfully implemented a robust messaging system with:
+
 - Real-time draft streaming (when supported)
 - Continuous typing indicators
 - Smart fallback mechanisms

@@ -11,6 +11,7 @@ The channel bridge shares session storage with the web UI, enabling seamless swi
 ### Per-Sender Isolation
 
 Each sender (Telegram chat/user) gets:
+
 - A unique `AgentManager` instance
 - A dedicated FIFO message queue
 - Independent session state
@@ -53,6 +54,7 @@ Stream Responses via Event Subscription
 Creates a fresh session, clearing all previous conversation history.
 
 **Response**:
+
 ```
 ✅ New session created.
 
@@ -61,6 +63,7 @@ Model: anthropic/claude-sonnet-4-5-20250929
 ```
 
 **Implementation**: Calls `agentManager.newSession()` which:
+
 1. Generates a new UUID for the session
 2. Creates a new session file in the shared sessions directory
 3. Initializes the AgentSession with default settings
@@ -70,6 +73,7 @@ Model: anthropic/claude-sonnet-4-5-20250929
 Displays all sessions with their metadata.
 
 **Response Format**:
+
 ```
 Available sessions:
 
@@ -91,6 +95,7 @@ Commands:
 Switches to a specific session by path.
 
 **Response**:
+
 ```
 ✅ Switched to session.
 
@@ -100,6 +105,7 @@ Messages: 42
 ```
 
 **Implementation**: Calls `agentManager.switchSession(sessionPath)` which:
+
 1. Loads the existing session file
 2. Reinitializes the AgentSession with previous conversation history
 3. Preserves all messages and context
@@ -109,6 +115,7 @@ Messages: 42
 Permanently removes a session and its files.
 
 **Response**:
+
 ```
 ✅ Session deleted: a1b2c3d4
 ```
@@ -120,6 +127,7 @@ Permanently removes a session and its files.
 Displays current session metadata.
 
 **Response**:
+
 ```
 📊 Session Status
 
@@ -137,6 +145,7 @@ Thinking Level: none
 Shows available models or switches to a different model.
 
 **Show Current**:
+
 ```
 📊 Current model: anthropic/claude-sonnet-4-5-20250929
 
@@ -147,6 +156,7 @@ Available models:
 ```
 
 **Change Model**:
+
 ```
 ✅ Model changed to: anthropic/claude-3-5-sonnet-20241022
 ```
@@ -158,6 +168,7 @@ Available models:
 Stops an ongoing generation immediately.
 
 **Response**:
+
 ```
 ✅ Generation aborted.
 ```
@@ -182,6 +193,7 @@ Sessions are stored in a platform-independent location:
 ### Session File Format
 
 Each `.session` file contains:
+
 - Session metadata (ID, creation date, modification date)
 - Conversation history (messages, tool calls, etc.)
 - Settings and configuration
@@ -205,6 +217,7 @@ Each `.session` file contains:
 ### Queue Behavior
 
 When a sender has multiple messages:
+
 1. First message starts processing immediately (if capacity available)
 2. Subsequent messages are added to the queue
 3. When one completes, the next in line starts automatically
@@ -219,19 +232,20 @@ The bridge subscribes to `AgentSession` events for real-time updates:
 ```typescript
 agentManager.subscribe((event) => {
   // Handle different event types
-  if (event.type === "message_update") {
+  if (event.type === 'message_update') {
     // Stream partial text
-  } else if (event.type === "message_end") {
+  } else if (event.type === 'message_end') {
     // Message complete, increment counter
-  } else if (event.type === "turn_end") {
+  } else if (event.type === 'turn_end') {
     // Turn complete
   }
-});
+})
 ```
 
 ### Current Implementation
 
 For now, the bridge tracks:
+
 - `message_end` events: Increment message count
 - `turn_end` events: Track conversation turns
 
@@ -243,16 +257,17 @@ Future enhancements will include streaming drafts and typing indicators.
 
 Common errors and their handling:
 
-| Error | Cause | Response |
-|-------|-------|----------|
-| Session not found | Invalid session ID | Show available sessions list |
-| Delete failed | File permission issues | Display error message |
-| Switch failed | Corrupted session file | Log error, return to current session |
-| Model not available | Invalid model ID | Show available models list |
+| Error               | Cause                  | Response                             |
+| ------------------- | ---------------------- | ------------------------------------ |
+| Session not found   | Invalid session ID     | Show available sessions list         |
+| Delete failed       | File permission issues | Display error message                |
+| Switch failed       | Corrupted session file | Log error, return to current session |
+| Model not available | Invalid model ID       | Show available models list           |
 
 ### Connection Errors
 
 If the adapter fails to start:
+
 - Error logged but bridge continues running
 - Other adapters remain functional
 - User notified via `/status` command
@@ -270,6 +285,7 @@ If the adapter fails to start:
 ### Extensibility
 
 Adding support for new platforms:
+
 1. Implement `ChannelAdapter` interface
 2. Create start function similar to `startTelegramBridge`
 3. Register adapter with the bridge
@@ -280,6 +296,7 @@ Adding support for new platforms:
 ### Unit Tests
 
 Test coverage includes:
+
 - Queue behavior (FIFO ordering)
 - Concurrency limits
 - Command routing
@@ -288,6 +305,7 @@ Test coverage includes:
 ### Integration Tests
 
 End-to-end scenarios:
+
 1. Create new session via `/new`
 2. Send messages and verify streaming
 3. Switch to different session via `/session <ID>`

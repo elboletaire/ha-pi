@@ -6,30 +6,27 @@
  * For adapters without sendTyping, this is a no-op.
  */
 
-import type { ChannelAdapter } from "../types.ts";
+import type { ChannelAdapter } from '../types.ts'
 
-const TYPING_INTERVAL_MS = 4_000;
+const TYPING_INTERVAL_MS = 4_000
 
 /**
  * Start sending typing indicators. Returns a stop() handle.
  * No-op if the adapter doesn't support sendTyping.
  */
-export function startTyping(
-	adapter: ChannelAdapter | undefined,
-	recipient: string,
-): { stop: () => void } {
-	if (!adapter?.sendTyping) return { stop() {} };
+export function startTyping(adapter: ChannelAdapter | undefined, recipient: string): { stop: () => void } {
+  if (!adapter?.sendTyping) return { stop() {} }
 
-	// Fire immediately
-	adapter.sendTyping(recipient).catch(() => {});
+  // Fire immediately
+  adapter.sendTyping(recipient).catch(() => {})
 
-	const timer = setInterval(() => {
-		adapter.sendTyping!(recipient).catch(() => {});
-	}, TYPING_INTERVAL_MS);
+  const timer = setInterval(() => {
+    adapter.sendTyping!(recipient).catch(() => {})
+  }, TYPING_INTERVAL_MS)
 
-	return {
-		stop() {
-			clearInterval(timer);
-		},
-	};
+  return {
+    stop() {
+      clearInterval(timer)
+    },
+  }
 }

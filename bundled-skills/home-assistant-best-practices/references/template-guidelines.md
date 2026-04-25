@@ -8,6 +8,7 @@
 This document covers when templates ARE the right choice in Home Assistant, and best practices for writing reliable templates.
 
 ## Table of Contents
+
 1. [When Templates Are Appropriate](#when-templates-are-appropriate)
 2. [When to Avoid Templates](#when-to-avoid-templates)
 3. [Template Sensor Best Practices](#template-sensor-best-practices)
@@ -56,11 +57,11 @@ MQTT, REST, and command line sensors often provide raw data that needs transform
 ```yaml
 # REST sensor with JSON response
 rest:
-  - resource: "http://api.example.com/data"
+  - resource: 'http://api.example.com/data'
     sensor:
-      - name: "Temperature"
-        value_template: "{{ value_json.current.temperature }}"
-        unit_of_measurement: "°C"
+      - name: 'Temperature'
+        value_template: '{{ value_json.current.temperature }}'
+        unit_of_measurement: '°C'
 ```
 
 ### 4. Accessing Trigger Context
@@ -83,7 +84,7 @@ When you need formatted output that can't be achieved with native constructs:
 ```yaml
 template:
   - sensor:
-      - name: "Friendly Uptime"
+      - name: 'Friendly Uptime'
         state: >
           {% set uptime = states('sensor.system_uptime') | float(0) %}
           {% set days = (uptime // 86400) | int %}
@@ -99,7 +100,7 @@ Creating sensors from entity attributes:
 ```yaml
 template:
   - sensor:
-      - name: "Current Song Artist"
+      - name: 'Current Song Artist'
         state: "{{ state_attr('media_player.spotify', 'media_artist') }}"
 ```
 
@@ -110,7 +111,7 @@ When the state depends on multiple factors that can't be expressed with native c
 ```yaml
 template:
   - sensor:
-      - name: "Comfort Level"
+      - name: 'Comfort Level'
         state: >
           {% set temp = states('sensor.temperature') | float(20) %}
           {% set humidity = states('sensor.humidity') | float(50) %}
@@ -132,7 +133,7 @@ Processing multiple entities dynamically:
 ```yaml
 template:
   - sensor:
-      - name: "Open Windows Count"
+      - name: 'Open Windows Count'
         state: >
           {{ states.binary_sensor
              | selectattr('attributes.device_class', 'eq', 'window')
@@ -148,12 +149,12 @@ Time differences, formatting, and calculations:
 ```yaml
 template:
   - sensor:
-      - name: "Days Until Event"
+      - name: 'Days Until Event'
         state: >
           {% set event_date = as_datetime(states('input_datetime.event')) %}
           {% set today = now().replace(hour=0, minute=0, second=0, microsecond=0) %}
           {{ ((event_date - today).days) }}
-        unit_of_measurement: "days"
+        unit_of_measurement: 'days'
 ```
 
 ---
@@ -162,16 +163,16 @@ template:
 
 Do NOT use templates when a native alternative exists:
 
-| Don't Use Template | Use Native |
-|-------------------|------------|
-| `{{ states('x') in ['a', 'b'] }}` | `condition: state` with `state: ["a", "b"]` |
-| `{{ states('x') \| float > 25 }}` | `condition: numeric_state` with `above: 25` |
-| `{{ now().hour >= 9 }}` | `condition: time` with `after: "09:00:00"` |
-| `{{ is_state('sun.sun', 'below_horizon') }}` | `condition: sun` with `after: sunset` |
-| `wait_template: "{{ is_state(...) }}"` | `wait_for_trigger` with state trigger |
-| Template sensor summing values | `min_max` helper with `type: sum` |
-| Template binary sensor with threshold | `threshold` helper |
-| Template sensor averaging over time | `statistics` helper |
+| Don't Use Template                           | Use Native                                  |
+| -------------------------------------------- | ------------------------------------------- |
+| `{{ states('x') in ['a', 'b'] }}`            | `condition: state` with `state: ["a", "b"]` |
+| `{{ states('x') \| float > 25 }}`            | `condition: numeric_state` with `above: 25` |
+| `{{ now().hour >= 9 }}`                      | `condition: time` with `after: "09:00:00"`  |
+| `{{ is_state('sun.sun', 'below_horizon') }}` | `condition: sun` with `after: sunset`       |
+| `wait_template: "{{ is_state(...) }}"`       | `wait_for_trigger` with state trigger       |
+| Template sensor summing values               | `min_max` helper with `type: sum`           |
+| Template binary sensor with threshold        | `threshold` helper                          |
+| Template sensor averaging over time          | `statistics` helper                         |
 
 See `automation-patterns.md` and `helper-selection.md` for comprehensive alternatives.
 
@@ -184,8 +185,8 @@ See `automation-patterns.md` and `helper-selection.md` for comprehensive alterna
 ```yaml
 template:
   - sensor:
-      - name: "My Sensor"
-        unique_id: my_custom_sensor  # Enables UI customization
+      - name: 'My Sensor'
+        unique_id: my_custom_sensor # Enables UI customization
         state: "{{ states('sensor.source') }}"
 ```
 
@@ -196,7 +197,7 @@ Prevent errors and unknown states:
 ```yaml
 template:
   - sensor:
-      - name: "Safe Sensor"
+      - name: 'Safe Sensor'
         unique_id: safe_sensor
         availability: >
           {{ has_value('sensor.source_a') and 
@@ -213,9 +214,9 @@ Helps with unit conversion and graph display:
 ```yaml
 template:
   - sensor:
-      - name: "Calculated Temperature"
+      - name: 'Calculated Temperature'
         device_class: temperature
-        unit_of_measurement: "°C"
+        unit_of_measurement: '°C'
         state_class: measurement
         state: "{{ states('sensor.raw_temp') | float / 10 }}"
 ```
@@ -237,10 +238,10 @@ Also mirror `device_class` from the source sensor where applicable (e.g., `durat
 ```yaml
 template:
   - sensor:
-      - name: "Power Usage"
+      - name: 'Power Usage'
         device_class: power
-        unit_of_measurement: "W"
-        state_class: measurement  # enables long-term statistics (omit if not needed)
+        unit_of_measurement: 'W'
+        state_class: measurement # enables long-term statistics (omit if not needed)
         state: "{{ states('sensor.amps') | float * 230 }}"
 ```
 
@@ -250,24 +251,25 @@ Trigger-based templates only update when sources change:
 
 ```yaml
 template:
-  - triggers:                    # Recommended plural form (HA 2024.10+)
+  - triggers: # Recommended plural form (HA 2024.10+)
       - trigger: state
-        entity_id: 
+        entity_id:
           - sensor.temp_bedroom
           - sensor.temp_living
     sensor:
-      - name: "Average Temperature"
+      - name: 'Average Temperature'
         state: >
           {% set temps = [
             states('sensor.temp_bedroom') | float(0),
             states('sensor.temp_living') | float(0)
           ] %}
           {{ (temps | sum / temps | count) | round(1) }}
-        unit_of_measurement: "°C"
+        unit_of_measurement: '°C'
         state_class: measurement
 ```
 
 **Benefits of trigger-based:**
+
 - Only evaluates when trigger fires (not on every state change)
 - Access to `trigger` variable
 - More efficient for complex templates
@@ -315,12 +317,12 @@ template:
 ```yaml
 # Standard — 2-space indent per level (HA Style Guide, matches official docs):
 - binary_sensor:
-    - name: "My Sensor"
-      state: "{{ ... }}"
+    - name: 'My Sensor'
+      state: '{{ ... }}'
 
 # Non-standard — compact notation (valid YAML, but absent from official HA docs):
 - binary_sensor:
-  - name: "My Sensor"
+    - name: 'My Sensor'
 ```
 
 ---
@@ -491,7 +493,7 @@ Always use `states()` function, not `states.sensor.x.state`:
 ```yaml
 template:
   - sensor:
-      - name: "Calculated Value"
+      - name: 'Calculated Value'
         availability: "{{ has_value('sensor.input') }}"
         state: "{{ states('sensor.input') | float * 2 }}"
 ```
@@ -544,9 +546,9 @@ sensor:
 template:
   - triggers:
       - trigger: time_pattern
-        minutes: "/5"  # Every 5 minutes
+        minutes: '/5' # Every 5 minutes
     sensor:
-      - name: "Complex Calculation"
+      - name: 'Complex Calculation'
         state: >
           {% set total = 0 %}
           {% for sensor in states.sensor | selectattr('attributes.device_class', 'eq', 'energy') %}
@@ -563,7 +565,7 @@ If you need the same value in multiple places, create one template sensor and re
 # ONE template sensor
 template:
   - sensor:
-      - name: "House Occupancy Count"
+      - name: 'House Occupancy Count'
         state: >
           {{ states.person | selectattr('state', 'eq', 'home') | list | count }}
 
@@ -593,47 +595,47 @@ automation:
 
 ### State Functions
 
-| Function | Purpose |
-|----------|---------|
-| `states('entity_id')` | Get entity state (string) |
-| `state_attr('entity_id', 'attr')` | Get attribute value |
-| `is_state('entity_id', 'state')` | Check if entity has state |
-| `is_state_attr('entity_id', 'attr', 'value')` | Check attribute value |
-| `has_value('entity_id')` | True if not unknown/unavailable |
+| Function                                      | Purpose                         |
+| --------------------------------------------- | ------------------------------- |
+| `states('entity_id')`                         | Get entity state (string)       |
+| `state_attr('entity_id', 'attr')`             | Get attribute value             |
+| `is_state('entity_id', 'state')`              | Check if entity has state       |
+| `is_state_attr('entity_id', 'attr', 'value')` | Check attribute value           |
+| `has_value('entity_id')`                      | True if not unknown/unavailable |
 
 ### Common Filters
 
-| Filter | Purpose |
-|--------|---------|
-| `float(default)` | Convert to float |
-| `int(default)` | Convert to int |
-| `round(precision)` | Round number |
-| `default(value)` | Provide fallback |
-| `timestamp_custom(format)` | Format timestamp |
-| `from_json` | Parse JSON string |
-| `to_json` | Convert to JSON string |
-| `regex_match(pattern)` | Regex match |
-| `regex_replace(find, replace)` | Regex replace |
+| Filter                         | Purpose                |
+| ------------------------------ | ---------------------- |
+| `float(default)`               | Convert to float       |
+| `int(default)`                 | Convert to int         |
+| `round(precision)`             | Round number           |
+| `default(value)`               | Provide fallback       |
+| `timestamp_custom(format)`     | Format timestamp       |
+| `from_json`                    | Parse JSON string      |
+| `to_json`                      | Convert to JSON string |
+| `regex_match(pattern)`         | Regex match            |
+| `regex_replace(find, replace)` | Regex replace          |
 
 ### Time Functions
 
-| Function | Purpose |
-|----------|---------|
-| `now()` | Current datetime |
-| `utcnow()` | Current UTC datetime |
-| `today_at('HH:MM')` | Today at specific time |
-| `as_timestamp(dt)` | Convert to Unix timestamp |
-| `as_datetime(ts)` | Convert from timestamp |
-| `as_timedelta(string)` | Parse duration string |
+| Function               | Purpose                   |
+| ---------------------- | ------------------------- |
+| `now()`                | Current datetime          |
+| `utcnow()`             | Current UTC datetime      |
+| `today_at('HH:MM')`    | Today at specific time    |
+| `as_timestamp(dt)`     | Convert to Unix timestamp |
+| `as_datetime(ts)`      | Convert from timestamp    |
+| `as_timedelta(string)` | Parse duration string     |
 
 ### Collection Filters
 
-| Filter | Purpose |
-|--------|---------|
-| `selectattr('attr', 'eq', 'value')` | Filter by attribute |
-| `rejectattr('attr', 'eq', 'value')` | Exclude by attribute |
-| `map(attribute='state')` | Extract attribute from list |
-| `list` | Convert to list |
-| `count` | Count items |
-| `first` / `last` | Get first/last item |
-| `sum` / `min` / `max` | Aggregate values |
+| Filter                              | Purpose                     |
+| ----------------------------------- | --------------------------- |
+| `selectattr('attr', 'eq', 'value')` | Filter by attribute         |
+| `rejectattr('attr', 'eq', 'value')` | Exclude by attribute        |
+| `map(attribute='state')`            | Extract attribute from list |
+| `list`                              | Convert to list             |
+| `count`                             | Count items                 |
+| `first` / `last`                    | Get first/last item         |
+| `sum` / `min` / `max`               | Aggregate values            |

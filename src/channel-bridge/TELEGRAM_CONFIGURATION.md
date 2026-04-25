@@ -36,12 +36,13 @@ Users configure Telegram settings via the HA add-on configuration page:
 
 ```yaml
 # config.yaml schema definition
-telegram_enabled: "boolean"
-telegram_bot_token: "password"
-telegram_allowed_chat_ids: "text (comma-separated)"
+telegram_enabled: 'boolean'
+telegram_bot_token: 'password'
+telegram_allowed_chat_ids: 'text (comma-separated)'
 ```
 
 The UI shows:
+
 - **Enable Telegram Bot**: Checkbox to turn on/off the feature
 - **Telegram Bot Token**: Password field for secure token entry
 - **Allowed Chat IDs**: Text field with helper text explaining format
@@ -89,19 +90,17 @@ exec node /app/dist/server.js \
 The server parses CLI args and starts the bridge:
 
 ```typescript
-const opts = parseServerArgs(); // Returns AddOnOptions with telegramConfig
+const opts = parseServerArgs() // Returns AddOnOptions with telegramConfig
 
 if (opts.telegramConfig?.enabled) {
   const bridge = await startTelegramBridge({
     provider: opts.provider,
     modelId: opts.model,
     token: opts.telegramConfig.botToken,
-    allowedChatIds: opts.telegramConfig.allowedChatIds.length > 0 
-      ? opts.telegramConfig.allowedChatIds 
-      : undefined, // undefined = all chats allowed
+    allowedChatIds: opts.telegramConfig.allowedChatIds.length > 0 ? opts.telegramConfig.allowedChatIds : undefined, // undefined = all chats allowed
     authStorage: bridgeAuthStorage,
     resourceLoader: bridgeResourceLoader,
-  });
+  })
 }
 ```
 
@@ -110,12 +109,14 @@ if (opts.telegramConfig?.enabled) {
 ### Field Definitions
 
 #### `telegram_enabled` (boolean)
+
 - **Type**: Boolean checkbox in UI
 - **Default**: `false`
 - **Purpose**: Enable/disable Telegram integration
 - **Behavior**: If `false`, no Telegram bridge is started regardless of other settings
 
 #### `telegram_bot_token` (password)
+
 - **Type**: Password field (masked input in UI)
 - **Default**: Empty string
 - **Purpose**: Telegram Bot API token from @BotFather
@@ -124,6 +125,7 @@ if (opts.telegramConfig?.enabled) {
 - **Security**: Never logged, stored in `/data/options.json` (encrypted by HA)
 
 #### `telegram_allowed_chat_ids` (text)
+
 - **Type**: Text field with helper text
 - **Default**: Empty string
 - **Purpose**: Whitelist of allowed chat/user IDs
@@ -155,6 +157,7 @@ telegram_allowed_chat_ids: ""
 ```
 
 **Why Whitelisting Matters**:
+
 - Prevents unauthorized access to your AI agent
 - Stops spam and abuse
 - Controls who can interact with your coding assistant
@@ -192,9 +195,9 @@ If chat IDs contain invalid characters:
 
 ```typescript
 const allowedChatIds = telegramChatIdsRaw
-  .split(",")
-  .map(id => id.trim())
-  .filter(id => id.length > 0);
+  .split(',')
+  .map((id) => id.trim())
+  .filter((id) => id.length > 0)
 ```
 
 Invalid IDs are simply filtered out. The bridge will start but those chats won't be able to use it.
@@ -233,20 +236,20 @@ On SIGTERM/SIGINT:
 
 ```typescript
 const shutdown = async () => {
-  log.info("Shutting down...");
-  
+  log.info('Shutting down...')
+
   // Stop Telegram bridge if running
   if (telegramBridge) {
     try {
-      await telegramBridge.stop();
-      log.info("Telegram bridge stopped.");
+      await telegramBridge.stop()
+      log.info('Telegram bridge stopped.')
     } catch (err: any) {
-      log.error(`Error stopping Telegram bridge: ${err.message}`);
+      log.error(`Error stopping Telegram bridge: ${err.message}`)
     }
   }
-  
-  httpServer.close(() => process.exit(0));
-};
+
+  httpServer.close(() => process.exit(0))
+}
 ```
 
 Ensures proper cleanup of polling connections and resources.
@@ -301,8 +304,8 @@ Send me a message to start coding!
 
 ```yaml
 telegram_enabled: true
-telegram_bot_token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-telegram_allowed_chat_ids: "123456789"
+telegram_bot_token: '123456789:ABCdefGHIjklMNOpqrsTUVwxyz'
+telegram_allowed_chat_ids: '123456789'
 ```
 
 **Use Case**: Individual developer using bot from their personal Telegram account.
@@ -311,8 +314,8 @@ telegram_allowed_chat_ids: "123456789"
 
 ```yaml
 telegram_enabled: true
-telegram_bot_token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-telegram_allowed_chat_ids: "123456789,-1001234567890,-1009876543210"
+telegram_bot_token: '123456789:ABCdefGHIjklMNOpqrsTUVwxyz'
+telegram_allowed_chat_ids: '123456789,-1001234567890,-1009876543210'
 ```
 
 **Use Case**: Team shared bot accessible by multiple users and group chats.
@@ -321,8 +324,8 @@ telegram_allowed_chat_ids: "123456789,-1001234567890,-1009876543210"
 
 ```yaml
 telegram_enabled: true
-telegram_bot_token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-telegram_allowed_chat_ids: ""
+telegram_bot_token: '123456789:ABCdefGHIjklMNOpqrsTUVwxyz'
+telegram_allowed_chat_ids: ''
 ```
 
 **Use Case**: Local development/testing where security is less critical.
@@ -333,8 +336,8 @@ telegram_allowed_chat_ids: ""
 
 ```yaml
 telegram_enabled: false
-telegram_bot_token: ""
-telegram_allowed_chat_ids: ""
+telegram_bot_token: ''
+telegram_allowed_chat_ids: ''
 ```
 
 **Use Case**: When Telegram integration is not needed.
@@ -388,6 +391,6 @@ The Telegram configuration system provides:
 ✅ **Flexible Whitelisting**: Support for single users or multiple chats  
 ✅ **Graceful Degradation**: Web UI works even if Telegram fails  
 ✅ **Comprehensive Logging**: Clear messages for debugging  
-✅ **Production-Ready**: Security best practices built-in  
+✅ **Production-Ready**: Security best practices built-in
 
 Configuration is now complete and ready for use!

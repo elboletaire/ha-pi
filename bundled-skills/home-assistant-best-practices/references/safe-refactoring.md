@@ -21,14 +21,14 @@ Answer three questions before touching anything:
 
 Search every component type that references entity IDs. Do not limit searches to the component you are editing.
 
-| Component | How to search |
-|-----------|---------------|
-| Automations | Search automations for the entity ID via the HA API or grep `automations.yaml` |
-| Dashboards | Search dashboard configs for the entity ID via the HA API or grep `.storage/lovelace*`, `ui-lovelace.yaml` |
-| Scripts | grep `scripts.yaml` |
-| Scenes | grep `scenes.yaml` |
+| Component                 | How to search                                                                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automations               | Search automations for the entity ID via the HA API or grep `automations.yaml`                                                                                                                 |
+| Dashboards                | Search dashboard configs for the entity ID via the HA API or grep `.storage/lovelace*`, `ui-lovelace.yaml`                                                                                     |
+| Scripts                   | grep `scripts.yaml`                                                                                                                                                                            |
+| Scenes                    | grep `scenes.yaml`                                                                                                                                                                             |
 | Config-Entry-based groups | `GET /api/config/config_entries/entry?type=config&domain=group` — members in `options.entities`; entity registry renames do NOT update these automatically (→ see Config-Entry-Groups section) |
-| Other | Check AppDaemon apps, Node-RED flows, Pyscript scripts, or any custom integration that references entity IDs |
+| Other                     | Check AppDaemon apps, Node-RED flows, Pyscript scripts, or any custom integration that references entity IDs                                                                                   |
 
 Record every location found. This list becomes your update checklist for Step 4.
 
@@ -59,11 +59,11 @@ HA devices bundle multiple entities. A smart plug might expose `switch.*`, `sens
 
 Example — renaming a smart plug's entities from manufacturer defaults to room-based names:
 
-| Domain | Old entity ID | New entity ID |
-|---|---|---|
-| switch | `switch.shellyplug_s_a1b2c3d4e5f6` | `switch.office_heater` |
+| Domain | Old entity ID                             | New entity ID                 |
+| ------ | ----------------------------------------- | ----------------------------- |
+| switch | `switch.shellyplug_s_a1b2c3d4e5f6`        | `switch.office_heater`        |
 | sensor | `sensor.shellyplug_s_a1b2c3d4e5f6_energy` | `sensor.office_heater_energy` |
-| update | `update.shellyplug_s_a1b2c3d4e5f6` | `update.office_heater` |
+| update | `update.shellyplug_s_a1b2c3d4e5f6`        | `update.office_heater`        |
 
 **Dashboard reference locations (Step 2):**
 Dashboard cards reference entities in multiple places. Search all of these:
@@ -93,7 +93,7 @@ Verify the new helper produces the same values as the old template sensor. Check
 When converting `device_id` triggers to `entity_id` triggers, or replacing `wait_template` with `wait_for_trigger`:
 
 **Behavioral equivalence (Step 1):**
-`wait_for_trigger` waits for a state *change*; `wait_template` polls for *current state*. These differ when the target state is already true at wait start: `wait_for_trigger` blocks indefinitely, `wait_template` returns immediately.
+`wait_for_trigger` waits for a state _change_; `wait_template` polls for _current state_. These differ when the target state is already true at wait start: `wait_for_trigger` blocks indefinitely, `wait_template` returns immediately.
 
 **Automation callers (Step 2):**
 Search for scripts or other automations that call the automation you are restructuring via `automation.trigger` or `automation.turn_on`. Renaming or splitting an automation changes its entity_id and breaks these callers.
@@ -156,7 +156,7 @@ POST /api/config/config_entries/options/flow/<flow_id>
 {"entities": ["new.entity_id_1", "new.entity_id_2"], "hide_members": <suggested_value>}
 ```
 
-   If the group type supports `all`, add it explicitly:
+If the group type supports `all`, add it explicitly:
 
 ```http
 POST /api/config/config_entries/options/flow/<flow_id>
@@ -171,4 +171,3 @@ Re-initiate the Options Flow for the group's `entry_id` and confirm that `sugges
 for `entities` contains only the updated entity IDs. The REST endpoint
 `GET /api/config/config_entries/entry` does not expose `options.entities` — the Options
 Flow is the only way to read current group members.
-

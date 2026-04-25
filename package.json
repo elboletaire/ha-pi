@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "pnpm run build && node dist/server.js --provider anthropic --model claude-sonnet-4-5-20250929 --log-level debug",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc",
     "watch:server": "node esbuild.server.mjs --watch",
     "watch:frontend": "node esbuild.frontend.mjs --watch"
@@ -30,6 +32,7 @@
     "esbuild": "^0.27.7",
     "highlight.js": "^11.11.1",
     "marked": "^15.0.12",
+    "prettier": "^3.8.3",
     "typescript": "^5.8.3",
     "vitest": "^4.1.5"
   }

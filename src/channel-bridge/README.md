@@ -43,27 +43,27 @@ Platform (Telegram/Discord/etc.)
 ### Starting a Telegram Bridge
 
 ```typescript
-import { startTelegramBridge, createAuthStorage, createBridgeResourceLoader } from "./channel-bridge/index.js";
+import { startTelegramBridge, createAuthStorage, createBridgeResourceLoader } from './channel-bridge/index.js'
 
-const authStorage = createAuthStorage();
-const resourceLoader = await createBridgeResourceLoader();
+const authStorage = createAuthStorage()
+const resourceLoader = await createBridgeResourceLoader()
 
 const bridge = await startTelegramBridge({
-  provider: "anthropic",
-  modelId: "claude-sonnet-4-5-20250929",
+  provider: 'anthropic',
+  modelId: 'claude-sonnet-4-5-20250929',
   token: process.env.TELEGRAM_BOT_TOKEN,
-  allowedChatIds: process.env.TELEGRAM_ALLOWED_CHAT_IDS?.split(","),
+  allowedChatIds: process.env.TELEGRAM_ALLOWED_CHAT_IDS?.split(','),
   authStorage,
   resourceLoader,
   maxConcurrent: 2,
   typingIndicators: true,
-});
+})
 
 // Graceful shutdown
-process.on("SIGTERM", async () => {
-  await shutdownBridge(bridge);
-  process.exit(0);
-});
+process.on('SIGTERM', async () => {
+  await shutdownBridge(bridge)
+  process.exit(0)
+})
 ```
 
 ## Adding a New Platform
@@ -82,19 +82,27 @@ Example (pseudo-code):
 export function createDiscordAdapter(config: AdapterConfig): ChannelAdapter {
   // Implement Discord-specific logic
   return {
-    direction: "bidirectional",
-    async send(message) { /* Send to Discord */ },
-    async start(onMessage) { /* Start polling Discord */ },
-    async stop() { /* Stop polling */ },
-  };
+    direction: 'bidirectional',
+    async send(message) {
+      /* Send to Discord */
+    },
+    async start(onMessage) {
+      /* Start polling Discord */
+    },
+    async stop() {
+      /* Stop polling */
+    },
+  }
 }
 
 export async function startDiscordBridge(config: DiscordBridgeConfig): Promise<ChannelBridge> {
-  const bridge = new ChannelBridge({ /* ... */ });
-  const discordAdapter = createDiscordAdapter(config);
-  bridge.registerAdapter(discordAdapter);
-  await bridge.start();
-  return bridge;
+  const bridge = new ChannelBridge({
+    /* ... */
+  })
+  const discordAdapter = createDiscordAdapter(config)
+  bridge.registerAdapter(discordAdapter)
+  await bridge.start()
+  return bridge
 }
 ```
 
@@ -102,15 +110,15 @@ export async function startDiscordBridge(config: DiscordBridgeConfig): Promise<C
 
 The following commands are supported:
 
-| Command | Description |
-|---------|-------------|
-| `/new` | Create a new session, clear history |
-| `/sessions` | List all sessions |
-| `/session <ID>` | Switch to a specific session |
-| `/delete <ID>` | Delete a session |
-| `/status` | Show current session status |
-| `/model [name]` | Show/change model |
-| `/abort` | Cancel current generation |
+| Command         | Description                         |
+| --------------- | ----------------------------------- |
+| `/new`          | Create a new session, clear history |
+| `/sessions`     | List all sessions                   |
+| `/session <ID>` | Switch to a specific session        |
+| `/delete <ID>`  | Delete a session                    |
+| `/status`       | Show current session status         |
+| `/model [name]` | Show/change model                   |
+| `/abort`        | Cancel current generation           |
 
 ## Session Storage
 
@@ -126,10 +134,10 @@ For detailed session management information, see [SESSION_MANAGEMENT.md](SESSION
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `TELEGRAM_BOT_TOKEN` | Telegram bot API token | Yes (for Telegram) |
-| `TELEGRAM_ALLOWED_CHAT_IDS` | Comma-separated list of allowed chat IDs | Recommended |
+| Variable                    | Description                              | Required           |
+| --------------------------- | ---------------------------------------- | ------------------ |
+| `TELEGRAM_BOT_TOKEN`        | Telegram bot API token                   | Yes (for Telegram) |
+| `TELEGRAM_ALLOWED_CHAT_IDS` | Comma-separated list of allowed chat IDs | Recommended        |
 
 ### Messaging & Streaming
 
