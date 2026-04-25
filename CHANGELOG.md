@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Fixed GitHub Enterprise OAuth form to allow empty values, falling back to github.com when left blank as indicated by the "blank for github.com" hint
+
 ## 0.3.3 — Add configuration labels for agent instructions
 
 - Added a friendly label and helper text for `agents_md_append` in the Home Assistant add-on configuration UI
