@@ -373,3 +373,36 @@ export async function processCommand(agentManager: AgentManager, text: string): 
       return null
   }
 }
+
+// ── Telegram-specific command helpers ────────────────────
+
+export interface BotCommand {
+  name: string
+  description: string
+  emoji?: string
+}
+
+/**
+ * Get commands formatted for Telegram's setMyCommands API.
+ * Excludes /start (Telegram handles it specially).
+ */
+export function getCommandsForTelegram(): Array<{ command: string; description: string }> {
+  // Return the built-in commands that are available in this system
+  const allCommands: BotCommand[] = [
+    { name: 'abort', description: 'Abort the current operation' },
+    { name: 'status', description: 'Check system status and health' },
+    { name: 'new', description: 'Start a new session' },
+    { name: 'model', description: 'Change the AI model' },
+    { name: 'sessions', description: 'List available sessions' },
+    { name: 'delete', description: 'Delete a session' },
+    { name: 'whoami', description: 'Show current user information' },
+    { name: 'help', description: 'Show help and available commands' },
+  ]
+  
+  return allCommands
+    .filter((c) => c.name !== 'start') // Telegram handles /start natively
+    .map((c) => ({
+      command: c.name,
+      description: c.description.slice(0, 256), // Telegram limit
+    }))
+}

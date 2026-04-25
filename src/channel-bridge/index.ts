@@ -21,7 +21,7 @@
 
 import { ChannelBridge } from './bridge.js'
 // Import the built-in Telegram adapter
-import { createTelegramAdapter } from '../../pi-channels/src/adapters/telegram.js'
+import { createTelegramAdapter } from './telegram.js'
 import type { AdapterConfig } from './types.js'
 import { log, PATHS } from '../options.js'
 import { AuthStorage } from '@mariozechner/pi-coding-agent'
