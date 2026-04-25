@@ -30,7 +30,7 @@ function loadBundledSkills() {
  *   3. /data/pi-agent/AGENTS.md     — user's own file (auto-discovered via agentDir)
  *
  * Skills loading order:
- *   1. /app/bundled-skills/         — image-bundled, always present
+ *   1. /app/skills/                 — image-bundled, always present
  *   2. /data/pi-agent/skills/       — user-installed via `pi install`, win on name conflict
  */
 export async function createResourceLoader(): Promise<ResourceLoader> {

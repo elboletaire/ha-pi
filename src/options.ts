@@ -17,7 +17,7 @@ export interface AddOnOptions {
 export const PATHS = {
   piAgentDir: process.env.PI_CODING_AGENT_DIR ?? '/data/pi-agent',
   workspace: process.env.HA_PI_WORKSPACE ?? '/data/workspace',
-  bundledSkills: process.env.HA_PI_SKILLS_DIR ?? '/app/bundled-skills',
+  bundledSkills: process.env.HA_PI_SKILLS_DIR ?? '/app/skills',
   baseAgentsMd: process.env.HA_PI_BASE_AGENTS ?? '/app/base-agents.md',
 }
 

@@ -15,5 +15,5 @@ public/app.js.map
 skills-lock.json
 
 # skills
-skills
-!skills/.gitkeep
+skills/*
+!skills/home-assistant-management

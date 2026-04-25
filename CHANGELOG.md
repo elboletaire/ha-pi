@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2 — Fix skill loading after build-time skill refactor
+
+### Fixes
+
+- Fixed bundled skills never loading: `PATHS.bundledSkills` still pointed to `/app/bundled-skills` after the 0.5.1 refactor moved them to `/app/skills`
+- Fixed user-installed skills (via `npx skills add` / `~/.agents/skills`) being lost on container restart — `/root/.agents` is now symlinked to `/data/pi-agent/agents` at startup so skill installs land on the persisted `/data` volume
+
 ## 0.5.1 — Build-time skill installation
 
 ### Changed

@@ -101,6 +101,17 @@ mkdir -p /data/pi-agent
 mkdir -p /data/workspace
 
 # ---------------------------------------------------------------------------
+# Symlink ~/.agents → /data/pi-agent/agents so that any skill installed by
+# the agent via `npx skills add` (which targets ~/.agents/skills) is persisted
+# on the /data volume and survives container restarts.
+# ---------------------------------------------------------------------------
+mkdir -p /data/pi-agent/agents
+if [ ! -L /root/.agents ]; then
+  ln -sfn /data/pi-agent/agents /root/.agents
+  log_info "Linked ~/.agents → /data/pi-agent/agents for skill persistence"
+fi
+
+# ---------------------------------------------------------------------------
 # Write the options-sourced AGENTS.md append file
 # (overwritten on every start so it always reflects current options)
 # ---------------------------------------------------------------------------
