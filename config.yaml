@@ -1,6 +1,6 @@
 name: 'Pi Agent'
 description: 'AI coding agent with Home Assistant integration, accessible from the HA web UI.'
-version: 0.4.1
+version: 0.4.2
 slug: 'pi-agent'
 image: 'ghcr.io/elboletaire/ha-pi/{arch}'
 init: false

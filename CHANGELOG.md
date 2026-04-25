@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2 — Mobile keyboard viewport fix
+
+### Fixes
+
+- Improved the mobile web UI so the chat input stays visible when the on-screen keyboard opens
+- Added viewport-aware layout handling for the HA mobile app and other mobile browsers
+- Scrolled the input into view on focus to reduce keyboard overlap issues
+
 ## 0.4.1 — Telegram bridge completion and logging
 
 ### Features

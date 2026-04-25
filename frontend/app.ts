@@ -3,6 +3,7 @@ import { initSettings, handleAuthStatus, handleLoginEvent } from './settings'
 import { handleAvailableModels, handleCurrentModel, initModelSelector, openModelSelector } from './model-selector'
 import { initShortcutsLegend } from './shortcuts'
 import { buildSessionHistoryOps } from './session-history'
+import { initMobileViewport } from './mobile-viewport'
 import type { ClientMessage, ServerMessage, SessionMessage } from './protocol'
 
 // ---------------------------------------------------------------------------
@@ -596,6 +597,11 @@ $input.addEventListener('keydown', (e) => {
 })
 
 $input.addEventListener('input', resizeInput)
+$input.addEventListener('focus', () => {
+  window.setTimeout(() => {
+    $input.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, 50)
+})
 
 $btnNewSession.addEventListener('click', () => {
   if (confirm('Start a new session? Current session is saved.')) {
@@ -648,5 +654,6 @@ document.addEventListener('keydown', (e) => {
 
 initModelSelector(send)
 initShortcutsLegend()
+initMobileViewport()
 initSettings(send)
 connect()
