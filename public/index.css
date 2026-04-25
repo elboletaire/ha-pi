@@ -470,11 +470,27 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   padding: 3px 10px;
   cursor: pointer;
   font-size: 11px;
-  transition: background .15s, border-color .15s;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(4px);
+  transition: background .15s, border-color .15s, opacity .15s, transform .15s;
+}
+#sessions-list li:hover .session-delete-btn,
+#sessions-list li:focus-within .session-delete-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
 }
 .session-delete-btn:hover {
   background: rgba(250, 82, 82, 0.12);
   border-color: var(--danger);
+}
+@media (hover: none) {
+  .session-delete-btn {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
 }
 
 /* -----------------------------------------------------------------------
