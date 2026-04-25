@@ -31,10 +31,12 @@ Platform (Telegram/Discord/etc.)
 ## Module Structure
 
 - `index.ts` - Entry point for starting bridges
-- `bridge.ts` - Core ChannelBridge class
+- `bridge.ts` - Core ChannelBridge class with streaming support
 - `commands.ts` - Bot command handlers (`/new`, `/sessions`, etc.)
 - `typing.ts` - Typing indicator management
 - `types.ts` - Type definitions
+- `MESSAGING.md` - Messaging & streaming documentation
+- `SESSION_MANAGEMENT.md` - Session management documentation
 
 ## Using the Bridge
 
@@ -118,6 +120,8 @@ Sessions are stored in `~/.pi/agent/sessions/<encoded-cwd>/` and are shared acro
 - A session created from Telegram is accessible from the web UI
 - Each sender (chat/user) gets their own session namespace
 
+For detailed session management information, see [SESSION_MANAGEMENT.md](SESSION_MANAGEMENT.md).
+
 ## Configuration
 
 ### Environment Variables
@@ -127,11 +131,15 @@ Sessions are stored in `~/.pi/agent/sessions/<encoded-cwd>/` and are shared acro
 | `TELEGRAM_BOT_TOKEN` | Telegram bot API token | Yes (for Telegram) |
 | `TELEGRAM_ALLOWED_CHAT_IDS` | Comma-separated list of allowed chat IDs | Recommended |
 
-### Security
+### Messaging & Streaming
 
-- Whitelist allowed chat IDs to prevent unauthorized access
-- Store bot tokens in environment variables only
-- Each sender (chat/user) gets isolated session state
+The bridge supports multiple message delivery strategies:
+
+- **Draft Streaming**: Real-time text updates (Telegram Bot API 9.3+)
+- **Typing Indicators**: Visual feedback during processing
+- **Single Message Fallback**: Universal compatibility
+
+For detailed messaging information, see [MESSAGING.md](MESSAGING.md).
 
 ## Extensibility
 
