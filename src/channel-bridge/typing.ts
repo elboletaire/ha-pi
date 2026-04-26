@@ -18,33 +18,24 @@ export interface TypingConfig {
   recipient: string
   /** Interval in milliseconds (default: 3000) */
   intervalMs?: number
-  /** Maximum number of refreshes before stopping (default: 10) */
-  maxRefreshes?: number
 }
 
 /**
  * Start a typing indicator refresh loop.
  *
- * Sends a typing indicator at regular intervals. Useful for long-running
- * operations where the user needs feedback that something is happening.
+ * Sends a typing indicator at regular intervals until the returned cleanup
+ * function is called. The loop runs indefinitely — callers are responsible
+ * for always calling stop() (e.g. in a finally block).
  *
  * Returns a cleanup function that stops the loop.
  */
 export function startTypingLoop(config: TypingConfig): () => void {
-  const { adapter, recipient, intervalMs = 3000, maxRefreshes = 10 } = config
+  const { adapter, recipient, intervalMs = 3000 } = config
 
-  let refreshCount = 0
   let stopped = false
 
   const sendTyping = async () => {
     if (stopped) return
-
-    refreshCount++
-
-    if (refreshCount > maxRefreshes) {
-      log.debug(`Typing loop stopped after ${maxRefreshes} refreshes`)
-      return
-    }
 
     try {
       if (adapter.sendTyping) {

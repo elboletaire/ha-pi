@@ -248,7 +248,6 @@ export class ChannelBridge {
             adapter: channelAdapter,
             recipient: prompt.sender,
             intervalMs: 4000,
-            maxRefreshes: 30, // Allow up to 2 minutes of typing
           })
           // Store so handleAgentEvent can stop it when streaming begins
           this.stopTypingFunctions.set(senderId, stopTyping)
