@@ -1,6 +1,6 @@
-# Pi Agent
+# Home Assistant Pi Agent (HA-Pi)
 
-A [pi agent](https://github.com/badlogic/pi-mono) add-on for Home Assistant OS.
+A [pi agent](https://pi.dev) add-on for Home Assistant OS.
 
 Chat with an AI agent directly from the Home Assistant web UI or Telegram. The agent understands your smart home setup and can help you manage it through natural conversation.
 
