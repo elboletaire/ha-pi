@@ -38,19 +38,6 @@ function getSenderId(adapter: string, sender: string): string {
   return `${adapter}:${sender}`
 }
 
-/**
- * Encode sender ID to a safe filename.
- */
-function encodeSenderId(senderId: string): string {
-  return senderId.replace(/[:/]/g, '_')
-}
-
-/**
- * Decode sender ID from filename.
- */
-function decodeSenderId(filename: string): string {
-  return filename.replace(/_/g, ':')
-}
 
 interface ActiveDraftState {
   draftId: number

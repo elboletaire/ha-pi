@@ -234,8 +234,6 @@ function getAuthStatusLabel(auth: ProviderStatus['auth']): string {
 function updateHeaderStatus() {
   const connected = providers.filter((p) => p.auth.configured)
   const badge = document.getElementById('model-badge')!
-  // Append connected provider count hint if any
-  const existing = badge.dataset.model ?? badge.textContent ?? ''
   if (connected.length) {
     badge.title = 'Connected: ' + connected.map((p) => p.name).join(', ')
   }

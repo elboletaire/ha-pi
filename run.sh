@@ -20,8 +20,6 @@ log_warn() { echo "[pi-agent] WARN: $*" >&2; }
 # ---------------------------------------------------------------------------
 # Read add-on options
 # ---------------------------------------------------------------------------
-PROVIDER=$(get_option 'provider' 'anthropic')
-MODEL=$(get_option 'model' 'claude-sonnet-4-5-20250929')
 LOG_LEVEL=$(get_option 'log_level' 'info')
 AGENTS_APPEND=$(get_option 'agents_md_append' '')
 
@@ -125,7 +123,7 @@ fi
 # ---------------------------------------------------------------------------
 # Start the Node.js server
 # ---------------------------------------------------------------------------
-log_info "Starting Pi Agent server (provider=${PROVIDER}, model=${MODEL})"
+log_info "Starting Pi Agent server"
 
 # Build Telegram flags if enabled
 TELEGRAM_ARGS=()
@@ -148,7 +146,5 @@ else
 fi
 
 exec node /app/dist/server.js \
-  --provider "${PROVIDER}" \
-  --model "${MODEL}" \
   --log-level "${LOG_LEVEL}" \
   "${TELEGRAM_ARGS[@]}"
