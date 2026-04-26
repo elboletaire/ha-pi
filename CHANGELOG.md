@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.10 — Adaptive light/dark web UI
+
+### Changed
+
+- The web UI now follows the Home Assistant parent color scheme when available, and falls back to the browser's `prefers-color-scheme` when it cannot read the parent theme.
+- Updated the UI palette so both light and dark modes are styled consistently across message bubbles, modals, forms, and code blocks.
+
 ## 0.5.9 — Telegram session switch UX and pi-ai dependency fix
 
 ### Fixed

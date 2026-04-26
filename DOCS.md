@@ -99,6 +99,12 @@ The built-in base instructions already describe Pi Agent as a Home Assistant-emb
 - The selected model persists in pi settings, so it remains active after a restart
 - Open the shortcut legend with the ⌨️ header button or `Alt+Shift+H`
 
+## Web UI theme
+
+- The web UI automatically follows Home Assistant's embedded theme when available
+- If Home Assistant theme information is not available, it falls back to the browser's light/dark preference
+- This keeps the add-on readable in both light and dark environments without a separate theme setting
+
 ## Troubleshooting
 
 ### "No model available"

@@ -4,9 +4,13 @@ import { argv } from 'process'
 const watch = argv.includes('--watch')
 
 const ctx = await esbuild.context({
-  entryPoints: ['frontend/app.ts'],
+  entryPoints: {
+    app: 'frontend/app.ts',
+    'theme-init': 'frontend/theme-init.ts',
+  },
   bundle: true,
-  outfile: 'public/app.js',
+  outdir: 'public',
+  entryNames: '[name]',
   format: 'iife',
   platform: 'browser',
   target: 'es2020',

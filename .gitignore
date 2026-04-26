@@ -4,6 +4,8 @@ ha-helper/node_modules/
 ha-helper/dist/
 public/app.js
 public/app.js.map
+public/theme-init.js
+public/theme-init.js.map
 .env
 *.tgz
 # Agent skill installations (symlinks to .agents/)

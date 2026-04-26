@@ -23,6 +23,7 @@ Chat with an AI agent directly from the Home Assistant web UI or Telegram. The a
 - Bundled Home Assistant skill for entity control and automation management
 - Session history that persists across restarts and syncs between web and Telegram
 - Dynamic model selector with support for multiple AI providers
+- Adaptive light/dark UI that follows Home Assistant and browser color scheme preferences
 - Customizable agent behavior via add-on options or AGENTS.md file
 
 ## Installation

@@ -4,6 +4,7 @@ import { handleAvailableModels, handleCurrentModel, initModelSelector, openModel
 import { initShortcutsLegend } from './shortcuts'
 import { buildSessionHistoryOps } from './session-history'
 import { initMobileViewport } from './mobile-viewport'
+import { initTheme } from './theme'
 import type { ClientMessage, ServerMessage, SessionMessage } from './protocol'
 
 // ---------------------------------------------------------------------------
@@ -652,6 +653,7 @@ document.addEventListener('keydown', (e) => {
 // Boot
 // ---------------------------------------------------------------------------
 
+initTheme()
 initModelSelector(send)
 initShortcutsLegend()
 initMobileViewport()
