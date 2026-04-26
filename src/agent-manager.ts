@@ -172,7 +172,7 @@ export class AgentManager {
 
   async newSession(): Promise<void> {
     const current = this.ensureSession()
-    const modelRegistry = ModelRegistry.create(this.authStorage)
+    const modelRegistry = ModelRegistry.create(this.authStorage, `${PATHS.piAgentDir}/models.json`)
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,
       agentDir: PATHS.piAgentDir,
@@ -183,12 +183,13 @@ export class AgentManager {
       settingsManager: SettingsManager.create(PATHS.workspace, PATHS.piAgentDir),
       resourceLoader: this.resourceLoader,
     })
+    this.modelRegistry = modelRegistry
     this.attachSession(session)
     log.info(`New session started (id: ${session.sessionId})`)
   }
 
   async switchSession(sessionFile: string): Promise<void> {
-    const modelRegistry = ModelRegistry.create(this.authStorage)
+    const modelRegistry = ModelRegistry.create(this.authStorage, `${PATHS.piAgentDir}/models.json`)
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,
       agentDir: PATHS.piAgentDir,
@@ -198,6 +199,7 @@ export class AgentManager {
       settingsManager: SettingsManager.create(PATHS.workspace, PATHS.piAgentDir),
       resourceLoader: this.resourceLoader,
     })
+    this.modelRegistry = modelRegistry
     this.attachSession(session)
     log.info(`Switched to session ${sessionFile}`)
   }
