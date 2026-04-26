@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.6.0 — Skills, channel-bridge stability, and agent guardrails
+
+### Added
+
+- **system-profile-creator skill**: On first session the agent inspects `/config/configuration.yaml`, maps every `!include` directive and optional integration directory, and generates a persistent `system-profile` skill in `/data/pi-agent/agents/skills/`. Future sessions read this profile automatically; users can trigger a refresh explicitly and are shown a diff of what changed.
+- **skill-creator skill**: Bundled from `anthropics/skills` so users can create and iterate on custom skills directly inside the HA environment, including eval runs and benchmarks.
+- **Awareness triggers**: Agent checks canonical locations before responding to questions about plans (`/data/workspace/plans/`), specs (`/data/workspace/specs/`), sessions, and automations (`/config/automations.yaml`).
+- **Destructive action confirmations**: Agent asks for explicit confirmation before any deletion, overwrite, or bulk change. Users can opt out for the rest of the session; `/config/` changes always require confirmation regardless of opt-out.
+- **Workspace conventions**: Clear guidance on where files belong — `/data/workspace/` for agent-generated artifacts, `/config/` for HA configuration — including canonical paths for plans, specs, project files, and skills.
+- **Logo and icon**: Added `logo.png` and `icon.png` for the add-on store listing.
+
+### Fixed
+
+- **Channel-bridge send failures no longer crash the bridge**: `sendMessage` now returns a boolean and catches send errors internally; unhandled promise rejections from incoming message handling and queue processing are caught and logged instead of propagating.
+- **Typing indicator runs indefinitely**: Removed the `maxRefreshes` cap (previously 30 iterations ≈ 2 minutes) so the indicator keeps running until the agent explicitly stops it.
+- **Telegram 429 rate-limit handling**: Polling now reads the `retry_after` field from the Telegram response body and sleeps for `(retry_after + 1) × 1000 ms` instead of a fixed 5 s, respecting the server's backoff instruction.
+- **Model registry stale after session switch**: `newSession()` and `switchSession()` now update `this.modelRegistry` so `getAvailableModels()` reflects the correct registry after switching.
+- **Bold pattern false-positives in message formatting**: Removed the `__text__` → `<b>` conversion; double underscores appear in URLs, file paths, and Python dunder methods and must not be bolded. `**text**` bold still works.
+- **Adapter collision in channel-bridge**: `registerAdapter` now takes an explicit name parameter instead of using the adapter's `direction` as the key, preventing a second adapter from silently overwriting the first.
+
+### Changed
+
+- Cleaned up dead code: removed `encodeSenderId`, `decodeSenderId`, an unused variable in settings, and stale options in `run.sh`.
+- Updated documentation to replace stale `ha-helper` references with an accurate description of the current skill setup.
+- Switched to `git clean` for the npm clean step.
+
 ## 0.5.10 — Adaptive light/dark web UI
 
 ### Changed
