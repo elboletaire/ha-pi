@@ -137,7 +137,11 @@ export class ChannelBridge {
     for (const [name, adapter] of this.adapters) {
       try {
         if (adapter.start) {
-          await adapter.start((msg) => this.handleIncomingMessage(msg))
+          await adapter.start((msg) => {
+            void this.handleIncomingMessage(msg).catch((err: any) => {
+              log.error(`Unhandled incoming message error from ${name}:`, err.message)
+            })
+          })
           log.info(`Started adapter: ${name}`)
         }
       } catch (err: any) {
@@ -212,7 +216,9 @@ export class ChannelBridge {
 
     // Process if we have capacity
     if (this.processingCount < this.maxConcurrent) {
-      this.processQueue(senderId)
+      void this.processQueue(senderId).catch((err: any) => {
+        log.error(`Unhandled queue processing error for ${senderId}:`, err.message)
+      })
     }
   }
 
@@ -644,20 +650,26 @@ export class ChannelBridge {
   private async sendMessage(
     message: { adapter: string; recipient: string; text: string; source?: string },
     markup?: InlineKeyboardMarkup
-  ): Promise<void> {
+  ): Promise<boolean> {
     const adapter = this.getAdapter()
     if (!adapter || !adapter.send) {
       log.error('No outgoing adapter available')
-      return
+      return false
     }
 
-    await adapter.send({
-      adapter: message.adapter,
-      recipient: message.recipient,
-      text: message.text,
-      source: message.source,
-      markup: markup,
-    })
+    try {
+      await adapter.send({
+        adapter: message.adapter,
+        recipient: message.recipient,
+        text: message.text,
+        source: message.source,
+        markup: markup,
+      })
+      return true
+    } catch (err: any) {
+      log.error(`Failed to send message to ${message.adapter}:${message.recipient}:`, err.message)
+      return false
+    }
   }
 
   /**
