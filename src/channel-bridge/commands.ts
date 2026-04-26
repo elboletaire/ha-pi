@@ -263,7 +263,15 @@ export async function handleStatusCommand(agentManager: AgentManager): Promise<C
     }
 
     return {
-      text: `📊 Session Status\n\nSession ID: ${state.sessionId.slice(0, 8)}\nModel: ${state.model}\nMessages: ${state.messageCount}\nStreaming: ${state.isStreaming}\nThinking Level: ${state.thinkingLevel}`,
+      text: [
+        '📊 **Session Status**',
+        '',
+        `**Session ID:** \`${state.sessionId.slice(0, 8)}\``,
+        `**Model:** \`${state.model || 'not set'}\``,
+        `**Messages:** ${state.messageCount}`,
+        `**Streaming:** ${state.isStreaming ? '✅' : '❌'}`,
+        `**Thinking Level:** \`${state.thinkingLevel}\``,
+      ].join('\n'),
     }
   } catch (err: any) {
     log.error('Failed to get status:', err.message)

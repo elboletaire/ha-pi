@@ -365,3 +365,68 @@ describe('noop callback handling', () => {
     expect(result).toBeNull()
   })
 })
+
+describe('handleStatusCommand', () => {
+  it('shows formatted status with bold labels and code values when session is active', async () => {
+    const fakeManager = {
+      getState: vi.fn().mockReturnValue({
+        sessionId: '019dc5e5-c123-7456-89ab-cdef01234567',
+        model: 'anthropic/claude-sonnet-4-5-20250929',
+        messageCount: 12,
+        isStreaming: false,
+        thinkingLevel: 'medium',
+      }),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/status')
+
+    expect(result?.text).toContain('📊 **Session Status**')
+    expect(result?.text).toContain('**Session ID:** `019dc5e5`')
+    expect(result?.text).toContain('**Model:** `anthropic/claude-sonnet-4-5-20250929`')
+    expect(result?.text).toContain('**Messages:** 12')
+    expect(result?.text).toContain('**Streaming:** ❌')
+    expect(result?.text).toContain('**Thinking Level:** `medium`')
+  })
+
+  it('shows ✅ when streaming is true', async () => {
+    const fakeManager = {
+      getState: vi.fn().mockReturnValue({
+        sessionId: '019dc5e5-c123-7456-89ab-cdef01234567',
+        model: 'anthropic/claude-sonnet-4-5',
+        messageCount: 5,
+        isStreaming: true,
+        thinkingLevel: 'high',
+      }),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/status')
+
+    expect(result?.text).toContain('**Streaming:** ✅')
+  })
+
+  it('shows no session active when state is null', async () => {
+    const fakeManager = {
+      getState: vi.fn().mockReturnValue(null),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/status')
+
+    expect(result?.text).toBe('⚠️ No session active.')
+  })
+
+  it('shows not set when model is null', async () => {
+    const fakeManager = {
+      getState: vi.fn().mockReturnValue({
+        sessionId: '019dc5e5-c123-7456-89ab-cdef01234567',
+        model: null,
+        messageCount: 0,
+        isStreaming: false,
+        thinkingLevel: 'minimal',
+      }),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/status')
+
+    expect(result?.text).toContain('`not set`')
+  })
+})
