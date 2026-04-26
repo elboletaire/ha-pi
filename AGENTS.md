@@ -11,6 +11,9 @@ Welcome to the ha-pi-agent repository. This guide helps you contribute effective
 - **`pi/base-agents.md`**: Base system prompt injected into every pi agent session
 - **`public/`**: Static assets served to the browser
 - **`translations/`**: UI localization files
+- **`scripts/`**: Build scripts for esbuild (server and frontend) and skill installation
+- **`docker/`**: Docker configuration (Dockerfile, run.sh)
+- **`.github/`**: GitHub Actions workflows for CI/CD
 
 ## Build, Test, and Development
 
