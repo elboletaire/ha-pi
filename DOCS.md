@@ -46,8 +46,7 @@ All files under `/data` are included in Home Assistant backups.
 │   ├── settings.json      ← pi settings
 │   └── AGENTS.md          ← your personal agent instructions (optional)
 └── workspace/
-    ├── (files the agent creates)
-    └── .ha-helper/        ← ha-helper cache and audit log
+    └── (files the agent creates)
 ```
 
 The add-on also mounts `/config` read/write, so the agent can inspect and edit Home Assistant configuration files directly when needed.
@@ -113,9 +112,15 @@ Check that the relevant API key or OAuth login is configured in the web UI's Pro
 
 ### Agent doesn't know about my devices
 
-The `home-assistant` skill uses `ha-helper` to query your HA instance. Try asking:
+The add-on includes the `home-assistant-best-practices` skill and exposes the HA REST API
+via `HA_URL` and `HA_TOKEN` environment variables. The agent can query entities, areas, and
+device states directly. Try asking:
 
 > "What lights do I have in the living room?"
+
+If the agent still can't find your devices, confirm that the add-on option
+`homeassistant_api: true` is set in `config.yaml` (it is by default) and check the add-on
+logs for any startup errors.
 
 ### Skills I installed are gone after an upgrade
 
