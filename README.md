@@ -1,7 +1,5 @@
 # Pi Agent
 
-[![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Felboletaire%2Fha-pi)
-
 A [pi agent](https://github.com/badlogic/pi-mono) add-on for Home Assistant OS.
 
 Chat with an AI agent directly from the Home Assistant web UI or Telegram. The agent understands your smart home setup and can help you manage it through natural conversation.
@@ -15,6 +13,23 @@ Chat with an AI agent directly from the Home Assistant web UI or Telegram. The a
 - 🛠️ **Edit configuration** — Update `configuration.yaml`, scripts, or any HA config file
 - 📱 **Work from anywhere** — Use the web UI at home or Telegram on the go
 
+## Preview
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/telegram.png" alt="Pi Agent Telegram screenshot" width="100%" />
+      <br />
+      <sub>Telegram bot preview</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/webui.png" alt="Pi Agent web UI screenshot" width="100%" />
+      <br />
+      <sub>Web UI after loading the Telegram session</sub>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - Full [pi agent](https://pi.dev) embedded in your HA instance
@@ -26,9 +41,26 @@ Chat with an AI agent directly from the Home Assistant web UI or Telegram. The a
 - Adaptive light/dark UI that follows Home Assistant and browser color scheme preferences
 - Customizable agent behavior via add-on options or AGENTS.md file
 
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/models.png" alt="Pi Agent Telegram screenshot" width="100%" />
+      <br />
+      <sub>Model selection</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/sessions.png" alt="Pi Agent web UI screenshot" width="100%" />
+      <br />
+      <sub>Session selection</sub>
+    </td>
+  </tr>
+</table>
+
 ## Installation
 
-1. Add this repository to your HA add-on store
+[![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Felboletaire%2Fha-pi)
+
+1. Add this repository to your HA add-on store (use button above)
 2. Install **Pi Agent**
 3. Start the add-on
 4. Click **Open Web UI** or find **Pi Agent** in your sidebar
