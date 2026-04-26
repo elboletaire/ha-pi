@@ -369,7 +369,22 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
         })
 
         if (!res.ok) {
-          await sleep(5000)
+          if (res.status === 429) {
+            let retryAfterMs = 5000
+            try {
+              const body = await res.json() as { parameters?: { retry_after?: number } }
+              const retryAfterSec = body.parameters?.retry_after
+              if (typeof retryAfterSec === 'number' && retryAfterSec > 0) {
+                retryAfterMs = (retryAfterSec + 1) * 1000
+              }
+            } catch {
+              // Body parse failed — fall back to default sleep
+            }
+            log.warn(`Telegram rate limit hit, retrying after ${retryAfterMs}ms`)
+            await sleep(retryAfterMs)
+          } else {
+            await sleep(5000)
+          }
           continue
         }
 
