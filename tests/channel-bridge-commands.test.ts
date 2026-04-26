@@ -167,9 +167,9 @@ describe('handleSessionCommand', () => {
 
     expect(fakeManager.switchSession).toHaveBeenCalledWith('/sessions/target.jsonl')
     expect(result?.markup).toBeUndefined()
-    expect(result?.text).toContain('<b>ID:</b> 019dc5e5')
-    expect(result?.text).toContain('<b>Model:</b> anthropic/claude-sonnet-4-5-20250929')
-    expect(result?.text).toContain('<b>Messages:</b> 3')
-    expect(result?.text).toContain('<b>Latest message:</b> Last message from the user')
+    expect(result?.text).toContain('**ID:** `019dc5e5`')
+    expect(result?.text).toContain('**Model:** `anthropic/claude-sonnet-4-5-20250929`')
+    expect(result?.text).toContain('**Messages:** 3')
+    expect(result?.text).toContain('**Latest message:** `Last message from the user`')
   })
 })

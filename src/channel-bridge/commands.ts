@@ -3,6 +3,10 @@
  *
  * Handles /new, /sessions, /session, /status, /abort, /model commands.
  * Commands are processed before reaching the AgentManager.
+ *
+ * NOTE: Command responses use Markdown syntax (processed by markdownToTelegramHTML downstream).
+ * Dynamic string values should be wrapped in backticks to prevent Markdown injection.
+ * Numeric values are safe to include directly without escaping.
  */
 
 import type { SessionInfo } from '@mariozechner/pi-coding-agent'
@@ -102,7 +106,7 @@ export async function handleNewCommand(agentManager: AgentManager): Promise<Comm
     const state = agentManager.getState()
 
     return {
-      text: `✅ New session created.\n\nID: \`${state?.sessionId.slice(0, 8)}\`\nModel: ${state?.model}`,
+      text: `✅ New session created.\n\n**ID:** \`${state?.sessionId.slice(0, 8)}\`\n**Model:** \`${state?.model}\``,
     }
   } catch (err: any) {
     log.error('Failed to create new session:', err.message)
@@ -157,10 +161,10 @@ export async function handleSessionCommand(agentManager: AgentManager, sessionPa
       text: [
         '✅ Switched to session.',
         '',
-        `<b>ID:</b> ${escapeHtml(session.id.slice(0, 8))}`,
-        `<b>Model:</b> ${escapeHtml(state?.model || 'not set')}`,
-        `<b>Messages:</b> ${state?.messageCount ?? 0}`,
-        `<b>Latest message:</b> ${escapeHtml(latestMessage)}`,
+        '**ID:** `' + session.id.slice(0, 8) + '`',
+        '**Model:** `' + (state?.model || 'not set') + '`',
+        '**Messages:** ' + (state?.messageCount ?? 0),
+        '**Latest message:** `' + latestMessage + '`',
       ].join('\n'),
     }
   } catch (err: any) {

@@ -82,3 +82,31 @@ describe('formatSourceHeader', () => {
     expect(formatSourceHeader('custom')).toBe('📨 custom\n───\n')
   })
 })
+
+// ── Command-style Markdown patterns ───────────────────────────────────────────
+
+describe('markdownToTelegramHTML — command formatting patterns', () => {
+  it('bold labels with backtick values survive conversion', () => {
+    const input = '**Model:** `anthropic/claude-sonnet-4-5`'
+    const expected = '<b>Model:</b> <code>anthropic/claude-sonnet-4-5</code>'
+    expect(markdownToTelegramHTML(input)).toBe(expected)
+  })
+
+  it('dynamic text in backticks is safe from Markdown interpretation', () => {
+    const input = '**Preview:** `Fix the *important* bug in **main.py**`'
+    const expected = '<b>Preview:</b> <code>Fix the *important* bug in **main.py**</code>'
+    expect(markdownToTelegramHTML(input)).toBe(expected)
+  })
+
+  it('dynamic text WITHOUT backticks gets Markdown-interpreted (documenting risk)', () => {
+    const input = '**Preview:** Fix the *important* bug'
+    const expected = '<b>Preview:</b> Fix the <i>important</i> bug'
+    expect(markdownToTelegramHTML(input)).toBe(expected)
+  })
+
+  it('numeric values are safe without backticks', () => {
+    const input = '**Messages:** 42'
+    const expected = '<b>Messages:</b> 42'
+    expect(markdownToTelegramHTML(input)).toBe(expected)
+  })
+})
