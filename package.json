@@ -10,7 +10,7 @@
     "build": "pnpm run install-skills && pnpm run build:server && pnpm run build:frontend",
     "build:server": "node esbuild.server.mjs",
     "build:frontend": "node esbuild.frontend.mjs",
-    "clean": "rm -rf dist",
+    "clean": "git clean -fdX -- .",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "pnpm run build && node dist/server.js --provider anthropic --model claude-sonnet-4-5-20250929 --log-level debug",
