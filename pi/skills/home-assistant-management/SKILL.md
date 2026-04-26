@@ -130,4 +130,5 @@ Instructions say WHAT, not HOW. "Fix this" or "Add that" does not mean skip skil
 
 ## References
 
+- **[Supervisor API](references/supervisor-api.md)** — execute Supervisor API commands for system info, Core control, backups, add-ons, and updates
 - **[Home Assistant Log Debugging](references/home-assistant-log-debugging.md)** — investigate errors, warnings, authentication issues, and suspicious behavior; inspects local logs and storage first

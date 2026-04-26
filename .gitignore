@@ -19,3 +19,6 @@ public/theme-init.js.map
 pi/skills/*
 !pi/skills/home-assistant-management
 !pi/skills/system-profile-creator
+
+# docs folder (if exists)
+docs/
