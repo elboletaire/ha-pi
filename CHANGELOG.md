@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 — Thinking level control, button-based UX, and Markdown formatting
+
+### Added
+
+- **`/thinking` command**: Change the AI model's reasoning/thinking level interactively. Shows current level and available options as buttons (2 per row, current level marked ✓). Non-reasoning models receive a clear "not supported" message; invalid levels are rejected with a helpful error listing options.
+- **Button-based model selection**: `/models` now opens a paginated browser (5 per page) with ←/→ navigation, a detail view with Use/Back buttons, and the current model marked ✓. Index-based callback data keeps payloads within Telegram's 64-byte limit.
+- **Button-based session management**: `/sessions` now opens a paginated browser (5 per page) with ←/→ navigation and Load/Back buttons. Backticks are stripped from preview text to prevent Markdown injection. A shared pagination utility (`src/channel-bridge/pagination.ts`) is used by both commands.
+- **`/status` Markdown formatting**: Field names are **bold**, Session ID / Model / Thinking Level are wrapped in backticks, and Streaming shows ✅/❌ instead of raw booleans.
+- **system-profile-creator enhancements**: Convention detection, language detection, and notification-services discovery added to the skill.
+
+### Fixed
+
+- **Thinking-level error handling**: SDK errors are caught and surfaced as friendly messages; `models:noop` callback is handled gracefully.
+- **Channel-bridge Markdown safety**: `handleNewCommand` and `handleSessionCommand` now use `**bold**` labels and backtick-wrapped dynamic values instead of raw HTML tags, preventing Markdown injection in Telegram's `parse_mode=HTML` mode.
+
 ## 0.6.0 — Skills, channel-bridge stability, and agent guardrails
 
 ### Added
