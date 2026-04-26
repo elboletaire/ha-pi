@@ -15,7 +15,7 @@ WORKDIR /build/app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
-COPY tsconfig.json esbuild.server.mjs esbuild.frontend.mjs ./
+COPY tsconfig.json ./
 COPY scripts/ ./scripts/
 COPY skills/ ./skills/
 COPY src/ ./src/

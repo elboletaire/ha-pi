@@ -8,8 +8,8 @@
   "scripts": {
     "install-skills": "node scripts/install-skills.mjs",
     "build": "pnpm run install-skills && pnpm run build:server && pnpm run build:frontend",
-    "build:server": "node esbuild.server.mjs",
-    "build:frontend": "node esbuild.frontend.mjs",
+    "build:server": "node scripts/esbuild.server.mjs",
+    "build:frontend": "node scripts/esbuild.frontend.mjs",
     "clean": "git clean -fdX -- .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -17,8 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc",
-    "watch:server": "node esbuild.server.mjs --watch",
-    "watch:frontend": "node esbuild.frontend.mjs --watch"
+    "watch:server": "node scripts/esbuild.server.mjs --watch",
+    "watch:frontend": "node scripts/esbuild.frontend.mjs --watch"
   },
   "dependencies": {
     "@mariozechner/pi-coding-agent": "^0.70.2",
