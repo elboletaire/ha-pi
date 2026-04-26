@@ -77,8 +77,9 @@ export function markdownToTelegramHTML(text: string): string {
   // Headers (### Header → <b>Header</b>)
   html = html.replace(/^#{1,6}\s+(.+)$/gm, '<b>$1</b>')
 
-  // Bold (**text** or __text__) - placeholders are safe as they contain no asterisks/underscores
-  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(?<!_)__(?!_)(.+?)(?<!_)__(?!_)/g, '<b>$1</b>')
+  // Bold (**text** only — __text__ is intentionally omitted because double underscores
+  // appear in URLs, file paths, and Python dunder methods and must not be bolded)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
 
   // Italic (*text* or _text_) - use word boundary checks to avoid URLs
   html = html
