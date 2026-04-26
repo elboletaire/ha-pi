@@ -1,7 +1,7 @@
 /**
  * Telegram bot command handlers.
  *
- * Handles /new, /sessions, /session, /status, /abort, /model commands.
+ * Handles /new, /sessions, /status, /abort, /model commands and session selection callbacks.
  * Commands are processed before reaching the AgentManager.
  *
  * NOTE: Command responses use Markdown syntax (processed by markdownToTelegramHTML downstream).
@@ -12,7 +12,8 @@
 import type { SessionInfo } from '@mariozechner/pi-coding-agent'
 import { AgentManager } from '../agent-manager'
 import { log } from '../options'
-import type { CommandResult } from './types'
+import type { CommandResult, InlineKeyboardButton } from './types'
+import { createPaginatedButtons } from './pagination'
 
 /** Format a Date as a compact locale string without seconds (e.g. "4/25/2026, 10:32 PM"). */
 function formatDate(date: Date): string {
@@ -31,6 +32,11 @@ function escapeHtml(text: string): string {
 /** Truncate a string to `max` chars, appending '…' if cut. */
 function truncate(str: string, max: number): string {
   return str.length <= max ? str : str.slice(0, max) + '…'
+}
+
+/** Strip backticks from dynamic content before wrapping in backticks. */
+function stripBackticks(str: string): string {
+  return str.replace(/`/g, "'")
 }
 
 function extractTextFromContent(content: unknown): string {
@@ -63,39 +69,7 @@ function getLatestMessageText(messages: unknown[]): string {
   return text || '(no text content)'
 }
 
-/**
- * Build a readable session list.
- *
- * Each session is rendered as a tappable /s‹id› command link followed by a
- * one-line preview of the first user message, so the user can identify and
- * switch to a session with a single tap.
- *
- * Example:
- *   /s019dc5e5 · 22 msgs · 4/25/2026, 10:32 PM
- *   "What does this code do in server.ts?"
- */
-function buildSessionListText(sessions: SessionInfo[]): string {
-  if (sessions.length === 0) {
-    return 'No sessions found.\n\n/new — start a new session'
-  }
 
-  const lines: string[] = [`📚 Sessions (${sessions.length}):\n`]
-
-  for (const session of sessions) {
-    const shortId = session.id.slice(0, 8)
-    const msgs = session.messageCount
-    const date = formatDate(session.modified)
-    const preview = truncate(session.firstMessage || '(no messages)', 60)
-
-    lines.push(`/s${shortId} · ${msgs} msgs · ${date}`)
-    lines.push(`"${preview}"`)
-    lines.push('')
-  }
-
-  lines.push('Tap a /s‹ID› link to switch · /new to start fresh')
-
-  return lines.join('\n')
-}
 
 /**
  * Handle /new command - create a new session.
@@ -117,13 +91,40 @@ export async function handleNewCommand(agentManager: AgentManager): Promise<Comm
 }
 
 /**
- * Handle /sessions command - list all sessions.
+ * Handle /sessions command - list all sessions with pagination.
  */
-export async function handleSessionsCommand(agentManager: AgentManager): Promise<CommandResult> {
+export async function handleSessionsCommand(
+  agentManager: AgentManager,
+  page: number = 0
+): Promise<CommandResult> {
   try {
     const sessions = await agentManager.listSessions()
+
+    if (sessions.length === 0) {
+      return {
+        text: 'No sessions found.',
+        markup: {
+          inline_keyboard: [
+            [{ text: '🆕 New session', callback_data: '/new' }],
+          ],
+        },
+      }
+    }
+
+    const result = createPaginatedButtons({
+      items: sessions,
+      page,
+      pageSize: 5,
+      callbackPrefix: 'sessions',
+      buttonLabel: (s) => truncate(stripBackticks(s.firstMessage || s.id.slice(0, 8)), 40),
+      buttonData: (s) => 'sessions:select:' + s.id.slice(0, 8),
+    })
+
     return {
-      text: buildSessionListText(sessions),
+      text: '📚 Select a session to load',
+      markup: {
+        inline_keyboard: result.buttons,
+      },
     }
   } catch (err: any) {
     log.error('Failed to list sessions:', err.message)
@@ -134,12 +135,55 @@ export async function handleSessionsCommand(agentManager: AgentManager): Promise
 }
 
 /**
+ * Handle session select command - show session details with Load/Back buttons.
+ */
+export async function handleSessionSelectCommand(agentManager: AgentManager, shortId: string): Promise<CommandResult> {
+  try {
+    const sessions = await agentManager.listSessions()
+    const session = sessions.find((s) => s.id.startsWith(shortId))
+
+    if (!session) {
+      return {
+        text: `❌ Session not found: ${shortId}`,
+      }
+    }
+
+    const state = agentManager.getState()
+    const latestMessage = getLatestMessageText(agentManager.getMessages())
+
+    return {
+      text: [
+        '📚 Session details',
+        '',
+        '**ID:** `' + session.id.slice(0, 8) + '`',
+        '**Messages:** ' + (session.messageCount ?? 0),
+        '**Modified:** `' + formatDate(session.modified) + '`',
+        '**Preview:** `' + truncate(stripBackticks(session.firstMessage || '(no messages)'), 40) + '`',
+      ].join('\n'),
+      markup: {
+        inline_keyboard: [
+          [
+            { text: '✅ Load session', callback_data: 'sessions:load:' + session.id.slice(0, 8) },
+            { text: '← Back', callback_data: 'sessions:page:0' },
+          ],
+        ],
+      },
+    }
+  } catch (err: any) {
+    log.error('Failed to select session:', err.message)
+    return {
+      text: `❌ Failed to select session: ${err.message}`,
+    }
+  }
+}
+
+/**
  * Handle /session <ID> command - switch to a specific session.
  */
 export async function handleSessionCommand(agentManager: AgentManager, sessionPath: string): Promise<CommandResult> {
   try {
     const sessions = await agentManager.listSessions()
-    // Match on full path, full ID, or short-ID prefix (>= 6 chars, from /s‹id› shortcuts)
+    // Match on full path, full ID, or short-ID prefix (>= 6 chars)
     const session = sessions.find(
       (s) =>
         s.path === sessionPath ||
@@ -149,7 +193,7 @@ export async function handleSessionCommand(agentManager: AgentManager, sessionPa
 
     if (!session) {
       return {
-        text: `❌ Session not found: ${sessionPath}\n\nAvailable sessions:\n${buildSessionListText(sessions)}`,
+        text: `❌ Session not found: ${sessionPath}`,
       }
     }
 
@@ -316,7 +360,6 @@ function buildWelcomeText(): string {
     '/help - Show this message',
     '/new - Create new session',
     '/sessions - List all sessions',
-    '/session <ID> - Switch to session',
     '/delete <ID> - Delete session',
     '/status - Show current status',
     '/model [name] - Show/change model',
@@ -361,22 +404,7 @@ function parseTelegramCommand(text: string): { name: string; args: string } | un
       return { name: 'model', args: '' }
   }
 
-  if (trimmed.startsWith('session:')) {
-    return {
-      name: 'session',
-      args: trimmed.slice('session:'.length),
-    }
-  }
-
   if (!trimmed.startsWith('/')) return undefined
-
-  // /s‹id› shortcut — session switch via short hex ID, not registered in autocomplete.
-  // Must be checked before the general command regex (which would swallow /s019dc5e5
-  // as command name 's019dc5e5' with empty args, never reaching the 'session' case).
-  const shortSwitch = trimmed.match(/^\/s([0-9a-f]{6,})(?:@[a-z0-9_]+)?$/i)
-  if (shortSwitch) {
-    return { name: 'session', args: shortSwitch[1] }
-  }
 
   const [commandToken, ...rest] = trimmed.split(/\s+/)
   const match = commandToken.match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?$/i)
@@ -389,7 +417,7 @@ function parseTelegramCommand(text: string): { name: string; args: string } | un
 }
 
 /**
- * Map incoming text commands to handlers.
+ * Parse callback data and text commands.
  * Returns undefined if the command doesn't match any handler.
  */
 export function parseCommand(
@@ -398,13 +426,35 @@ export function parseCommand(
   | { type: 'start' }
   | { type: 'help' }
   | { type: 'new' }
-  | { type: 'sessions' }
-  | { type: 'session'; path: string }
+  | { type: 'sessions'; page?: number }
+  | { type: 'session_select'; id: string }
+  | { type: 'session_load'; id: string }
   | { type: 'delete'; path: string }
   | { type: 'status' }
   | { type: 'model'; model?: string }
   | { type: 'abort' }
+  | { type: 'noop' }
   | undefined {
+  // Parse callback data format: "prefix:data:id" or "prefix:data"
+  if (text.startsWith('sessions:')) {
+    const parts = text.split(':')
+    if (parts.length === 3 && parts[1] === 'select') {
+      return { type: 'session_select', id: parts[2] }
+    }
+    if (parts.length === 3 && parts[1] === 'load') {
+      return { type: 'session_load', id: parts[2] }
+    }
+    if (parts.length === 3 && parts[1] === 'page') {
+      const page = parseInt(parts[2], 10)
+      if (!isNaN(page)) {
+        return { type: 'sessions', page }
+      }
+    }
+    if (parts.length === 2 && parts[1] === 'noop') {
+      return { type: 'noop' }
+    }
+  }
+
   const parsed = parseTelegramCommand(text)
   if (!parsed) return undefined
 
@@ -417,8 +467,6 @@ export function parseCommand(
       return { type: 'new' }
     case 'sessions':
       return { type: 'sessions' }
-    case 'session':
-      return { type: 'session', path: parsed.args }
     case 'delete':
       return { type: 'delete', path: parsed.args }
     case 'status':
@@ -453,10 +501,31 @@ export async function processCommand(agentManager: AgentManager, text: string): 
       return handleNewCommand(agentManager)
 
     case 'sessions':
-      return handleSessionsCommand(agentManager)
+      return handleSessionsCommand(agentManager, command.page ?? 0)
 
-    case 'session':
-      return handleSessionCommand(agentManager, command.path)
+    case 'session_select':
+      return handleSessionSelectCommand(agentManager, command.id)
+
+    case 'session_load':
+      // Reuse handleSessionCommand logic for loading
+      const sessions = await agentManager.listSessions()
+      const session = sessions.find((s) => s.id.startsWith(command.id))
+      if (!session) {
+        return { text: `❌ Session not found: ${command.id}` }
+      }
+      await agentManager.switchSession(session.path)
+      const state = agentManager.getState()
+      const latestMessage = getLatestMessageText(agentManager.getMessages())
+      return {
+        text: [
+          '✅ Switched to session.',
+          '',
+          '**ID:** `' + session.id.slice(0, 8) + '`',
+          '**Model:** `' + (state?.model || 'not set') + '`',
+          '**Messages:** ' + (state?.messageCount ?? 0),
+          '**Latest message:** `' + latestMessage + '`',
+        ].join('\n'),
+      }
 
     case 'delete':
       return handleDeleteCommand(agentManager, command.path)
@@ -469,6 +538,10 @@ export async function processCommand(agentManager: AgentManager, text: string): 
 
     case 'abort':
       return handleAbortCommand(agentManager)
+
+    case 'noop':
+      // Ignore noop callbacks (page indicator button)
+      return null
 
     default:
       return null
@@ -493,7 +566,6 @@ export function getCommandsForTelegram(): Array<{ command: string; description: 
     { name: 'help', description: 'Show the welcome message' },
     { name: 'new', description: 'Start a new session' },
     { name: 'sessions', description: 'List available sessions' },
-    { name: 'session', description: 'Switch to a session' },
     { name: 'delete', description: 'Delete a session' },
     { name: 'status', description: 'Check system status and health' },
     { name: 'model', description: 'Change the AI model' },

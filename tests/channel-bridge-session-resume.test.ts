@@ -294,7 +294,7 @@ describe('ChannelBridge — registry updated after commands', () => {
       messageCount: 5,
     })
 
-    await (bridge as any).handleIncomingMessage(makeIncomingMessage('/session other-id'))
+    await (bridge as any).handleIncomingMessage(makeIncomingMessage('sessions:load:other-id'))
 
     const setCalls = (registry.set as ReturnType<typeof vi.fn>).mock.calls
     const lastCall = setCalls.at(-1)
