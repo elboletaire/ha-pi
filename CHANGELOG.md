@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.1 — Build system reorganization
+
+### Changed
+
+- **Build system reorganization**: Moved esbuild scripts to `scripts/` directory for better organization
+- **Dockerfile relocation**: Moved Dockerfile and run.sh to `docker/` directory for clearer separation of build and runtime configurations
+- **Skills directory structure**: Moved base-agents.md and skills/ into `pi/` directory to align with the pi agent internal structure
+- **Skills-lock.json tracking**: Updated `.gitignore` and build scripts to track `skills-lock.json` and clean up agent directories after skill installation
+
 ## 0.7.0 — Thinking level control, button-based UX, and Markdown formatting
 
 ### Added
