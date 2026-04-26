@@ -9,7 +9,6 @@
  * Numeric values are safe to include directly without escaping.
  */
 
-import type { SessionInfo } from '@mariozechner/pi-coding-agent'
 import { AgentManager } from '../agent-manager'
 import { log } from '../options'
 import type { CommandResult, InlineKeyboardButton } from './types'
@@ -22,11 +21,6 @@ function formatDate(date: Date): string {
     ', ' +
     date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   )
-}
-
-/** Escape HTML special characters for Telegram parse_mode=HTML text. */
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 /** Truncate a string to `max` chars, appending '…' if cut. */
@@ -148,9 +142,6 @@ export async function handleSessionSelectCommand(agentManager: AgentManager, sho
       }
     }
 
-    const state = agentManager.getState()
-    const latestMessage = getLatestMessageText(agentManager.getMessages())
-
     return {
       text: [
         '📚 Session details',
@@ -173,48 +164,6 @@ export async function handleSessionSelectCommand(agentManager: AgentManager, sho
     log.error('Failed to select session:', err.message)
     return {
       text: `❌ Failed to select session: ${err.message}`,
-    }
-  }
-}
-
-/**
- * Handle /session <ID> command - switch to a specific session.
- */
-export async function handleSessionCommand(agentManager: AgentManager, sessionPath: string): Promise<CommandResult> {
-  try {
-    const sessions = await agentManager.listSessions()
-    // Match on full path, full ID, or short-ID prefix (>= 6 chars)
-    const session = sessions.find(
-      (s) =>
-        s.path === sessionPath ||
-        s.id === sessionPath ||
-        (sessionPath.length >= 6 && s.id.startsWith(sessionPath))
-    )
-
-    if (!session) {
-      return {
-        text: `❌ Session not found: ${sessionPath}`,
-      }
-    }
-
-    await agentManager.switchSession(session.path)
-    const state = agentManager.getState()
-    const latestMessage = getLatestMessageText(agentManager.getMessages())
-
-    return {
-      text: [
-        '✅ Switched to session.',
-        '',
-        '**ID:** `' + session.id.slice(0, 8) + '`',
-        '**Model:** `' + (state?.model || 'not set') + '`',
-        '**Messages:** ' + (state?.messageCount ?? 0),
-        '**Latest message:** `' + latestMessage + '`',
-      ].join('\n'),
-    }
-  } catch (err: any) {
-    log.error('Failed to switch session:', err.message)
-    return {
-      text: `❌ Failed to switch session: ${err.message}`,
     }
   }
 }
@@ -491,6 +440,15 @@ export async function handleThinkingSetCommand(agentManager: AgentManager, level
   try {
     const availableLevels = agentManager.getAvailableThinkingLevels()
 
+    // If the model doesn't support reasoning at all, show a specific error
+    if (availableLevels.length === 0) {
+      const state = agentManager.getState()
+      const modelName = state?.model ? state.model.split('/').pop() : 'unknown'
+      return {
+        text: `❌ The current model (\`${modelName}\`) does not support thinking/reasoning levels.`,
+      }
+    }
+
     // Validate level is in available levels
     if (!availableLevels.includes(level)) {
       return {
@@ -643,6 +601,7 @@ export function parseCommand(
         return { type: 'model', page }
       }
     }
+    // Page indicator callback - intentionally ignored
     if (parts.length === 2 && parts[1] === 'noop') {
       return { type: 'noop' }
     }
@@ -754,8 +713,8 @@ export async function processCommand(agentManager: AgentManager, text: string): 
       return handleAbortCommand(agentManager)
 
     case 'noop':
-      // Ignore noop callbacks (page indicator button)
-      return null
+      // Ignore noop callbacks (page indicator button) by returning an empty response.
+      return { text: '' }
 
     default:
       return null

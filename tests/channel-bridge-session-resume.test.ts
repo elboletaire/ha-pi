@@ -222,6 +222,31 @@ describe('ChannelBridge — session resume on first message', () => {
 // ── Registry update after commands ───────────────────────────────────────────
 
 describe('ChannelBridge — registry updated after commands', () => {
+  it('does not send or persist noop callback messages', async () => {
+    const registry = makeMockRegistry()
+    const bridge = new ChannelBridge({
+      provider: 'test',
+      modelId: 'test-model',
+      resourceLoader: {} as any,
+      authStorage: {} as any,
+      typingIndicators: false,
+      streamingDrafts: false,
+      senderSessionRegistry: registry,
+    })
+
+    const send = vi.fn().mockResolvedValue(undefined)
+    bridge.registerAdapter('noop-test', {
+      direction: 'bidirectional',
+      send,
+      sendTyping: vi.fn().mockResolvedValue(undefined),
+    })
+
+    await (bridge as any).handleIncomingMessage(makeIncomingMessage('sessions:noop'))
+
+    expect(send).not.toHaveBeenCalled()
+    expect(mocks.prompt).not.toHaveBeenCalled()
+  })
+
   it('updates the registry after /new creates a new session', async () => {
     const registry = makeMockRegistry({
       'telegram:123': '/sessions/old.jsonl',

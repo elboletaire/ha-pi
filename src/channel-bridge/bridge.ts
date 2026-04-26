@@ -180,6 +180,12 @@ export class ChannelBridge {
     const command = await processCommand(agentManager, msg.text)
 
     if (command) {
+      // Empty command responses are intentional no-ops (e.g. page-indicator buttons).
+      // They should not be sent back to the user or treated as prompts.
+      if (command.text.trim().length === 0) {
+        return
+      }
+
       // Send the command response
       if (this.typingIndicators) {
         await this.sendTyping(msg.adapter, msg.sender)

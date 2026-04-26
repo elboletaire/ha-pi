@@ -359,10 +359,16 @@ describe('session select and load flow', () => {
 })
 
 describe('noop callback handling', () => {
-  it('returns null for sessions:noop (page indicator)', async () => {
+  it('returns an empty no-op result for sessions:noop (page indicator)', async () => {
     const fakeManager = {} as unknown as AgentManager
     const result = await processCommand(fakeManager, 'sessions:noop')
-    expect(result).toBeNull()
+    expect(result).toEqual({ text: '' })
+  })
+
+  it('returns an empty no-op result for models:noop (page indicator)', async () => {
+    const fakeManager = {} as unknown as AgentManager
+    const result = await processCommand(fakeManager, 'models:noop')
+    expect(result).toEqual({ text: '' })
   })
 })
 
@@ -558,11 +564,19 @@ describe('handleThinkingSetCommand', () => {
     const fakeManager = {
       getAvailableThinkingLevels: vi.fn().mockReturnValue([]), // model doesn't support reasoning now
       setThinkingLevel: vi.fn(),
+      getState: vi.fn().mockReturnValue({
+        sessionId: '019dc5e5-c123-7456-89ab-cdef01234567',
+        model: 'openai/gpt-4.1',
+        messageCount: 0,
+        isStreaming: false,
+        thinkingLevel: 'minimal',
+      }),
     } as unknown as AgentManager
 
     const result = await processCommand(fakeManager, 'thinking:set:high')
 
-    expect(result?.text).toContain('❌ Invalid thinking level: `high`')
+    // Should show model-capability error, not generic invalid-level error
+    expect(result?.text).toContain('❌ The current model (\`gpt-4.1\`) does not support thinking/reasoning levels.')
     expect(fakeManager.setThinkingLevel).not.toHaveBeenCalled()
   })
 
