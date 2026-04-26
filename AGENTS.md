@@ -7,7 +7,8 @@ Welcome to the ha-pi-agent repository. This guide helps you contribute effective
 - **`src/`**: Core server-side TypeScript code, including WebSocket handlers, agent and login managers
 - **`frontend/`**: Web UI components and assets
 - **`tests/`**: Integration and unit tests
-- **`bundled-skills/`**: Pre-installed skills for Home Assistant integration
+- **`pi/skills/`**: Bundled skills for the pi agent (Home Assistant management etc.)
+- **`pi/base-agents.md`**: Base system prompt injected into every pi agent session
 - **`public/`**: Static assets served to the browser
 - **`translations/`**: UI localization files
 

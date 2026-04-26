@@ -17,6 +17,6 @@ public/theme-init.js.map
 skills-lock.json
 
 # skills
-skills/*
-!skills/home-assistant-management
-!skills/system-profile-creator
+pi/skills/*
+!pi/skills/home-assistant-management
+!pi/skills/system-profile-creator

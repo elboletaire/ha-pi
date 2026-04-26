@@ -17,7 +17,7 @@ RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
 COPY tsconfig.json ./
 COPY scripts/ ./scripts/
-COPY skills/ ./skills/
+COPY pi/skills/ ./pi/skills/
 COPY src/ ./src/
 COPY frontend/ ./frontend/
 COPY public/index.html public/index.css ./public/
@@ -48,8 +48,8 @@ COPY --from=builder /build/app/public/ /app/public/
 
 # Copy skills (both external and custom) from builder, which merged
 # downloaded external skills with the committed custom ones
-COPY --from=builder /build/app/skills/ /app/skills/
-COPY base-agents.md /app/base-agents.md
+COPY --from=builder /build/app/pi/skills/ /app/skills/
+COPY pi/base-agents.md /app/base-agents.md
 COPY docker/run.sh /app/run.sh
 
 RUN chmod +x /app/run.sh

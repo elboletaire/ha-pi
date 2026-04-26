@@ -27,13 +27,13 @@ for (const [repo, skillName] of EXTERNAL_SKILLS) {
 
     // Copy from .agents/skills/{skillName} to skills/{skillName}
     const srcPath = `.agents/skills/${skillName}`
-    const destPath = `skills/${skillName}`
+    const destPath = `pi/skills/${skillName}`
 
     // Remove destination if it exists
     await rm(destPath, { recursive: true, force: true })
 
     // Copy the entire skill directory
-    execSync(`cp -r ${srcPath} skills/`, {
+    execSync(`cp -r ${srcPath} pi/skills/`, {
       stdio: 'inherit',
     })
 
@@ -46,7 +46,7 @@ for (const [repo, skillName] of EXTERNAL_SKILLS) {
 
 console.log('\n✅ Skills installation complete. Available skills:')
 try {
-  const skillDirs = await readdir('skills', { withFileTypes: true })
+  const skillDirs = await readdir('pi/skills', { withFileTypes: true })
   for (const entry of skillDirs) {
     if (entry.isDirectory() && !entry.name.startsWith('.')) {
       console.log(`  - ${entry.name}`)
