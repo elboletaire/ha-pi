@@ -92,7 +92,7 @@ export async function startTelegramBridge(config: TelegramBridgeConfig): Promise
 
   // Create and register the Telegram adapter
   const telegramAdapter = createTelegramAdapter(telegramConfig)
-  bridge.registerAdapter(telegramAdapter)
+  bridge.registerAdapter('telegram', telegramAdapter)
 
   // Start the bridge (starts polling)
   await bridge.start()

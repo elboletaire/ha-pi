@@ -34,7 +34,7 @@ function createBridge(
     streamingDrafts: opts.streamingDrafts ?? true,
     streamingIntervalMs: opts.streamingIntervalMs ?? 500,
   })
-  bridge.registerAdapter(adapter)
+  bridge.registerAdapter('test', adapter)
   return bridge
 }
 

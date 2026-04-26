@@ -104,7 +104,7 @@ function makeBridge(registry: SenderSessionRegistry): ChannelBridge {
     streamingDrafts: false,
     senderSessionRegistry: registry,
   })
-  bridge.registerAdapter(makeMockAdapter())
+  bridge.registerAdapter('test', makeMockAdapter())
   return bridge
 }
 

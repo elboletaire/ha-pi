@@ -116,12 +116,28 @@ export class ChannelBridge {
   }
 
   /**
-   * Register a channel adapter.
+   * Register a channel adapter under an explicit name.
+   *
+   * Using an explicit name prevents adapters of the same direction from
+   * silently overwriting each other in the internal map.
    */
-  registerAdapter(adapter: ChannelAdapter): void {
-    const name = adapter.direction // Simplified: use direction as name for now
+  registerAdapter(name: string, adapter: ChannelAdapter): void {
     this.adapters.set(name, adapter)
     log.info(`Registered adapter: ${name} (${adapter.direction})`)
+  }
+
+  /**
+   * Return the first registered adapter that supports sending
+   * (direction === 'outgoing' or 'bidirectional').
+   * Returns undefined when no suitable adapter is registered.
+   */
+  private getAdapter(): ChannelAdapter | undefined {
+    for (const adapter of this.adapters.values()) {
+      if (adapter.direction === 'bidirectional' || adapter.direction === 'outgoing') {
+        return adapter
+      }
+    }
+    return undefined
   }
 
   /**
@@ -239,7 +255,7 @@ export class ChannelBridge {
 
       // Start typing indicators
       if (this.typingIndicators) {
-        const channelAdapter = this.adapters.get('bidirectional')
+        const channelAdapter = this.getAdapter()
         if (channelAdapter?.sendTyping) {
           stopTyping = startTypingLoop({
             adapter: channelAdapter,
@@ -524,7 +540,7 @@ export class ChannelBridge {
    */
   private startDraftStreaming(senderId: string, source = this.getDraftSource(senderId)): number | null {
     if (!this.streamingDrafts) return null
-    const channelAdapter = this.adapters.get('bidirectional')
+    const channelAdapter = this.getAdapter()
     if (!channelAdapter || !channelAdapter.sendDraft) return null
 
     const draftId = ++this.draftCounter
@@ -643,7 +659,7 @@ export class ChannelBridge {
     message: { adapter: string; recipient: string; text: string; source?: string },
     markup?: InlineKeyboardMarkup
   ): Promise<void> {
-    const adapter = this.adapters.get('bidirectional')
+    const adapter = this.getAdapter()
     if (!adapter || !adapter.send) {
       log.error('No outgoing adapter available')
       return
@@ -662,7 +678,7 @@ export class ChannelBridge {
    * Send a typing indicator to a recipient.
    */
   private async sendTyping(adapter: string, recipient: string): Promise<void> {
-    const channelAdapter = this.adapters.get('bidirectional')
+    const channelAdapter = this.getAdapter()
     if (!channelAdapter || !channelAdapter.sendTyping) {
       return
     }
@@ -682,7 +698,7 @@ export class ChannelBridge {
     text: string,
     parseMode?: string
   ): Promise<boolean> {
-    const channelAdapter = this.adapters.get('bidirectional')
+    const channelAdapter = this.getAdapter()
     if (!channelAdapter || !channelAdapter.sendDraft) return false
 
     try {
