@@ -45,7 +45,7 @@ describe('telegram command helpers', () => {
   it('exposes the expected Telegram command menu (no /session)', () => {
     const commands = getCommandsForTelegram().map((entry) => entry.command)
 
-    expect(commands).toEqual(['start', 'help', 'new', 'sessions', 'delete', 'status', 'model', 'abort'])
+    expect(commands).toEqual(['start', 'help', 'new', 'sessions', 'delete', 'status', 'model', 'thinking', 'abort'])
   })
 })
 
@@ -428,5 +428,165 @@ describe('handleStatusCommand', () => {
     const result = await processCommand(fakeManager, '/status')
 
     expect(result?.text).toContain('`not set`')
+  })
+})
+
+describe('handleThinkingCommand', () => {
+  it('shows available levels with buttons when model supports reasoning', async () => {
+    const fakeManager = {
+      getState: vi.fn().mockReturnValue({
+        sessionId: '019dc5e5-c123-7456-89ab-cdef01234567',
+        model: 'anthropic/claude-sonnet-4-5',
+        messageCount: 12,
+        isStreaming: false,
+        thinkingLevel: 'medium',
+      }),
+      getAvailableThinkingLevels: vi.fn().mockReturnValue(['minimal', 'low', 'medium', 'high', 'xhigh']),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/thinking')
+
+    expect(result?.text).toContain('🧠 **Thinking Level**')
+    expect(result?.text).toContain('Current: `medium`')
+    expect(result?.markup?.inline_keyboard).toBeDefined()
+
+    const buttons = result?.markup?.inline_keyboard as any[]
+    
+    // 5 levels, 2 per row: rows[0]=2, rows[1]=2, rows[2]=1
+    expect(buttons.length).toBe(3)
+    
+    // First row has minimal and low
+    expect(buttons[0][0].text).toBe('minimal')
+    expect(buttons[0][0].callback_data).toBe('thinking:set:minimal')
+    expect(buttons[0][1].text).toBe('low')
+    expect(buttons[0][1].callback_data).toBe('thinking:set:low')
+    
+    // Second row has ✓ medium and high
+    expect(buttons[1][0].text).toBe('✓ medium')
+    expect(buttons[1][0].callback_data).toBe('thinking:set:medium')
+    expect(buttons[1][1].text).toBe('high')
+    expect(buttons[1][1].callback_data).toBe('thinking:set:high')
+    
+    // Third row has xhigh
+    expect(buttons[2][0].text).toBe('xhigh')
+    expect(buttons[2][0].callback_data).toBe('thinking:set:xhigh')
+  })
+
+  it('shows not supported message when model does not support reasoning', async () => {
+    const fakeManager = {
+      getState: vi.fn().mockReturnValue({
+        sessionId: '019dc5e5-c123-7456-89ab-cdef01234567',
+        model: 'openai/gpt-4.1',
+        messageCount: 0,
+        isStreaming: false,
+        thinkingLevel: 'minimal',
+      }),
+      getAvailableThinkingLevels: vi.fn().mockReturnValue([]),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/thinking')
+
+    expect(result?.text).toContain('🧠 **Thinking Level**')
+    expect(result?.text).toContain('does not support reasoning/thinking levels')
+    expect(result?.text).toContain('`gpt-4.1`') // short model name extracted
+    expect(result?.markup).toBeUndefined()
+  })
+
+  it('shows no session active when state is null', async () => {
+    const fakeManager = {
+      getState: vi.fn().mockReturnValue(null),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/thinking')
+
+    expect(result?.text).toBe('⚠️ No session active.')
+  })
+
+  it('shows limited levels when model has only some reasoning capabilities', async () => {
+    const fakeManager = {
+      getState: vi.fn().mockReturnValue({
+        sessionId: '019dc5e5-c123-7456-89ab-cdef01234567',
+        model: 'anthropic/claude-sonnet-4-5',
+        messageCount: 5,
+        isStreaming: false,
+        thinkingLevel: 'low',
+      }),
+      getAvailableThinkingLevels: vi.fn().mockReturnValue(['low', 'medium', 'high']),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, '/thinking')
+
+    expect(result?.text).toContain('Current: `low`')
+    
+    const buttons = result?.markup?.inline_keyboard as any[]
+    // 3 levels, 2 per row: rows[0]=2, rows[1]=1
+    expect(buttons.length).toBe(2)
+    expect(buttons[0][0].text).toBe('✓ low')
+    expect(buttons[0][0].callback_data).toBe('thinking:set:low')
+    expect(buttons[0][1].text).toBe('medium')
+    expect(buttons[1][0].text).toBe('high')
+  })
+})
+
+describe('handleThinkingSetCommand', () => {
+  it('sets the thinking level successfully', async () => {
+    const fakeManager = {
+      getAvailableThinkingLevels: vi.fn().mockReturnValue(['minimal', 'low', 'medium', 'high', 'xhigh']),
+      setThinkingLevel: vi.fn().mockResolvedValue(undefined),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, 'thinking:set:high')
+
+    expect(result?.text).toContain('✅ Thinking level changed to: `high`')
+    expect(fakeManager.setThinkingLevel).toHaveBeenCalledWith('high')
+  })
+
+  it('returns error for invalid level', async () => {
+    const fakeManager = {
+      getAvailableThinkingLevels: vi.fn().mockReturnValue(['minimal', 'low', 'medium', 'high']),
+      setThinkingLevel: vi.fn(),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, 'thinking:set:xhigh')
+
+    expect(result?.text).toContain('❌ Invalid thinking level: `xhigh`')
+    expect(result?.text).toContain('Available levels: minimal, low, medium, high')
+    expect(fakeManager.setThinkingLevel).not.toHaveBeenCalled()
+  })
+
+  it('returns error when model no longer supports the selected level', async () => {
+    const fakeManager = {
+      getAvailableThinkingLevels: vi.fn().mockReturnValue([]), // model doesn't support reasoning now
+      setThinkingLevel: vi.fn(),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, 'thinking:set:high')
+
+    expect(result?.text).toContain('❌ Invalid thinking level: `high`')
+    expect(fakeManager.setThinkingLevel).not.toHaveBeenCalled()
+  })
+
+  it('handles setThinkingLevel SDK error gracefully', async () => {
+    const fakeManager = {
+      getAvailableThinkingLevels: vi.fn().mockReturnValue(['high']),
+      setThinkingLevel: vi.fn().mockRejectedValue(new Error('Internal SDK error')),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, 'thinking:set:high')
+
+    expect(result?.text).toContain('❌ Failed to set thinking level: Internal SDK error')
+  })
+})
+
+describe('thinking command parsing', () => {
+  it('parses /thinking command', () => {
+    expect(parseCommand('/thinking')).toEqual({ type: 'thinking' })
+    expect(parseCommand('/thinking@mybot')).toEqual({ type: 'thinking' })
+  })
+
+  it('parses thinking:set:<level> callbacks', () => {
+    expect(parseCommand('thinking:set:high')).toEqual({ type: 'thinking_set', level: 'high' })
+    expect(parseCommand('thinking:set:xhigh')).toEqual({ type: 'thinking_set', level: 'xhigh' })
+    expect(parseCommand('thinking:set:minimal')).toEqual({ type: 'thinking_set', level: 'minimal' })
   })
 })

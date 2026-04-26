@@ -170,6 +170,14 @@ export class AgentManager {
     return this.ensureSession().cycleModel(direction)
   }
 
+  getAvailableThinkingLevels(): string[] {
+    return this.ensureSession().getAvailableThinkingLevels()
+  }
+
+  setThinkingLevel(level: string): void {
+    this.ensureSession().setThinkingLevel(level as import('@mariozechner/pi-ai').ThinkingLevel)
+  }
+
   async newSession(): Promise<void> {
     const current = this.ensureSession()
     const modelRegistry = ModelRegistry.create(this.authStorage, `${PATHS.piAgentDir}/models.json`)

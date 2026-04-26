@@ -421,6 +421,96 @@ export async function handleAbortCommand(agentManager: AgentManager): Promise<Co
   }
 }
 
+/**
+ * Handle /thinking command - show current thinking level and available options.
+ */
+export async function handleThinkingCommand(agentManager: AgentManager): Promise<CommandResult> {
+  try {
+    const state = agentManager.getState()
+
+    if (!state) {
+      return {
+        text: '⚠️ No session active.',
+      }
+    }
+
+    const availableLevels = agentManager.getAvailableThinkingLevels()
+
+    if (availableLevels.length === 0) {
+      // Extract short model name from provider/id format
+      const modelName = state.model ? state.model.split('/').pop() : 'unknown'
+      return {
+        text: [
+          '🧠 **Thinking Level**',
+          '',
+          `The current model (\`${modelName}\`) does not support reasoning/thinking levels.`,
+        ].join('\n'),
+      }
+    }
+
+    // Build buttons 2 per row, with current level marked ✓
+    const rows: InlineKeyboardButton[][] = []
+    for (let i = 0; i < availableLevels.length; i += 2) {
+      const row: InlineKeyboardButton[] = [
+        {
+          text: availableLevels[i].startsWith('✓') ? availableLevels[i] : (state.thinkingLevel === availableLevels[i] ? '✓ ' : '') + availableLevels[i],
+          callback_data: `thinking:set:${availableLevels[i]}`,
+        },
+      ]
+      if (i + 1 < availableLevels.length) {
+        row.push({
+          text: availableLevels[i + 1].startsWith('✓') ? availableLevels[i + 1] : (state.thinkingLevel === availableLevels[i + 1] ? '✓ ' : '') + availableLevels[i + 1],
+          callback_data: `thinking:set:${availableLevels[i + 1]}`,
+        })
+      }
+      rows.push(row)
+    }
+
+    return {
+      text: [
+        '🧠 **Thinking Level**',
+        '',
+        `Current: \`${state.thinkingLevel}\``,
+      ].join('\n'),
+      markup: {
+        inline_keyboard: rows,
+      },
+    }
+  } catch (err: any) {
+    log.error('Failed to get thinking levels:', err.message)
+    return {
+      text: `❌ Failed to get thinking levels: ${err.message}`,
+    }
+  }
+}
+
+/**
+ * Handle thinking:set:<level> command - set the thinking level.
+ */
+export async function handleThinkingSetCommand(agentManager: AgentManager, level: string): Promise<CommandResult> {
+  try {
+    const availableLevels = agentManager.getAvailableThinkingLevels()
+
+    // Validate level is in available levels
+    if (!availableLevels.includes(level)) {
+      return {
+        text: `❌ Invalid thinking level: \`${level}\`. Available levels: ${availableLevels.join(', ')}.`,
+      }
+    }
+
+    await agentManager.setThinkingLevel(level)
+
+    return {
+      text: '✅ Thinking level changed to: `' + level + '`',
+    }
+  } catch (err: any) {
+    log.error('Failed to set thinking level:', err.message)
+    return {
+      text: `❌ Failed to set thinking level: ${err.message}`,
+    }
+  }
+}
+
 function buildWelcomeText(): string {
   return [
     '🤖 Welcome to Pi Agent!',
@@ -435,6 +525,7 @@ function buildWelcomeText(): string {
     '/delete <ID> - Delete session',
     '/status - Show current status',
     '/model - Browse and change AI model',
+    '/thinking - Change thinking/reasoning level',
     '/abort - Cancel generation',
     '',
     'Send me a message to start coding!',
@@ -506,6 +597,8 @@ export function parseCommand(
   | { type: 'model'; page?: number }
   | { type: 'model_select'; index: number }
   | { type: 'model_load'; index: number }
+  | { type: 'thinking' }
+  | { type: 'thinking_set'; level: string }
   | { type: 'abort' }
   | { type: 'noop' }
   | undefined {
@@ -555,6 +648,12 @@ export function parseCommand(
     }
   }
 
+  // Parse thinking callbacks
+  if (text.startsWith('thinking:set:')) {
+    const level = text.slice('thinking:set:'.length)
+    return { type: 'thinking_set', level }
+  }
+
   const parsed = parseTelegramCommand(text)
   if (!parsed) return undefined
 
@@ -574,6 +673,8 @@ export function parseCommand(
     case 'model':
       // Ignore model arguments, always show list
       return { type: 'model' }
+    case 'thinking':
+      return { type: 'thinking' }
     case 'abort':
       return { type: 'abort' }
     default:
@@ -643,6 +744,12 @@ export async function processCommand(agentManager: AgentManager, text: string): 
     case 'model_load':
       return handleModelLoadCommand(agentManager, command.index)
 
+    case 'thinking':
+      return handleThinkingCommand(agentManager)
+
+    case 'thinking_set':
+      return handleThinkingSetCommand(agentManager, command.level)
+
     case 'abort':
       return handleAbortCommand(agentManager)
 
@@ -675,7 +782,8 @@ export function getCommandsForTelegram(): Array<{ command: string; description: 
     { name: 'sessions', description: 'List available sessions' },
     { name: 'delete', description: 'Delete a session' },
     { name: 'status', description: 'Check system status and health' },
-    { name: 'model', description: 'Change the AI model' },
+    { name: 'model', description: 'Browse and change AI model' },
+    { name: 'thinking', description: 'Change thinking/reasoning level' },
     { name: 'abort', description: 'Abort the current operation' },
   ]
 
