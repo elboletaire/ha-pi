@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs'
 import { describe, expect, it } from 'vitest'
 
-const runSh = readFileSync(new URL('../run.sh', import.meta.url), 'utf8')
+const runSh = readFileSync(new URL('../docker/run.sh', import.meta.url), 'utf8')
 
 describe('run.sh telegram argument handling', () => {
   it('passes Telegram arguments via a shell array so quotes are preserved correctly', () => {

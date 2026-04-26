@@ -50,7 +50,7 @@ COPY --from=builder /build/app/public/ /app/public/
 # downloaded external skills with the committed custom ones
 COPY --from=builder /build/app/skills/ /app/skills/
 COPY base-agents.md /app/base-agents.md
-COPY run.sh /app/run.sh
+COPY docker/run.sh /app/run.sh
 
 RUN chmod +x /app/run.sh
 
