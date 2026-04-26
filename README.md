@@ -2,26 +2,28 @@
 
 [![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Felboletaire%2Fha-pi)
 
-A [pi coding agent](https://github.com/badlogic/pi-mono) add-on for Home Assistant OS.
+A [pi agent](https://github.com/badlogic/pi-mono) add-on for Home Assistant OS.
 
-Chat with an AI coding agent directly from the Home Assistant web UI. The agent can inspect
-and control your HA installation, manage files, run shell commands, and be extended with
-additional skills.
+Chat with an AI agent directly from the Home Assistant web UI or Telegram. The agent understands your smart home setup and can help you manage it through natural conversation.
+
+## What Can It Do?
+
+- 🏠 **Create automations** — Describe what you want and the agent writes the YAML for you
+- 🔍 **Debug your setup** — Ask why a device isn't responding or an automation isn't triggering
+- 💡 **Control devices** — Turn on lights, adjust thermostats, or run scenes through conversation
+- 📊 **Explore your system** — List entities, check device states, or review sensor history
+- 🛠️ **Edit configuration** — Update `configuration.yaml`, scripts, or any HA config file
+- 📱 **Work from anywhere** — Use the web UI at home or Telegram on the go
 
 ## Features
 
-- 🤖 Full [pi coding agent](https://pi.dev) inside your HA instance
-- 🏠 Bundled `home-assistant` skill — inspect entities, run services, edit automations
-- 🔍 Bundled `find-skills` skill — discover and install additional skills from the ecosystem
-- 💬 Streaming chat UI accessible via the HA sidebar
-- 🧠 Dynamic model selector that only shows currently available models
-- 👥 Unified Providers modal for OAuth logins and API-key providers
-- ⌨️ Shortcut legend modal in the header, with browser-safe hotkeys
-- 💾 Sessions, skills, settings, and direct Home Assistant config access persist through the add-on mounts
-- 📜 Sessions can be resumed from the web UI, their visible chat history is restored, and each saved session can be deleted from the history list
-- 🔧 Ask the bot to "find and install this skill" from chat using the bundled `find-skills` skill
-- 📝 Customise the agent persona via the `agents_md_append` add-on option
-- 🪪 Built-in agent instructions make the assistant describe its Home Assistant-embedded role, workspace access, boundaries, and preferred HA service-call pattern clearly
+- Full [pi agent](https://pi.dev) embedded in your HA instance
+- Web UI accessible from the Home Assistant sidebar
+- **Telegram integration** — Chat with your agent from your phone ([setup guide](TELEGRAM_SETUP.md))
+- Bundled Home Assistant skill for entity control and automation management
+- Session history that persists across restarts and syncs between web and Telegram
+- Dynamic model selector with support for multiple AI providers
+- Customizable agent behavior via add-on options or AGENTS.md file
 
 ## Installation
 
@@ -29,33 +31,43 @@ additional skills.
 2. Install **Pi Agent**
 3. Start the add-on
 4. Click **Open Web UI** or find **Pi Agent** in your sidebar
-5. Open the Providers modal in the web UI and add API keys or sign in with OAuth providers
+5. Open the Providers modal and add your API key or sign in with OAuth
 
 ## Configuration
 
-| Option             | Description                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `log_level`        | Server log verbosity (`debug`, `info`, `warn`, `error`)                                |
-| `agents_md_append` | Free-form extra instructions appended to the agent's context (e.g. `Speak in Catalan`) |
+| Option             | Description                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `log_level`        | Server log verbosity (`debug`, `info`, `warn`, `error`)                                 |
+| `agents_md_append` | Extra instructions for the agent (e.g. `Always respond in Spanish`)                     |
+| `telegram_enabled` | Enable Telegram bot integration                                                         |
+| `telegram_bot_token` | Your Telegram bot token from [@BotFather](https://t.me/BotFather)                     |
+| `telegram_allowed_chat_ids` | Comma-separated list of allowed Telegram chat IDs                              |
 
 API keys and OAuth tokens are managed from the web UI's Providers modal and stored in `/data/pi-agent/auth.json`.
 
-The active chat model can be changed from the web UI. Only authenticated models are shown, and the selection persists via pi's saved settings.
+## Telegram Integration
 
-The session picker behaves like `/resume`: selecting a session restores its visible chat history into the conversation view.
+Chat with your Pi Agent from Telegram! Create a bot via [@BotFather](https://t.me/BotFather), configure the token in the add-on settings, and you're ready to go. Sessions are shared between web and Telegram.
 
-This add-on mounts `/data` and `/config` read/write, so the agent can work directly with Home Assistant files in addition to using the HA API. The runtime image also includes `curl` and `python3` for direct HA API/service-call workflows.
+**Quick commands**: `/new` (new session), `/sessions` (list sessions), `/status` (current state)
 
-The built-in agent instructions also explain what the assistant is, what it can access, and what it cannot directly modify.
+👉 [Full Telegram setup guide](TELEGRAM_SETUP.md)
 
-## Persistent customisation
+## Persistent Storage
 
-Everything in `/data/pi-agent/` persists across container upgrades and is backed up by HA:
+Everything in `/data/pi-agent/` persists across upgrades and is included in HA backups:
 
-- **Install skills**: ask the bot to "find and install this skill" from a chat session
-- **Edit agent instructions**: create or edit `/data/pi-agent/AGENTS.md`
-- **Working files**: created by the agent in `/data/workspace/`
+- **Sessions**: Conversation history
+- **Skills**: User-installed agent skills
+- **Settings**: Model selection and preferences
+- **AGENTS.md**: Your custom agent instructions
+
+The agent can also read and write files in `/config` to edit your Home Assistant configuration directly.
+
+## Documentation
+
+See [DOCS.md](DOCS.md) for detailed information on providers, session management, skill installation, and troubleshooting.
 
 ## Support
 
-Open an issue on GitHub.
+Open an issue on [GitHub](https://github.com/elboletaire/ha-pi/issues).
