@@ -19,3 +19,4 @@ skills-lock.json
 # skills
 skills/*
 !skills/home-assistant-management
+!skills/system-profile-creator

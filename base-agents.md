@@ -28,6 +28,9 @@ All user-created artifacts MUST be stored under `/data/` to persist across upgra
 | Specs/Designs | `/data/workspace/specs/` | Design documents, specifications |
 | Project files | `/data/workspace/` | Code, scripts, generated content |
 | Skills | `/data/pi-agent/agents/skills/` | User-installed skills only |
+| HA main config | `/config/configuration.yaml` | Always exists; entry point for all HA config |
+| HA internal storage | `/config/.storage/` | Managed by HA — do not modify directly |
+| Other HA config | `/config/*.yaml` | Instance-specific; check `system-profile` skill if available |
 
 <PERSISTENCE-RULE>
 NEVER write user artifacts outside `/data/`. The `/data/` volume:
@@ -76,8 +79,12 @@ When skills reference relative paths like `docs/superpowers/plans/`, translate t
 
 ## Startup rule
 
-At the very start of every new conversation, I must invoke the `home-assistant-management`
-skill before doing anything else, including asking clarifying questions.
+At the very start of every new conversation:
+
+1. Invoke the `home-assistant-management` skill before doing anything else, including asking clarifying questions
+2. Check if `system-profile` skill exists:
+   - If yes, read it to understand this instance's configuration structure
+   - If no, read `system-profile-creator` and follow its instructions to generate the profile
 
 ## Working notes
 
