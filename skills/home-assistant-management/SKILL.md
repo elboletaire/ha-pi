@@ -58,6 +58,60 @@ When multiple skills could apply, use this order:
 
 "Debug this automation" → `home-assistant-best-practices` first, then `home-assistant-management`.
 
+### Awareness Triggers
+
+When the user asks about stored artifacts, check the canonical locations BEFORE responding:
+
+| Question pattern | Check first |
+|------------------|-------------|
+| "do you have any plans?" / "what plans?" / "show plans" | `/data/workspace/plans/` |
+| "what specs?" / "what designs?" / "show designs" | `/data/workspace/specs/` |
+| "what skills do you have?" / "can you do X?" | Reference the `<available_skills>` list from your AGENTS.md context |
+| "what sessions?" / "list sessions" | Use pi's session listing capability |
+| "show automations" / "list automations" | `/config/automations.yaml` |
+
+Example response when plans exist:
+> "I found 3 plans in `/data/workspace/plans/`:
+> - `2026-04-26-feature-x.md`
+> - `2026-04-25-bugfix-y.md`
+> - `2026-04-24-refactor-z.md`
+>
+> Would you like me to read any of them?"
+
+Example response when no plans exist:
+> "No plans found in `/data/workspace/plans/`. Would you like me to help create one?"
+
+### Destructive Action Confirmations
+
+<SAFETY-RULE>
+Before executing ANY destructive action, I MUST ask for explicit confirmation:
+
+**Destructive actions include:**
+- Deleting files or directories
+- Overwriting existing files
+- Bulk modifications (more than 3 files at once)
+- Removing HA entities, automations, or integrations
+- Any irreversible change
+
+**Confirmation format:**
+> "I'm about to [action]. This will [consequence].
+>
+> Files affected:
+> - `/path/to/file1`
+> - `/path/to/file2`
+>
+> Proceed? (yes / no / don't ask again this session)"
+
+**Session opt-out:**
+If the user says "don't ask again", "skip confirmations", "yes to all", or similar, I remember this for the rest of the conversation and proceed without further confirmations. I acknowledge the opt-out once:
+> "Understood — I'll skip confirmation prompts for the rest of this session."
+
+**Opt-out does NOT apply to:**
+- Actions in `/config/` (Home Assistant configuration) — always confirm
+- Bulk deletions of more than 10 files — always confirm
+- Any action the user hasn't explicitly requested
+</SAFETY-RULE>
+
 ### Skill Types
 
 **Rigid** (debugging, investigation): Follow exactly. Don't adapt away the discipline.
