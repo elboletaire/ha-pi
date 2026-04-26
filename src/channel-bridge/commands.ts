@@ -274,57 +274,121 @@ export async function handleStatusCommand(agentManager: AgentManager): Promise<C
 }
 
 /**
- * Handle /model [name] command - show or change model.
+ * Handle /model list command - show paginated model list.
  */
-export async function handleModelCommand(agentManager: AgentManager, newModel?: string): Promise<CommandResult> {
+export async function handleModelListCommand(
+  agentManager: AgentManager,
+  page: number = 0
+): Promise<CommandResult> {
   try {
-    if (newModel) {
-      // Parse model name (provider/model or just model)
-      const parts = newModel.split('/')
-      let provider: string
-      let modelId: string
+    const state = agentManager.getState()
+    const availableModels = agentManager.getAvailableModels()
 
-      if (parts.length === 2) {
-        provider = parts[0]
-        modelId = parts[1]
-      } else {
-        // Assume current provider
-        const state = agentManager.getState()
-        if (!state || !state.model) {
-          return {
-            text: `❌ No model configured. Use format: \`/model provider/modelId\``,
-          }
-        }
-        const current = state.model.split('/')
-        provider = current[0]
-        modelId = parts[0]
-      }
-
-      await agentManager.setModel(provider, modelId)
-      const state = agentManager.getState()
-
+    if (availableModels.length === 0) {
       return {
-        text: `✅ Model changed to: ${state?.model}`,
-        markup: {
-          inline_keyboard: [[{ text: '🔄 List available models', callback_data: 'list_models' }]],
-        },
-      }
-    } else {
-      // Show current model
-      const state = agentManager.getState()
-      const availableModels = agentManager.getAvailableModels()
-
-      const currentModel = state?.model || 'not set'
-      const modelList = availableModels.map((m) => `  • ${m.provider}/${m.id}`).join('\n')
-
-      return {
-        text: `📊 Current model: ${currentModel}\n\nAvailable models:\n${modelList}`,
+        text: '⚠️ No models available. Check your API key configuration.',
       }
     }
-  } catch (err: any) {
-    log.error('Failed to handle model command:', err.message)
+
+    const currentModel = state?.model || null
+
+    // Pre-compute labels with ✓ prefix for current model
+    const labeledModels = availableModels.map((m, idx) => ({
+      ...m,
+      index: idx,
+      label: (currentModel === `${m.provider}/${m.id}` ? '✓ ' : '') + `${m.provider}/${m.id}`,
+    }))
+
+    const result = createPaginatedButtons({
+      items: labeledModels,
+      page,
+      pageSize: 5,
+      callbackPrefix: 'models',
+      buttonLabel: (item) => item.label,
+      buttonData: (item, globalIndex) => `models:select:${globalIndex}`,
+    })
+
     return {
-      text: `❌ ${err.message}`,
+      text: '🤖 Select a model',
+      markup: {
+        inline_keyboard: result.buttons,
+      },
+    }
+  } catch (err: any) {
+    log.error('Failed to list models:', err.message)
+    return {
+      text: `❌ Failed to list models: ${err.message}`,
+    }
+  }
+}
+
+/**
+ * Handle model select command - show model details with Use/Back buttons.
+ */
+export async function handleModelSelectCommand(agentManager: AgentManager, index: number): Promise<CommandResult> {
+  try {
+    const availableModels = agentManager.getAvailableModels()
+
+    if (index < 0 || index >= availableModels.length) {
+      return {
+        text: '❌ Model not found. The model list may have changed. Use /model to browse again.',
+      }
+    }
+
+    const model = availableModels[index]
+    const state = agentManager.getState()
+    const currentModel = state?.model || null
+    const isCurrent = currentModel === `${model.provider}/${model.id}`
+
+    return {
+      text: [
+        '🤖 Model details',
+        '',
+        '**Provider:** `' + model.provider + '`',
+        '**Model:** `' + model.id + '`',
+        '**Current:** ' + (isCurrent ? '✓' : '✗'),
+      ].join('\n'),
+      markup: {
+        inline_keyboard: [
+          [
+            { text: '✅ Use this model', callback_data: 'models:load:' + index },
+            { text: '← Back', callback_data: 'models:page:0' },
+          ],
+        ],
+      },
+    }
+  } catch (err: any) {
+    log.error('Failed to select model:', err.message)
+    return {
+      text: `❌ Failed to select model: ${err.message}`,
+    }
+  }
+}
+
+/**
+ * Handle /model load command - set the selected model.
+ */
+export async function handleModelLoadCommand(agentManager: AgentManager, index: number): Promise<CommandResult> {
+  try {
+    const availableModels = agentManager.getAvailableModels()
+
+    if (index < 0 || index >= availableModels.length) {
+      return {
+        text: '❌ Model not found. The model list may have changed. Use /model to browse again.',
+      }
+    }
+
+    const model = availableModels[index]
+    await agentManager.setModel(model.provider, model.id)
+    const state = agentManager.getState()
+
+    return {
+      text: '🧠 Model changed to: `' + (state?.model || model.provider + '/' + model.id) + '`',
+    }
+  } catch (err: any) {
+    log.error('Failed to set model:', err.message)
+    return {
+      text: `❌ Failed to set model: ${err.message}`,
     }
   }
 }
@@ -362,7 +426,7 @@ function buildWelcomeText(): string {
     '/sessions - List all sessions',
     '/delete <ID> - Delete session',
     '/status - Show current status',
-    '/model [name] - Show/change model',
+    '/model - Browse and change AI model',
     '/abort - Cancel generation',
     '',
     'Send me a message to start coding!',
@@ -431,7 +495,9 @@ export function parseCommand(
   | { type: 'session_load'; id: string }
   | { type: 'delete'; path: string }
   | { type: 'status' }
-  | { type: 'model'; model?: string }
+  | { type: 'model'; page?: number }
+  | { type: 'model_select'; index: number }
+  | { type: 'model_load'; index: number }
   | { type: 'abort' }
   | { type: 'noop' }
   | undefined {
@@ -448,6 +514,32 @@ export function parseCommand(
       const page = parseInt(parts[2], 10)
       if (!isNaN(page)) {
         return { type: 'sessions', page }
+      }
+    }
+    if (parts.length === 2 && parts[1] === 'noop') {
+      return { type: 'noop' }
+    }
+  }
+
+  // Parse model callbacks
+  if (text.startsWith('models:')) {
+    const parts = text.split(':')
+    if (parts.length === 3 && parts[1] === 'select') {
+      const index = parseInt(parts[2], 10)
+      if (!isNaN(index)) {
+        return { type: 'model_select', index }
+      }
+    }
+    if (parts.length === 3 && parts[1] === 'load') {
+      const index = parseInt(parts[2], 10)
+      if (!isNaN(index)) {
+        return { type: 'model_load', index }
+      }
+    }
+    if (parts.length === 3 && parts[1] === 'page') {
+      const page = parseInt(parts[2], 10)
+      if (!isNaN(page)) {
+        return { type: 'model', page }
       }
     }
     if (parts.length === 2 && parts[1] === 'noop') {
@@ -472,7 +564,8 @@ export function parseCommand(
     case 'status':
       return { type: 'status' }
     case 'model':
-      return { type: 'model', model: parsed.args || undefined }
+      // Ignore model arguments, always show list
+      return { type: 'model' }
     case 'abort':
       return { type: 'abort' }
     default:
@@ -534,7 +627,13 @@ export async function processCommand(agentManager: AgentManager, text: string): 
       return handleStatusCommand(agentManager)
 
     case 'model':
-      return handleModelCommand(agentManager, command.model)
+      return handleModelListCommand(agentManager, command.page ?? 0)
+
+    case 'model_select':
+      return handleModelSelectCommand(agentManager, command.index)
+
+    case 'model_load':
+      return handleModelLoadCommand(agentManager, command.index)
 
     case 'abort':
       return handleAbortCommand(agentManager)

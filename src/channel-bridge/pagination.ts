@@ -10,8 +10,8 @@ export interface PaginationOptions<T> {
   page: number
   pageSize: number
   callbackPrefix: string
-  buttonLabel: (item: T) => string
-  buttonData: (item: T) => string
+  buttonLabel: (item: T, globalIndex: number) => string
+  buttonData: (item: T, globalIndex: number) => string
 }
 
 export interface PaginatedResult {
@@ -34,12 +34,15 @@ export function createPaginatedButtons<T>(options: PaginationOptions<T>): Pagina
   const end = start + pageSize
   const pageItems = items.slice(start, end)
 
-  const buttons: InlineKeyboardButton[][] = pageItems.map((item) => [
-    {
-      text: buttonLabel(item),
-      callback_data: buttonData(item),
-    },
-  ])
+  const buttons: InlineKeyboardButton[][] = pageItems.map((item, localIdx) => {
+    const globalIndex = clampedPage * pageSize + localIdx
+    return [
+      {
+        text: buttonLabel(item, globalIndex),
+        callback_data: buttonData(item, globalIndex),
+      },
+    ]
+  })
 
   // Add navigation row if there are multiple pages
   if (totalPages > 1) {
