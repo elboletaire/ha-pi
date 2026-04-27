@@ -13,6 +13,7 @@ import { AgentManager } from '../agent-manager'
 import { log } from '../options'
 import type { CommandResult, InlineKeyboardButton } from './types'
 import { createPaginatedButtons } from './pagination'
+import { readFile } from 'node:fs/promises'
 
 /** Format a Date as a compact locale string without seconds (e.g. "4/25/2026, 10:32 PM"). */
 function formatDate(date: Date): string {
@@ -63,7 +64,32 @@ function getLatestMessageText(messages: unknown[]): string {
   return text || '(no text content)'
 }
 
-
+/**
+ * Read the JSONL session file and return the text of the last message entry.
+ * Handles both plain-string content and ContentBlock arrays.
+ * Returns '(no messages)' when the file is absent, empty, or has no text content.
+ */
+async function readLastMessageFromSessionFile(sessionPath: string): Promise<string> {
+  try {
+    const content = await readFile(sessionPath, 'utf-8')
+    const lines = content.trim().split('\n')
+    let lastText = ''
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line) as { type?: string; message?: { content?: unknown } }
+        if (entry?.type === 'message' && entry?.message) {
+          const text = extractTextFromContent(entry.message.content).trim()
+          if (text) lastText = text
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+    return lastText || '(no messages)'
+  } catch {
+    return '(no messages)'
+  }
+}
 
 /**
  * Handle /new command - create a new session.
@@ -142,6 +168,7 @@ export async function handleSessionSelectCommand(agentManager: AgentManager, sho
       }
     }
 
+    const preview = await readLastMessageFromSessionFile(session.path)
     return {
       text: [
         '📚 Session details',
@@ -149,7 +176,7 @@ export async function handleSessionSelectCommand(agentManager: AgentManager, sho
         '**ID:** `' + session.id.slice(0, 8) + '`',
         '**Messages:** ' + (session.messageCount ?? 0),
         '**Modified:** `' + formatDate(session.modified) + '`',
-        '**Preview:** `' + truncate(stripBackticks(session.firstMessage || '(no messages)'), 40) + '`',
+        '**Preview:** ' + truncate(preview, 100),
       ].join('\n'),
       markup: {
         inline_keyboard: [
