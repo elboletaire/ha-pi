@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import { AuthStorage } from '@mariozechner/pi-coding-agent'
 import { parseServerArgs, setLogLevel, log, PATHS, type AddOnOptions } from './options'
 import { createResourceLoader } from './resource-loader'
+import { generateRuntimeInfoMarkdown } from './runtime-info'
 import { AgentManager } from './agent-manager'
 import { LoginManager } from './login-manager'
 import { WsHandler } from './ws-handler'
@@ -29,7 +30,8 @@ async function main() {
   // -------------------------------------------------------------------------
   // Initialise pi agent
   // -------------------------------------------------------------------------
-  const resourceLoader = await createResourceLoader()
+  const runtimeInfoMarkdown = await generateRuntimeInfoMarkdown()
+  const resourceLoader = await createResourceLoader(runtimeInfoMarkdown)
   const authStorage = AuthStorage.create(`${PATHS.piAgentDir}/auth.json`)
   const loginManager = new LoginManager(authStorage)
   const agentManager = new AgentManager(opts.provider, opts.model, resourceLoader, authStorage)
@@ -43,7 +45,7 @@ async function main() {
     log.info('Starting Telegram bridge...')
 
     try {
-      const bridgeResourceLoader = await createBridgeResourceLoader()
+      const bridgeResourceLoader = await createBridgeResourceLoader(runtimeInfoMarkdown)
       const bridgeAuthStorage = createBridgeAuthStorage()
 
       telegramBridge = await startTelegramBridge({

@@ -114,8 +114,8 @@ export function createAuthStorage(): AuthStorage {
 /**
  * Create a default resource loader for the bridge.
  */
-export async function createBridgeResourceLoader(): Promise<ResourceLoader> {
-  return createResourceLoader()
+export async function createBridgeResourceLoader(runtimeInfo?: string): Promise<ResourceLoader> {
+  return createResourceLoader(runtimeInfo)
 }
 
 /**
