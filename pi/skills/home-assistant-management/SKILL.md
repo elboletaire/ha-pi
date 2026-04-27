@@ -34,20 +34,20 @@ are listed in the AGENTS.md context you received at session start.
 
 These thoughts mean STOP — you are rationalizing:
 
-| Thought | Reality |
-|---|---|
-| "This is just a simple question" | Questions are tasks. Check for skills. |
-| "I need more context first" | Skill check comes BEFORE clarifying questions. |
-| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
-| "I can check git/files quickly" | Files lack conversation context. Check for skills. |
-| "Let me gather information first" | Skills tell you HOW to gather information. |
-| "This doesn't need a formal skill" | If a skill exists, use it. |
-| "I remember this skill" | Skills evolve. Read current version. |
-| "This doesn't count as a task" | Action = task. Check for skills. |
-| "The skill is overkill" | Simple things become complex. Use it. |
-| "I'll just do this one thing first" | Check BEFORE doing anything. |
-| "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
-| "I know what that means" | Knowing the concept ≠ reading the skill. Read it. |
+| Thought                             | Reality                                                |
+| ----------------------------------- | ------------------------------------------------------ |
+| "This is just a simple question"    | Questions are tasks. Check for skills.                 |
+| "I need more context first"         | Skill check comes BEFORE clarifying questions.         |
+| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first.           |
+| "I can check git/files quickly"     | Files lack conversation context. Check for skills.     |
+| "Let me gather information first"   | Skills tell you HOW to gather information.             |
+| "This doesn't need a formal skill"  | If a skill exists, use it.                             |
+| "I remember this skill"             | Skills evolve. Read current version.                   |
+| "This doesn't count as a task"      | Action = task. Check for skills.                       |
+| "The skill is overkill"             | Simple things become complex. Use it.                  |
+| "I'll just do this one thing first" | Check BEFORE doing anything.                           |
+| "This feels productive"             | Undisciplined action wastes time. Skills prevent this. |
+| "I know what that means"            | Knowing the concept ≠ reading the skill. Read it.      |
 
 ### Skill Priority
 
@@ -62,16 +62,18 @@ When multiple skills could apply, use this order:
 
 When the user asks about stored artifacts, check the canonical locations BEFORE responding:
 
-| Question pattern | Check first |
-|------------------|-------------|
-| "do you have any plans?" / "what plans?" / "show plans" | `/data/workspace/plans/` |
-| "what specs?" / "what designs?" / "show designs" | `/data/workspace/specs/` |
-| "what skills do you have?" / "can you do X?" | Reference the `<available_skills>` list from your AGENTS.md context |
-| "what sessions?" / "list sessions" | Use pi's session listing capability |
-| "show automations" / "list automations" | `/config/automations.yaml` |
+| Question pattern                                        | Check first                                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------------- |
+| "do you have any plans?" / "what plans?" / "show plans" | `/data/workspace/plans/`                                            |
+| "what specs?" / "what designs?" / "show designs"        | `/data/workspace/specs/`                                            |
+| "what skills do you have?" / "can you do X?"            | Reference the `<available_skills>` list from your AGENTS.md context |
+| "what sessions?" / "list sessions"                      | Use pi's session listing capability                                 |
+| "show automations" / "list automations"                 | `/config/automations.yaml`                                          |
 
 Example response when plans exist:
+
 > "I found 3 plans in `/data/workspace/plans/`:
+>
 > - `2026-04-26-feature-x.md`
 > - `2026-04-25-bugfix-y.md`
 > - `2026-04-24-refactor-z.md`
@@ -79,6 +81,7 @@ Example response when plans exist:
 > Would you like me to read any of them?"
 
 Example response when no plans exist:
+
 > "No plans found in `/data/workspace/plans/`. Would you like me to help create one?"
 
 ### Destructive Action Confirmations
@@ -87,6 +90,7 @@ Example response when no plans exist:
 Before executing ANY destructive action, I MUST ask for explicit confirmation:
 
 **Destructive actions include:**
+
 - Deleting files or directories
 - Overwriting existing files
 - Bulk modifications (more than 3 files at once)
@@ -94,9 +98,11 @@ Before executing ANY destructive action, I MUST ask for explicit confirmation:
 - Any irreversible change
 
 **Confirmation format:**
+
 > "I'm about to [action]. This will [consequence].
 >
 > Files affected:
+>
 > - `/path/to/file1`
 > - `/path/to/file2`
 >
@@ -104,13 +110,15 @@ Before executing ANY destructive action, I MUST ask for explicit confirmation:
 
 **Session opt-out:**
 If the user says "don't ask again", "skip confirmations", "yes to all", or similar, I remember this for the rest of the conversation and proceed without further confirmations. I acknowledge the opt-out once:
+
 > "Understood — I'll skip confirmation prompts for the rest of this session."
 
 **Opt-out does NOT apply to:**
+
 - Actions in `/config/` (Home Assistant configuration) — always confirm
 - Bulk deletions of more than 10 files — always confirm
 - Any action the user hasn't explicitly requested
-</SAFETY-RULE>
+  </SAFETY-RULE>
 
 ### Skill Types
 
@@ -129,11 +137,13 @@ Instructions say WHAT, not HOW. "Fix this" or "Add that" does not mean skip skil
 When processing Home Assistant API responses in shell, prefer `jq` over `python3` for simple JSON filtering, field extraction, counting, sorting, and summarization, provided `jq` is installed and available.
 
 Use `python3` only when:
+
 - the transformation is too complex or awkward to express cleanly in `jq`
 - you need to generate or validate more complex JSON payloads
 - you need loops, conditional logic, or non-trivial parsing beyond straightforward JSON queries
 
 Default order for read-only JSON inspection:
+
 1. `curl`
 2. `jq`
 3. `python3` only if needed

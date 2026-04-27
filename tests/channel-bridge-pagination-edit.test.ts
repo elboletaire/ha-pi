@@ -160,9 +160,7 @@ describe('Callback query pagination: edit instead of new message', () => {
   })
 
   it('passes editMessageId for models:page callback', async () => {
-    mocks.getAvailableModels.mockReturnValue([
-      { provider: 'openai', id: 'gpt-4.1' },
-    ])
+    mocks.getAvailableModels.mockReturnValue([{ provider: 'openai', id: 'gpt-4.1' }])
     const adapter = createMockAdapter()
     const bridge = createBridge(adapter)
 
@@ -187,11 +185,14 @@ import { createTelegramAdapter } from '../src/channel-bridge/telegram'
 describe('Telegram adapter: editMessageText vs sendMessage', () => {
   it('calls editMessageText when editMessageId is present', async () => {
     const calls: Array<{ url: string; body: Record<string, unknown> }> = []
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
-      const body = JSON.parse(opts.body as string) as Record<string, unknown>
-      calls.push({ url, body })
-      return { ok: true, status: 200, json: async () => ({ ok: true }), text: async () => '' } as Response
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        const body = JSON.parse(opts.body as string) as Record<string, unknown>
+        calls.push({ url, body })
+        return { ok: true, status: 200, json: async () => ({ ok: true }), text: async () => '' } as Response
+      })
+    )
 
     const adapter = createTelegramAdapter({
       type: 'telegram',
@@ -216,11 +217,14 @@ describe('Telegram adapter: editMessageText vs sendMessage', () => {
 
   it('calls sendMessage when editMessageId is absent', async () => {
     const calls: Array<{ url: string; body: Record<string, unknown> }> = []
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
-      const body = JSON.parse(opts.body as string) as Record<string, unknown>
-      calls.push({ url, body })
-      return { ok: true, status: 200, json: async () => ({ ok: true }), text: async () => '' } as Response
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        const body = JSON.parse(opts.body as string) as Record<string, unknown>
+        calls.push({ url, body })
+        return { ok: true, status: 200, json: async () => ({ ok: true }), text: async () => '' } as Response
+      })
+    )
 
     const adapter = createTelegramAdapter({
       type: 'telegram',
@@ -243,14 +247,22 @@ describe('Telegram adapter: editMessageText vs sendMessage', () => {
   it('falls back to sendMessage when editMessageText API returns an error', async () => {
     let editAttempted = false
     const calls: Array<{ url: string }> = []
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
-      calls.push({ url })
-      if (url.includes('editMessageText')) {
-        editAttempted = true
-        return { ok: false, status: 400, json: async () => ({ ok: false }), text: async () => 'Bad Request: message is not modified' } as Response
-      }
-      return { ok: true, status: 200, json: async () => ({ ok: true }), text: async () => '' } as Response
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        calls.push({ url })
+        if (url.includes('editMessageText')) {
+          editAttempted = true
+          return {
+            ok: false,
+            status: 400,
+            json: async () => ({ ok: false }),
+            text: async () => 'Bad Request: message is not modified',
+          } as Response
+        }
+        return { ok: true, status: 200, json: async () => ({ ok: true }), text: async () => '' } as Response
+      })
+    )
 
     const adapter = createTelegramAdapter({
       type: 'telegram',

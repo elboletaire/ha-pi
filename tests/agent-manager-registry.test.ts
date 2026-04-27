@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@mariozechner/pi-coding-agent', async () => {
   const actual = await vi.importActual('@mariozechner/pi-coding-agent')
-  
+
   const mockSession = {
     sessionId: 'new-session-id',
     sessionFile: '/tmp/new.jsonl',
@@ -67,8 +67,7 @@ describe('AgentManager — modelRegistry is updated after newSession()', () => {
     const newRegistry = makeRegistry([makeModel('new-model')])
 
     // ModelRegistry.create returns old on first call, new on second
-    ;(ModelRegistry.create as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce(newRegistry) // called by newSession()
+    ;(ModelRegistry.create as ReturnType<typeof vi.fn>).mockReturnValueOnce(newRegistry) // called by newSession()
 
     const manager = makeManager()
     // Simulate state after init(): old registry is stored, session exists
@@ -87,8 +86,7 @@ describe('AgentManager — modelRegistry is updated after newSession()', () => {
     const oldRegistry = makeRegistry([makeModel('old-model')])
     const newRegistry = makeRegistry([makeModel('switched-model')])
 
-    ;(ModelRegistry.create as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce(newRegistry)
+    ;(ModelRegistry.create as ReturnType<typeof vi.fn>).mockReturnValueOnce(newRegistry)
 
     const manager = makeManager()
     ;(manager as any).modelRegistry = oldRegistry

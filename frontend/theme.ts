@@ -15,7 +15,11 @@ const PARENT_THEME_COLOR_VARS = [
 
 let initialized = false
 
-export function resolveThemeMode({ parentColorScheme, parentBackgroundColor, prefersDark }: ResolveThemeModeInput): ThemeMode {
+export function resolveThemeMode({
+  parentColorScheme,
+  parentBackgroundColor,
+  prefersDark,
+}: ResolveThemeModeInput): ThemeMode {
   if (parentColorScheme) {
     return parentColorScheme
   }
@@ -73,10 +77,7 @@ function readParentColorScheme(): ThemeMode | null {
 
   try {
     const parentDocument = window.parent.document
-    return (
-      readColorSchemeFromElement(parentDocument.documentElement) ??
-      readColorSchemeFromElement(parentDocument.body)
-    )
+    return readColorSchemeFromElement(parentDocument.documentElement) ?? readColorSchemeFromElement(parentDocument.body)
   } catch {
     return null
   }

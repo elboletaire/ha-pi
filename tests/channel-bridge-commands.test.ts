@@ -245,9 +245,16 @@ describe('session select and load flow', () => {
 
     // Fake session file with three messages; last one is the assistant reply
     const fakeJsonl = [
-      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({
+        type: 'session',
+        id: '019dc5e5-c123-7456-89ab-cdef01234567',
+        timestamp: '2026-04-25T22:00:00Z',
+      }),
       JSON.stringify({ type: 'message', message: { role: 'user', content: 'Hello there' } }),
-      JSON.stringify({ type: 'message', message: { role: 'assistant', content: [{ type: 'text', text: 'Hi! How can I help?' }] } }),
+      JSON.stringify({
+        type: 'message',
+        message: { role: 'assistant', content: [{ type: 'text', text: 'Hi! How can I help?' }] },
+      }),
     ].join('\n')
     ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
 
@@ -340,7 +347,11 @@ describe('session select and load flow', () => {
     ]
 
     const fakeJsonl = [
-      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({
+        type: 'session',
+        id: '019dc5e5-c123-7456-89ab-cdef01234567',
+        timestamp: '2026-04-25T22:00:00Z',
+      }),
       JSON.stringify({ type: 'message', message: { role: 'user', content: 'Use `git commit` to save changes' } }),
     ].join('\n')
     ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
@@ -370,7 +381,11 @@ describe('session select and load flow', () => {
     ]
 
     const fakeJsonl = [
-      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({
+        type: 'session',
+        id: '019dc5e5-c123-7456-89ab-cdef01234567',
+        timestamp: '2026-04-25T22:00:00Z',
+      }),
       JSON.stringify({ type: 'message', message: { role: 'user', content: 'Fix the *important* bug in **main.py**' } }),
     ].join('\n')
     ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
@@ -424,11 +439,21 @@ describe('session select and load flow', () => {
     ]
 
     const fakeJsonl = [
-      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({
+        type: 'session',
+        id: '019dc5e5-c123-7456-89ab-cdef01234567',
+        timestamp: '2026-04-25T22:00:00Z',
+      }),
       JSON.stringify({ type: 'message', message: { role: 'user', content: 'initial user message' } }),
-      JSON.stringify({ type: 'message', message: { role: 'assistant', content: [{ type: 'text', text: 'First assistant reply' }] } }),
+      JSON.stringify({
+        type: 'message',
+        message: { role: 'assistant', content: [{ type: 'text', text: 'First assistant reply' }] },
+      }),
       JSON.stringify({ type: 'message', message: { role: 'user', content: 'follow-up question' } }),
-      JSON.stringify({ type: 'message', message: { role: 'assistant', content: [{ type: 'text', text: 'Final answer here' }] } }),
+      JSON.stringify({
+        type: 'message',
+        message: { role: 'assistant', content: [{ type: 'text', text: 'Final answer here' }] },
+      }),
     ].join('\n')
     ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
 
@@ -457,7 +482,11 @@ describe('session select and load flow', () => {
 
     const longMessage = 'a'.repeat(120)
     const fakeJsonl = [
-      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({
+        type: 'session',
+        id: '019dc5e5-c123-7456-89ab-cdef01234567',
+        timestamp: '2026-04-25T22:00:00Z',
+      }),
       JSON.stringify({ type: 'message', message: { role: 'user', content: longMessage } }),
     ].join('\n')
     ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
@@ -574,22 +603,22 @@ describe('handleThinkingCommand', () => {
     expect(result?.markup?.inline_keyboard).toBeDefined()
 
     const buttons = result?.markup?.inline_keyboard as any[]
-    
+
     // 5 levels, 2 per row: rows[0]=2, rows[1]=2, rows[2]=1
     expect(buttons.length).toBe(3)
-    
+
     // First row has minimal and low
     expect(buttons[0][0].text).toBe('minimal')
     expect(buttons[0][0].callback_data).toBe('thinking:set:minimal')
     expect(buttons[0][1].text).toBe('low')
     expect(buttons[0][1].callback_data).toBe('thinking:set:low')
-    
+
     // Second row has ✓ medium and high
     expect(buttons[1][0].text).toBe('✓ medium')
     expect(buttons[1][0].callback_data).toBe('thinking:set:medium')
     expect(buttons[1][1].text).toBe('high')
     expect(buttons[1][1].callback_data).toBe('thinking:set:high')
-    
+
     // Third row has xhigh
     expect(buttons[2][0].text).toBe('xhigh')
     expect(buttons[2][0].callback_data).toBe('thinking:set:xhigh')
@@ -640,7 +669,7 @@ describe('handleThinkingCommand', () => {
     const result = await processCommand(fakeManager, '/thinking')
 
     expect(result?.text).toContain('Current: `low`')
-    
+
     const buttons = result?.markup?.inline_keyboard as any[]
     // 3 levels, 2 per row: rows[0]=2, rows[1]=1
     expect(buttons.length).toBe(2)

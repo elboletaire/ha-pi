@@ -16,9 +16,7 @@ const { mocks } = vi.hoisted(() => ({
     }),
     subscribe: vi.fn().mockReturnValue(() => {}),
     prompt: vi.fn().mockResolvedValue(undefined),
-    getMessages: vi.fn().mockReturnValue([
-      { role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] },
-    ]),
+    getMessages: vi.fn().mockReturnValue([{ role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] }]),
     newSession: vi.fn().mockResolvedValue(undefined),
     switchSession: vi.fn().mockResolvedValue(undefined),
     abort: vi.fn().mockResolvedValue(undefined),
@@ -97,9 +95,7 @@ beforeEach(() => {
   })
   mocks.subscribe.mockReturnValue(() => {})
   mocks.prompt.mockResolvedValue(undefined)
-  mocks.getMessages.mockReturnValue([
-    { role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] },
-  ])
+  mocks.getMessages.mockReturnValue([{ role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] }])
   mocks.newSession.mockResolvedValue(undefined)
   mocks.switchSession.mockResolvedValue(undefined)
   mocks.abort.mockResolvedValue(undefined)
@@ -141,7 +137,6 @@ describe('ChannelBridge send failures', () => {
       messageCount: 0,
       startedAt: Date.now(),
     })
-
     ;(bridge as any).agentManagers.set(senderId, {
       init: mocks.init,
       getState: mocks.getState,

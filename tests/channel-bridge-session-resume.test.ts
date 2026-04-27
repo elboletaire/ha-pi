@@ -19,24 +19,22 @@ import type { SenderSessionRegistry } from '../src/channel-bridge/sender-session
 const { existsSyncMock, mocks } = vi.hoisted(() => ({
   existsSyncMock: vi.fn<(path: string) => boolean>().mockReturnValue(true),
   mocks: {
-  init: vi.fn<(sessionFile?: string) => Promise<void>>().mockResolvedValue(undefined),
-  getState: vi.fn().mockReturnValue({
-    sessionFile: '/sessions/current.jsonl',
-    sessionId: 'abc123',
-    model: 'test/test-model',
-    isStreaming: false,
-    thinkingLevel: 'off',
-    messageCount: 0,
-  }),
-  subscribe: vi.fn().mockReturnValue(() => {}),
-  prompt: vi.fn().mockResolvedValue(undefined),
-  getMessages: vi.fn().mockReturnValue([
-    { role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] },
-  ]),
-  newSession: vi.fn().mockResolvedValue(undefined),
-  switchSession: vi.fn().mockResolvedValue(undefined),
-  abort: vi.fn().mockResolvedValue(undefined),
-  getAvailableModels: vi.fn().mockReturnValue([]),
+    init: vi.fn<(sessionFile?: string) => Promise<void>>().mockResolvedValue(undefined),
+    getState: vi.fn().mockReturnValue({
+      sessionFile: '/sessions/current.jsonl',
+      sessionId: 'abc123',
+      model: 'test/test-model',
+      isStreaming: false,
+      thinkingLevel: 'off',
+      messageCount: 0,
+    }),
+    subscribe: vi.fn().mockReturnValue(() => {}),
+    prompt: vi.fn().mockResolvedValue(undefined),
+    getMessages: vi.fn().mockReturnValue([{ role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] }]),
+    newSession: vi.fn().mockResolvedValue(undefined),
+    switchSession: vi.fn().mockResolvedValue(undefined),
+    abort: vi.fn().mockResolvedValue(undefined),
+    getAvailableModels: vi.fn().mockReturnValue([]),
     listSessions: vi.fn().mockResolvedValue([]),
   },
 }))
@@ -124,9 +122,7 @@ beforeEach(() => {
   })
   mocks.subscribe.mockReturnValue(() => {})
   mocks.prompt.mockResolvedValue(undefined)
-  mocks.getMessages.mockReturnValue([
-    { role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] },
-  ])
+  mocks.getMessages.mockReturnValue([{ role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] }])
   mocks.newSession.mockResolvedValue(undefined)
   mocks.switchSession.mockResolvedValue(undefined)
   mocks.listSessions.mockResolvedValue([])
@@ -340,9 +336,7 @@ describe('ChannelBridge — registry updated after prompt', () => {
     await new Promise((r) => setTimeout(r, 0))
 
     expect(registry.set).toHaveBeenCalled()
-    const setCalls = (registry.set as ReturnType<typeof vi.fn>).mock.calls.filter(
-      (c) => c[0] === 'telegram:123'
-    )
+    const setCalls = (registry.set as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === 'telegram:123')
     expect(setCalls.length).toBeGreaterThanOrEqual(1)
     // Most recent call should point at the current session
     expect(setCalls.at(-1)?.[1]).toBe('/sessions/current.jsonl')

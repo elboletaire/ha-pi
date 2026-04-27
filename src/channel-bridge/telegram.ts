@@ -393,7 +393,7 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
           if (res.status === 429) {
             let retryAfterMs = 5000
             try {
-              const body = await res.json() as { parameters?: { retry_after?: number } }
+              const body = (await res.json()) as { parameters?: { retry_after?: number } }
               const retryAfterSec = body.parameters?.retry_after
               if (typeof retryAfterSec === 'number' && retryAfterSec > 0) {
                 retryAfterMs = (retryAfterSec + 1) * 1000

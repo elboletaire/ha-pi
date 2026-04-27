@@ -17,11 +17,7 @@ import { readFile } from 'node:fs/promises'
 
 /** Format a Date as a compact locale string without seconds (e.g. "4/25/2026, 10:32 PM"). */
 function formatDate(date: Date): string {
-  return (
-    date.toLocaleDateString() +
-    ', ' +
-    date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-  )
+  return date.toLocaleDateString() + ', ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
 /** Truncate a string to `max` chars, appending '…' if cut. */
@@ -113,10 +109,7 @@ export async function handleNewCommand(agentManager: AgentManager): Promise<Comm
 /**
  * Handle /sessions command - list all sessions with pagination.
  */
-export async function handleSessionsCommand(
-  agentManager: AgentManager,
-  page: number = 0
-): Promise<CommandResult> {
+export async function handleSessionsCommand(agentManager: AgentManager, page: number = 0): Promise<CommandResult> {
   try {
     const sessions = await agentManager.listSessions()
 
@@ -124,9 +117,7 @@ export async function handleSessionsCommand(
       return {
         text: 'No sessions found.',
         markup: {
-          inline_keyboard: [
-            [{ text: '🆕 New session', callback_data: '/new' }],
-          ],
+          inline_keyboard: [[{ text: '🆕 New session', callback_data: '/new' }]],
         },
       }
     }
@@ -260,10 +251,7 @@ export async function handleStatusCommand(agentManager: AgentManager): Promise<C
 /**
  * Handle /model list command - show paginated model list.
  */
-export async function handleModelListCommand(
-  agentManager: AgentManager,
-  page: number = 0
-): Promise<CommandResult> {
+export async function handleModelListCommand(agentManager: AgentManager, page: number = 0): Promise<CommandResult> {
   try {
     const state = agentManager.getState()
     const availableModels = agentManager.getAvailableModels()
@@ -429,13 +417,17 @@ export async function handleThinkingCommand(agentManager: AgentManager): Promise
     for (let i = 0; i < availableLevels.length; i += 2) {
       const row: InlineKeyboardButton[] = [
         {
-          text: availableLevels[i].startsWith('✓') ? availableLevels[i] : (state.thinkingLevel === availableLevels[i] ? '✓ ' : '') + availableLevels[i],
+          text: availableLevels[i].startsWith('✓')
+            ? availableLevels[i]
+            : (state.thinkingLevel === availableLevels[i] ? '✓ ' : '') + availableLevels[i],
           callback_data: `thinking:set:${availableLevels[i]}`,
         },
       ]
       if (i + 1 < availableLevels.length) {
         row.push({
-          text: availableLevels[i + 1].startsWith('✓') ? availableLevels[i + 1] : (state.thinkingLevel === availableLevels[i + 1] ? '✓ ' : '') + availableLevels[i + 1],
+          text: availableLevels[i + 1].startsWith('✓')
+            ? availableLevels[i + 1]
+            : (state.thinkingLevel === availableLevels[i + 1] ? '✓ ' : '') + availableLevels[i + 1],
           callback_data: `thinking:set:${availableLevels[i + 1]}`,
         })
       }
@@ -443,11 +435,7 @@ export async function handleThinkingCommand(agentManager: AgentManager): Promise
     }
 
     return {
-      text: [
-        '🧠 **Thinking Level**',
-        '',
-        `Current: \`${state.thinkingLevel}\``,
-      ].join('\n'),
+      text: ['🧠 **Thinking Level**', '', `Current: \`${state.thinkingLevel}\``].join('\n'),
       markup: {
         inline_keyboard: rows,
       },

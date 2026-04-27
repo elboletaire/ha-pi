@@ -41,11 +41,11 @@ For **group chats**, add the bot to the group, then use **@getmyid_bot** to get 
 
 Example configuration:
 
-| Field                   | Value                              |
-| ----------------------- | ---------------------------------- |
-| Enable Telegram Bot     | ✅                                 |
-| Telegram Bot Token      | `123456789:ABCdefGHI...`           |
-| Allowed Chat IDs        | `123456789,-1001234567890`         |
+| Field               | Value                      |
+| ------------------- | -------------------------- |
+| Enable Telegram Bot | ✅                         |
+| Telegram Bot Token  | `123456789:ABCdefGHI...`   |
+| Allowed Chat IDs    | `123456789,-1001234567890` |
 
 ## Step 4: Test It
 
@@ -55,16 +55,16 @@ Example configuration:
 
 ## Commands
 
-| Command         | What it does                     |
-| --------------- | -------------------------------- |
-| `/start`        | Show welcome message             |
-| `/new`          | Start a new session              |
-| `/sessions`     | List your sessions               |
-| `/session <ID>` | Switch to a specific session     |
-| `/status`       | Show current session info        |
-| `/model`        | Show or change the AI model      |
-| `/abort`        | Cancel the current response      |
-| `/delete <ID>`  | Delete a session                 |
+| Command         | What it does                 |
+| --------------- | ---------------------------- |
+| `/start`        | Show welcome message         |
+| `/new`          | Start a new session          |
+| `/sessions`     | List your sessions           |
+| `/session <ID>` | Switch to a specific session |
+| `/status`       | Show current session info    |
+| `/model`        | Show or change the AI model  |
+| `/abort`        | Cancel the current response  |
+| `/delete <ID>`  | Delete a session             |
 
 ## Features
 

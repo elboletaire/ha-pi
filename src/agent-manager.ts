@@ -71,9 +71,7 @@ export class AgentManager {
     log.info(`Using model: ${model.provider}/${model.id}`)
 
     const sessionManager =
-      sessionFile && existsSync(sessionFile)
-        ? SessionManager.open(sessionFile)
-        : SessionManager.create(PATHS.workspace)
+      sessionFile && existsSync(sessionFile) ? SessionManager.open(sessionFile) : SessionManager.create(PATHS.workspace)
 
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,

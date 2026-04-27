@@ -38,7 +38,6 @@ function getSenderId(adapter: string, sender: string): string {
   return `${adapter}:${sender}`
 }
 
-
 interface ActiveDraftState {
   draftId: number
   source: string
@@ -98,8 +97,7 @@ export class ChannelBridge {
     this.streamingDrafts = config.streamingDrafts ?? true
     this.streamingIntervalMs = config.streamingIntervalMs ?? 500
     this.senderSessionRegistry =
-      config.senderSessionRegistry ??
-      new SenderSessionRegistry(`${PATHS.piAgentDir}/bridge-sessions.json`)
+      config.senderSessionRegistry ?? new SenderSessionRegistry(`${PATHS.piAgentDir}/bridge-sessions.json`)
   }
 
   /**
@@ -192,9 +190,7 @@ export class ChannelBridge {
       }
 
       const isCallback = msg.metadata?.isCallback === true
-      const editMessageId = isCallback
-        ? (msg.metadata?.messageId as number | undefined)
-        : undefined
+      const editMessageId = isCallback ? (msg.metadata?.messageId as number | undefined) : undefined
 
       await this.sendMessage(
         {

@@ -38,6 +38,7 @@ are on THIS system.
 Read `/config/configuration.yaml` and extract:
 
 1. **All `!include` directives** — note the integration and target path
+
    ```yaml
    automation: !include automations.yaml
    script: !include scripts.yaml
@@ -45,6 +46,7 @@ Read `/config/configuration.yaml` and extract:
    ```
 
 2. **All `!include_dir_*` directives** — note the pattern and directory
+
    ```yaml
    automation: !include_dir_merge_list automations/
    ```
@@ -59,10 +61,12 @@ Read `/config/configuration.yaml` and extract:
 ### Step 2: Verify what exists
 
 For each path found in Step 1:
+
 - Check if the file or directory actually exists
 - Note which are present vs referenced but missing
 
 Also check for these optional directories (only include if they exist):
+
 - `/config/packages/`
 - `/config/custom_components/`
 - `/config/pyscript/`
@@ -84,6 +88,7 @@ the conventions this user follows. Look for:
   explicitly with an example rather than just describing the casing style.
 
   Example of what to capture:
+
   > **Alias template**: `{emoji} {category}: {description}`
   > (e.g. `☀️ garden: irrigation alert`, `🌡️ climate: temperature low`)
   > Use this exact format when creating new automations or scripts.
@@ -141,11 +146,11 @@ metadata:
 
 ## Configuration structure
 
-| Integration | Location | Type |
-|-------------|----------|------|
-| automation | `/config/automations.yaml` | !include |
-| script | `/config/scripts.yaml` | !include |
-| ... | ... | ... |
+| Integration | Location                   | Type     |
+| ----------- | -------------------------- | -------- |
+| automation  | `/config/automations.yaml` | !include |
+| script      | `/config/scripts.yaml`     | !include |
+| ...         | ...                        | ...      |
 
 ## Directories present
 
@@ -169,6 +174,7 @@ unless the user asks otherwise in the conversation.
 ## Notification services
 
 Available `notify.*` services on this system:
+
 - `notify.mobile_app_pixel_9`
 - `notify.telegram`
 - ... (only list what was found)
@@ -189,6 +195,7 @@ If system-profile already exists and user explicitly asked to update:
 2. Compare findings with the existing system-profile
 3. Show the diff to the user:
    > "Changes detected:
+   >
    > - Added: `sensor` now uses `!include sensors.yaml`
    > - Added notify service: `notify.mobile_app_new_phone`
    > - Removed: `input_boolean.yaml` no longer exists

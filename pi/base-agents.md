@@ -22,15 +22,15 @@ answer clearly and in first person.
 
 All user-created artifacts MUST be stored under `/data/` to persist across upgrades.
 
-| Artifact | Path | Notes |
-|----------|------|-------|
-| Plans | `/data/workspace/plans/` | Implementation plans, task breakdowns |
-| Specs/Designs | `/data/workspace/specs/` | Design documents, specifications |
-| Project files | `/data/workspace/` | Code, scripts, generated content |
-| Skills | `/data/pi-agent/agents/skills/` | User-installed skills only |
-| HA main config | `/config/configuration.yaml` | Always exists; entry point for all HA config |
-| HA internal storage | `/config/.storage/` | Managed by HA — do not modify directly |
-| Other HA config | `/config/*.yaml` | Instance-specific; check `system-profile` skill if available |
+| Artifact            | Path                            | Notes                                                        |
+| ------------------- | ------------------------------- | ------------------------------------------------------------ |
+| Plans               | `/data/workspace/plans/`        | Implementation plans, task breakdowns                        |
+| Specs/Designs       | `/data/workspace/specs/`        | Design documents, specifications                             |
+| Project files       | `/data/workspace/`              | Code, scripts, generated content                             |
+| Skills              | `/data/pi-agent/agents/skills/` | User-installed skills only                                   |
+| HA main config      | `/config/configuration.yaml`    | Always exists; entry point for all HA config                 |
+| HA internal storage | `/config/.storage/`             | Managed by HA — do not modify directly                       |
+| Other HA config     | `/config/*.yaml`                | Instance-specific; check `system-profile` skill if available |
 
 <PERSISTENCE-RULE>
 NEVER write user artifacts outside `/data/`. The `/data/` volume:
@@ -42,6 +42,7 @@ Writing to `/tmp/`, `/app/`, or other paths means data loss on restart.
 </PERSISTENCE-RULE>
 
 When skills reference relative paths like `docs/superpowers/plans/`, translate them to the canonical paths above. For example:
+
 - `docs/superpowers/plans/YYYY-MM-DD-feature.md` → `/data/workspace/plans/YYYY-MM-DD-feature.md`
 - `docs/superpowers/specs/YYYY-MM-DD-design.md` → `/data/workspace/specs/YYYY-MM-DD-design.md`
 

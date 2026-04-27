@@ -85,11 +85,11 @@ chore: update dependencies
 
 When bumping the version, **all of the following files must be updated** in the same commit:
 
-| File | Field |
-|------|-------|
-| `config.yaml` | `version:` — this is what Home Assistant reads to display the addon version |
-| `package.json` | `"version"` |
-| `CHANGELOG.md` | new section header |
+| File           | Field                                                                       |
+| -------------- | --------------------------------------------------------------------------- |
+| `config.yaml`  | `version:` — this is what Home Assistant reads to display the addon version |
+| `package.json` | `"version"`                                                                 |
+| `CHANGELOG.md` | new section header                                                          |
 
 Before committing, always verify every occurrence of the old version string has been replaced:
 

@@ -39,17 +39,20 @@ describe('Telegram polling — 429 rate-limit handling', () => {
     // preventing the poll loop from looping infinitely during the test.
     vi.useFakeTimers()
 
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string) => {
-      // syncCommands() fires first on start() — let it succeed silently
-      if (url.includes('setMyCommands')) return okResponse({ ok: true, result: true })
-      // Every getUpdates call returns 429 with retry_after: 7
-      return errorResponse(429, {
-        ok: false,
-        error_code: 429,
-        description: 'Too Many Requests: retry after 7',
-        parameters: { retry_after: 7 },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        // syncCommands() fires first on start() — let it succeed silently
+        if (url.includes('setMyCommands')) return okResponse({ ok: true, result: true })
+        // Every getUpdates call returns 429 with retry_after: 7
+        return errorResponse(429, {
+          ok: false,
+          error_code: 429,
+          description: 'Too Many Requests: retry after 7',
+          parameters: { retry_after: 7 },
+        })
       })
-    }))
+    )
 
     const timeoutSpy = vi.spyOn(globalThis, 'setTimeout')
 
@@ -77,10 +80,13 @@ describe('Telegram polling — 429 rate-limit handling', () => {
   it('falls back to 5000 ms sleep for other non-OK statuses', async () => {
     vi.useFakeTimers()
 
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string) => {
-      if (url.includes('setMyCommands')) return okResponse({ ok: true, result: true })
-      return errorResponse(503, { ok: false, error_code: 503, description: 'Service Unavailable' })
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('setMyCommands')) return okResponse({ ok: true, result: true })
+        return errorResponse(503, { ok: false, error_code: 503, description: 'Service Unavailable' })
+      })
+    )
 
     const timeoutSpy = vi.spyOn(globalThis, 'setTimeout')
 
@@ -103,11 +109,14 @@ describe('Telegram polling — 429 rate-limit handling', () => {
   it('falls back to 5000 ms when 429 body has no retry_after', async () => {
     vi.useFakeTimers()
 
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string) => {
-      if (url.includes('setMyCommands')) return okResponse({ ok: true, result: true })
-      // 429 but body has no parameters.retry_after
-      return errorResponse(429, { ok: false, error_code: 429, description: 'Too Many Requests' })
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('setMyCommands')) return okResponse({ ok: true, result: true })
+        // 429 but body has no parameters.retry_after
+        return errorResponse(429, { ok: false, error_code: 429, description: 'Too Many Requests' })
+      })
+    )
 
     const timeoutSpy = vi.spyOn(globalThis, 'setTimeout')
 

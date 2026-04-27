@@ -61,7 +61,7 @@ Chat with an AI agent directly from the Home Assistant web UI or Telegram. The a
 The agent automatically receives context about its deployment environment:
 
 - Current Home Assistant version
-- Add-on version  
+- Add-on version
 - Access type (ingress/direct)
 - Deployment type (HAOS/Supervised/Standalone)
 - System architecture
@@ -82,13 +82,13 @@ See [Runtime Information](docs/RUNTIME_INFO.md) for details and troubleshooting.
 
 ## Configuration
 
-| Option             | Description                                                                             |
-| ------------------ | --------------------------------------------------------------------------------------- |
-| `log_level`        | Server log verbosity (`debug`, `info`, `warn`, `error`)                                 |
-| `agents_md_append` | Extra instructions for the agent (e.g. `Always respond in Spanish`)                     |
-| `telegram_enabled` | Enable Telegram bot integration                                                         |
-| `telegram_bot_token` | Your Telegram bot token from [@BotFather](https://t.me/BotFather)                     |
-| `telegram_allowed_chat_ids` | Comma-separated list of allowed Telegram chat IDs                              |
+| Option                      | Description                                                         |
+| --------------------------- | ------------------------------------------------------------------- |
+| `log_level`                 | Server log verbosity (`debug`, `info`, `warn`, `error`)             |
+| `agents_md_append`          | Extra instructions for the agent (e.g. `Always respond in Spanish`) |
+| `telegram_enabled`          | Enable Telegram bot integration                                     |
+| `telegram_bot_token`        | Your Telegram bot token from [@BotFather](https://t.me/BotFather)   |
+| `telegram_allowed_chat_ids` | Comma-separated list of allowed Telegram chat IDs                   |
 
 API keys and OAuth tokens are managed from the web UI's Providers modal and stored in `/data/pi-agent/auth.json`.
 
