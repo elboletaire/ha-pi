@@ -16,7 +16,9 @@ const ctx = await esbuild.context({
   format: 'esm',
   platform: 'node',
   target: 'node22',
-  sourcemap: true,
+  sourcemap: watch,
+  // Only generate source maps in development (watch mode)
+  // In production, set to false or remove this line
   define: {
     'process.env.ADDON_VERSION_BUILD': JSON.stringify(ADDON_VERSION),
   },

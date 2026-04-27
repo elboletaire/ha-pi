@@ -14,7 +14,9 @@ const ctx = await esbuild.context({
   format: 'iife',
   platform: 'browser',
   target: 'es2020',
-  sourcemap: true,
+  sourcemap: watch,
+  // Only generate source maps in development (watch mode)
+  // In production, set to false or remove this line
   minify: !watch,
   define: {
     'process.env.NODE_ENV': watch ? '"development"' : '"production"',
