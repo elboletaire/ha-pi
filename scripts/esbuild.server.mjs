@@ -1,7 +1,12 @@
 import * as esbuild from 'esbuild'
 import { argv } from 'process'
+import { readFileSync } from 'fs'
 
 const watch = argv.includes('--watch')
+
+// Read version from package.json
+const pkg = JSON.parse(readFileSync('./package.json', 'utf8'))
+const ADDON_VERSION = pkg.version
 
 const ctx = await esbuild.context({
   entryPoints: ['src/server.ts'],
@@ -12,6 +17,9 @@ const ctx = await esbuild.context({
   platform: 'node',
   target: 'node22',
   sourcemap: true,
+  define: {
+    'process.env.ADDON_VERSION_BUILD': JSON.stringify(ADDON_VERSION),
+  },
 })
 
 if (watch) {
