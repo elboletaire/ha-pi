@@ -176,6 +176,27 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
   }
 
   /**
+   * Edit an existing Telegram message using editMessageText.
+   * Throws on API errors so the caller can fall back to sendMessage.
+   */
+  async function editTelegram(chatId: string, messageId: number, text: string, replyMarkup?: unknown): Promise<void> {
+    const body: Record<string, unknown> = { chat_id: chatId, message_id: messageId, text }
+    if (parseMode) body.parse_mode = parseMode
+    if (replyMarkup) body.reply_markup = replyMarkup
+
+    const res = await fetch(`${apiBase}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+      const err = await res.text().catch(() => 'unknown error')
+      throw new Error(`Telegram editMessageText API error ${res.status}: ${err}`)
+    }
+  }
+
+  /**
    * Send a file/document to a Telegram chat.
    * Uses multipart/form-data to upload the file.
    * Automatically picks sendPhoto for images or sendDocument for everything else.
@@ -788,6 +809,18 @@ export function createTelegramAdapter(config: AdapterConfig): ChannelAdapter {
 
       // Convert Markdown to Telegram HTML
       const full = markdownToTelegramHTML(markdown)
+
+      // If editing an existing message, try editMessageText first
+      if (message.editMessageId) {
+        const clamped = full.length > MAX_LENGTH ? full.slice(0, MAX_LENGTH) : full
+        try {
+          await editTelegram(message.recipient, message.editMessageId, clamped, message.markup)
+          return
+        } catch (err: any) {
+          // Fall through to sendMessage (e.g. message older than 48h, content unchanged)
+          log.debug(`editMessageText failed, falling back to sendMessage: ${err.message}`)
+        }
+      }
 
       if (full.length <= MAX_LENGTH) {
         await sendTelegram(message.recipient, full, message.markup)
