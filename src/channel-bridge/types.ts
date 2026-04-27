@@ -19,6 +19,8 @@ export interface ChannelMessage {
   metadata?: Record<string, unknown>
   /** Telegram reply_markup — passed through to adapter (adapter-specific) */
   markup?: unknown
+  /** If set, edit this existing message instead of sending a new one. */
+  editMessageId?: number
 }
 
 // ── Incoming message (from external → pi) ───────────────────────
