@@ -2,6 +2,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { getCommandsForTelegram, parseCommand, processCommand } from '../src/channel-bridge/commands'
 import type { AgentManager } from '../src/agent-manager'
 
+// Mock node:fs/promises so handleSessionSelectCommand doesn't hit the real disk
+vi.mock('node:fs/promises', () => ({
+  readFile: vi.fn(),
+}))
+
+import { readFile } from 'node:fs/promises'
+
 describe('telegram command helpers', () => {
   it('parses /start, /help, and bot-username mentions', () => {
     expect(parseCommand('/start')).toEqual({ type: 'start' })
@@ -236,6 +243,14 @@ describe('session select and load flow', () => {
       },
     ]
 
+    // Fake session file with three messages; last one is the assistant reply
+    const fakeJsonl = [
+      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({ type: 'message', message: { role: 'user', content: 'Hello there' } }),
+      JSON.stringify({ type: 'message', message: { role: 'assistant', content: [{ type: 'text', text: 'Hi! How can I help?' }] } }),
+    ].join('\n')
+    ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
+
     const fakeManager = {
       listSessions: vi.fn().mockResolvedValue(sessions),
       getState: vi.fn().mockReturnValue({ messageCount: 0 }),
@@ -248,7 +263,10 @@ describe('session select and load flow', () => {
     expect(result?.text).toContain('**ID:** `019dc5e5`')
     expect(result?.text).toContain('**Messages:** 3')
     expect(result?.text).toContain('**Modified:**')
-    expect(result?.text).toContain('**Preview:** `Hello there`')
+    // Last message: no backtick wrapping, plain text
+    expect(result?.text).toContain('**Preview:** Hi! How can I help?')
+    // Must NOT be wrapped in backticks
+    expect(result?.text).not.toContain('**Preview:** `')
     expect(result?.markup?.inline_keyboard).toBeDefined()
 
     const buttons = result?.markup?.inline_keyboard as any[]
@@ -309,17 +327,23 @@ describe('session select and load flow', () => {
     expect(result?.text).toContain('**Latest message:** `Last message from the user`')
   })
 
-  it('handles backticks in session preview', async () => {
+  it('renders last message with markdown preserved (backticks stay as-is)', async () => {
     const sessions = [
       {
         id: '019dc5e5-c123-7456-89ab-cdef01234567',
         path: '/sessions/target.jsonl',
-        messageCount: 3,
+        messageCount: 2,
         modified: new Date('2026-04-25T22:32:00Z'),
-        firstMessage: 'Use `git commit` to save changes',
+        firstMessage: 'old first message',
         name: undefined,
       },
     ]
+
+    const fakeJsonl = [
+      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({ type: 'message', message: { role: 'user', content: 'Use `git commit` to save changes' } }),
+    ].join('\n')
+    ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
 
     const fakeManager = {
       listSessions: vi.fn().mockResolvedValue(sessions),
@@ -329,21 +353,27 @@ describe('session select and load flow', () => {
 
     const result = await processCommand(fakeManager, 'sessions:select:019dc5e5')
 
-    // Backticks in preview should be stripped and replaced with single quotes
-    expect(result?.text).toContain('**Preview:** `Use \'git commit\' to save changes`')
+    // Backticks are preserved — they will render as inline code in Telegram
+    expect(result?.text).toContain('**Preview:** Use `git commit` to save changes')
   })
 
-  it('handles asterisks and underscores in session preview (Markdown injection safety)', async () => {
+  it('renders last message with asterisks and underscores preserved', async () => {
     const sessions = [
       {
         id: '019dc5e5-c123-7456-89ab-cdef01234567',
         path: '/sessions/target.jsonl',
-        messageCount: 3,
+        messageCount: 2,
         modified: new Date('2026-04-25T22:32:00Z'),
-        firstMessage: 'Fix the *important* bug in **main.py**',
+        firstMessage: 'old first message',
         name: undefined,
       },
     ]
+
+    const fakeJsonl = [
+      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({ type: 'message', message: { role: 'user', content: 'Fix the *important* bug in **main.py**' } }),
+    ].join('\n')
+    ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
 
     const fakeManager = {
       listSessions: vi.fn().mockResolvedValue(sessions),
@@ -353,8 +383,95 @@ describe('session select and load flow', () => {
 
     const result = await processCommand(fakeManager, 'sessions:select:019dc5e5')
 
-    // Markdown chars should appear literally inside backticks
-    expect(result?.text).toContain('**Preview:** `Fix the *important* bug in **main.py**`')
+    expect(result?.text).toContain('**Preview:** Fix the *important* bug in **main.py**')
+  })
+
+  it('shows (no messages) when session file cannot be read', async () => {
+    const sessions = [
+      {
+        id: '019dc5e5-c123-7456-89ab-cdef01234567',
+        path: '/sessions/missing.jsonl',
+        messageCount: 0,
+        modified: new Date('2026-04-25T22:32:00Z'),
+        firstMessage: '',
+        name: undefined,
+      },
+    ]
+
+    ;(readFile as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('ENOENT'))
+
+    const fakeManager = {
+      listSessions: vi.fn().mockResolvedValue(sessions),
+      getState: vi.fn().mockReturnValue({ messageCount: 0 }),
+      getMessages: vi.fn().mockReturnValue([]),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, 'sessions:select:019dc5e5')
+
+    expect(result?.text).toContain('**Preview:** (no messages)')
+  })
+
+  it('extracts text from assistant ContentBlock array as last message', async () => {
+    const sessions = [
+      {
+        id: '019dc5e5-c123-7456-89ab-cdef01234567',
+        path: '/sessions/target.jsonl',
+        messageCount: 4,
+        modified: new Date('2026-04-25T22:32:00Z'),
+        firstMessage: 'initial user message',
+        name: undefined,
+      },
+    ]
+
+    const fakeJsonl = [
+      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({ type: 'message', message: { role: 'user', content: 'initial user message' } }),
+      JSON.stringify({ type: 'message', message: { role: 'assistant', content: [{ type: 'text', text: 'First assistant reply' }] } }),
+      JSON.stringify({ type: 'message', message: { role: 'user', content: 'follow-up question' } }),
+      JSON.stringify({ type: 'message', message: { role: 'assistant', content: [{ type: 'text', text: 'Final answer here' }] } }),
+    ].join('\n')
+    ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
+
+    const fakeManager = {
+      listSessions: vi.fn().mockResolvedValue(sessions),
+      getState: vi.fn().mockReturnValue({ messageCount: 0 }),
+      getMessages: vi.fn().mockReturnValue([]),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, 'sessions:select:019dc5e5')
+
+    expect(result?.text).toContain('**Preview:** Final answer here')
+  })
+
+  it('truncates last message preview at 100 characters', async () => {
+    const sessions = [
+      {
+        id: '019dc5e5-c123-7456-89ab-cdef01234567',
+        path: '/sessions/target.jsonl',
+        messageCount: 2,
+        modified: new Date('2026-04-25T22:32:00Z'),
+        firstMessage: 'short',
+        name: undefined,
+      },
+    ]
+
+    const longMessage = 'a'.repeat(120)
+    const fakeJsonl = [
+      JSON.stringify({ type: 'session', id: '019dc5e5-c123-7456-89ab-cdef01234567', timestamp: '2026-04-25T22:00:00Z' }),
+      JSON.stringify({ type: 'message', message: { role: 'user', content: longMessage } }),
+    ].join('\n')
+    ;(readFile as ReturnType<typeof vi.fn>).mockResolvedValue(fakeJsonl)
+
+    const fakeManager = {
+      listSessions: vi.fn().mockResolvedValue(sessions),
+      getState: vi.fn().mockReturnValue({ messageCount: 0 }),
+      getMessages: vi.fn().mockReturnValue([]),
+    } as unknown as AgentManager
+
+    const result = await processCommand(fakeManager, 'sessions:select:019dc5e5')
+
+    // 100 chars of 'a' + '…'
+    expect(result?.text).toContain('**Preview:** ' + 'a'.repeat(100) + '…')
   })
 })
 
