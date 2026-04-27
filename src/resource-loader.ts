@@ -26,14 +26,15 @@ function loadBundledSkills() {
  *
  * AGENTS.md loading order (concatenated):
  *   1. /app/base-agents.md          — hardcoded by us (image)
- *   2. /data/pi-agent/agents-options.md — from add-on options (regenerated each start)
- *   3. /data/pi-agent/AGENTS.md     — user's own file (auto-discovered via agentDir)
+ *   2. Runtime info                 — dynamically generated at startup (HA version, add-on version, etc.)
+ *   3. /data/pi-agent/agents-options.md — from add-on options (regenerated each start)
+ *   4. /data/pi-agent/AGENTS.md     — user's own file (auto-discovered via agentDir)
  *
  * Skills loading order:
  *   1. /app/skills/                 — image-bundled, always present
  *   2. /data/pi-agent/skills/       — user-installed via `pi install`, win on name conflict
  */
-export async function createResourceLoader(): Promise<ResourceLoader> {
+export async function createResourceLoader(runtimeInfo?: string): Promise<ResourceLoader> {
   const loader = new DefaultResourceLoader({
     cwd: PATHS.workspace,
     agentDir: PATHS.piAgentDir,
@@ -51,7 +52,15 @@ export async function createResourceLoader(): Promise<ResourceLoader> {
         log.warn(`base-agents.md not found at ${PATHS.baseAgentsMd}`)
       }
 
-      // 2. Options-generated append (if present)
+      // 2. Runtime info (dynamically generated at startup)
+      if (runtimeInfo) {
+        files.push({
+          path: 'virtual:runtime-info.md',
+          content: runtimeInfo,
+        })
+      }
+
+      // 3. Options-generated append (if present)
       if (existsSync(AGENTS_OPTIONS_FILE)) {
         files.push({
           path: AGENTS_OPTIONS_FILE,
@@ -59,7 +68,7 @@ export async function createResourceLoader(): Promise<ResourceLoader> {
         })
       }
 
-      // 3. User's own AGENTS.md files (auto-discovered, always last)
+      // 4. User's own AGENTS.md files (auto-discovered, always last)
       files.push(...discovered.agentsFiles)
 
       return { agentsFiles: files }
