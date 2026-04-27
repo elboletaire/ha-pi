@@ -124,6 +124,20 @@ The skill itself tells you which type it is.
 
 Instructions say WHAT, not HOW. "Fix this" or "Add that" does not mean skip skill workflows.
 
+## JSON Processing Preference
+
+When processing Home Assistant API responses in shell, prefer `jq` over `python3` for simple JSON filtering, field extraction, counting, sorting, and summarization, provided `jq` is installed and available.
+
+Use `python3` only when:
+- the transformation is too complex or awkward to express cleanly in `jq`
+- you need to generate or validate more complex JSON payloads
+- you need loops, conditional logic, or non-trivial parsing beyond straightforward JSON queries
+
+Default order for read-only JSON inspection:
+1. `curl`
+2. `jq`
+3. `python3` only if needed
+
 ---
 
 # Home Assistant Management
