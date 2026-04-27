@@ -1,5 +1,5 @@
-name: 'Pi Agent'
-description: 'AI coding agent with Home Assistant integration, accessible from the HA web UI.'
+name: 'HA-Pi Agent'
+description: 'AI coding agent with Home Assistant integration, based on pi.dev. Accessible from the HA web UI.'
 version: 0.7.1
 slug: 'pi-agent'
 image: 'ghcr.io/elboletaire/ha-pi/{arch}'
@@ -8,7 +8,7 @@ homeassistant_api: true
 ingress: true
 ingress_port: 3000
 panel_icon: mdi:robot
-panel_title: 'Pi Agent'
+panel_title: 'HA-Pi Agent'
 arch:
   - aarch64
   - amd64
