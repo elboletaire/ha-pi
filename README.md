@@ -56,6 +56,20 @@ Chat with an AI agent directly from the Home Assistant web UI or Telegram. The a
   </tr>
 </table>
 
+## Runtime Information
+
+The agent automatically receives context about its deployment environment:
+
+- Current Home Assistant version
+- Add-on version  
+- Access type (ingress/direct)
+- Deployment type (HAOS/Supervised/Standalone)
+- System architecture
+
+This information appears in the agent's system prompt, helping it provide context-aware responses.
+
+See [Runtime Information](docs/RUNTIME_INFO.md) for details and troubleshooting.
+
 ## Installation
 
 [![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Felboletaire%2Fha-pi)
