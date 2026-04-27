@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0 — Session preview improvements and build optimizations
+
+### Added
+
+- **Enhanced session preview**: Commands now display the last message from a session in the preview, without code block wrapping, for cleaner readability.
+
+### Changed
+
+- **Build configuration**: Source maps are now disabled in production builds to reduce bundle size and improve performance.
+- **JSON processing**: Prioritized `jq` for more efficient JSON processing.
+
 ## 0.8.1 — Agent self-presentation update
 
 ### Changed
