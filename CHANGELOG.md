@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1 — Agent self-presentation update
+
+### Changed
+
+- **Agent self-presentation**: Updated agent identification from "Pi Agent" to "HA-Pi Agent" in the base system prompt (`pi/base-agents.md`) for clearer branding.
+
 ## 0.8.0 — Runtime info injection, in-place message editing, and supervisor API reference
 
 ### Added
