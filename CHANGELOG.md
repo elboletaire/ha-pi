@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.0 — Runtime info injection, in-place message editing, and supervisor API reference
+
+### Added
+
+- **Runtime info injection**: New `runtime-info` module that gathers and formats Home Assistant and add-on metadata; runtime info is injected into the agent at startup via the server.
+- **In-place message editing**: Telegram commands now use `editMessageText` for callback-query replies, enabling smoother UX without new messages. Support added through bridge layers with `editMessageId` tracking in channel messages.
+- **Supervisor API reference**: Added supervisor API documentation to the bundled skills for ha-pi agent, providing developers with reference material for interacting with Home Assistant Supervisor.
+
+### Changed
+
+- **Build system**: Version is now injected at build time via esbuild, ensuring the add-on version is accurately reflected in the built artifacts.
+
 ## 0.7.1 — Build system reorganization
 
 ### Changed
