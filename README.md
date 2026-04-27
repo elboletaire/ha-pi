@@ -80,6 +80,16 @@ See [Runtime Information](docs/RUNTIME_INFO.md) for details and troubleshooting.
 4. Click **Open Web UI** or find **Pi Agent** in your sidebar
 5. Open the Providers modal and add your API key or sign in with OAuth
 
+### First Boot
+
+When you open the first conversation, the agent automatically runs two startup routines — this is expected behaviour, not a sign of something going wrong.
+
+First, it loads the [`home-assistant-management`](pi/skills/home-assistant-management) skill, which gives it awareness of HA service domains, entity patterns, and API conventions.
+
+Second, if no system profile exists yet, it runs the [`system-profile-creator`](pi/skills/system-profile-creator) skill. This inspects your specific HA instance — reading `configuration.yaml`, checking your config structure, sampling a few automations and scripts to pick up your naming conventions and language, and querying available notification services. The result is saved to `/data/pi-agent/agents/skills/system-profile/` and reused in every future session, so this inspection only runs once.
+
+You can ask the agent to refresh the profile at any time by saying *"update system profile"*.
+
 ## Configuration
 
 | Option                      | Description                                                         |
