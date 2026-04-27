@@ -191,11 +191,17 @@ export class ChannelBridge {
         await this.sendTyping(msg.adapter, msg.sender)
       }
 
+      const isCallback = msg.metadata?.isCallback === true
+      const editMessageId = isCallback
+        ? (msg.metadata?.messageId as number | undefined)
+        : undefined
+
       await this.sendMessage(
         {
           adapter: msg.adapter,
           recipient: msg.sender,
           text: command.text,
+          editMessageId,
         },
         command.markup as InlineKeyboardMarkup | undefined
       )
@@ -654,7 +660,7 @@ export class ChannelBridge {
    * Send a message to a recipient.
    */
   private async sendMessage(
-    message: { adapter: string; recipient: string; text: string; source?: string },
+    message: { adapter: string; recipient: string; text: string; source?: string; editMessageId?: number },
     markup?: InlineKeyboardMarkup
   ): Promise<boolean> {
     const adapter = this.getAdapter()
@@ -670,6 +676,7 @@ export class ChannelBridge {
         text: message.text,
         source: message.source,
         markup: markup,
+        editMessageId: message.editMessageId,
       })
       return true
     } catch (err: any) {
