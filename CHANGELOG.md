@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 — Compacted sessions open again
+
+### Fixed
+
+- **Opening a session no longer renders an empty conversation.** pi's session history carries more than the three LLM message roles — compaction summaries, branch summaries, `!` bash executions and extension-injected messages all have their own shapes with no `content` field. The transcript builder treated every one of them as a tool result and read `.content` off it, so a single compacted session threw and rendered nothing. Those events now appear as a collapsed note in the conversation, and a message role the UI doesn't recognise is skipped rather than taking the whole transcript down.
+
 ## 1.0.1 — Session list loading state
 
 ### Fixed
