@@ -63,13 +63,14 @@ RUN set -eux; \
       *) echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
     base="https://github.com/rtk-ai/rtk/releases/download/${RTK_VERSION}"; \
-    curl -fsSL -o /tmp/rtk.tar.gz "${base}/rtk-${rtk_target}.tar.gz"; \
-    curl -fsSL -o /tmp/checksums.txt "${base}/checksums.txt"; \
+    archive="rtk-${rtk_target}.tar.gz"; \
     cd /tmp; \
-    grep " rtk-${rtk_target}.tar.gz\$" checksums.txt | sha256sum -c -; \
-    tar -xzf rtk.tar.gz -C /usr/local/bin rtk; \
+    curl -fsSL -o "${archive}" "${base}/${archive}"; \
+    curl -fsSL -o checksums.txt "${base}/checksums.txt"; \
+    grep " ${archive}\$" checksums.txt | sha256sum -c -; \
+    tar -xzf "${archive}" -C /usr/local/bin rtk; \
     chmod +x /usr/local/bin/rtk; \
-    rm -f /tmp/rtk.tar.gz /tmp/checksums.txt; \
+    rm -f "${archive}" checksums.txt; \
     rtk --version
 
 WORKDIR /app
