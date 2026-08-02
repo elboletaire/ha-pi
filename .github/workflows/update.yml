@@ -99,6 +99,53 @@ jobs:
             git diff --stat
           fi
 
+      # The Supervisor decides whether to offer an update by comparing the
+      # installed add-on version against config.yaml, and build.yml derives its
+      # image tags from that same field. Merging without a bump would therefore
+      # republish the *same* version tag with different content and offer no
+      # device an update — the weekly run would silently deliver nothing. The
+      # bump is part of the update, not an afterthought left to the maintainer.
+      - name: Bump add-on patch version
+        id: version
+        if: steps.changed.outputs.any == 'true'
+        env:
+          PI_BEFORE: ${{ steps.pi.outputs.before }}
+          PI_AFTER: ${{ steps.pi.outputs.after }}
+          RTK_BEFORE: ${{ steps.rtk.outputs.current }}
+          RTK_AFTER: ${{ steps.rtk.outputs.latest }}
+        run: |
+          set -euo pipefail
+          CURRENT=$(grep -oP '^version:\s*\K.*' config.yaml | tr -d "\"' ")
+          MAJOR=${CURRENT%%.*}
+          REST=${CURRENT#*.}
+          MINOR=${REST%%.*}
+          PATCH=${REST##*.}
+          NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
+
+          sed -i -E "s|^version:.*|version: ${NEXT}|" config.yaml
+          sed -i -E "0,/\"version\": \"[^\"]*\"/s||\"version\": \"${NEXT}\"|" package.json
+
+          # Prepend a release entry so the changelog stays truthful for versions
+          # that ship without a human writing them up.
+          NOTES=$(mktemp)
+          {
+            echo "# Changelog"
+            echo
+            echo "## ${NEXT} — Automated dependency update"
+            echo
+            echo "### Changed"
+            echo
+            echo "- **pi**: \`${PI_BEFORE}\` → \`${PI_AFTER}\`"
+            echo "- **RTK**: \`${RTK_BEFORE}\` → \`${RTK_AFTER}\`"
+            echo
+            tail -n +2 CHANGELOG.md | sed '1{/^$/d}'
+          } > "$NOTES"
+          mv "$NOTES" CHANGELOG.md
+
+          echo "Bumped ${CURRENT} -> ${NEXT}"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+
       # ─── Gate ────────────────────────────────────────────────────────────────
       # Everything below runs only when there is something to ship, and any
       # failure aborts before the PR is opened.
@@ -157,11 +204,16 @@ jobs:
             |---|---|---|
             | pi | `${{ steps.pi.outputs.before }}` | `${{ steps.pi.outputs.after }}` |
             | RTK | `${{ steps.rtk.outputs.current }}` | `${{ steps.rtk.outputs.latest }}` |
+            | Add-on | `${{ steps.version.outputs.current }}` | `${{ steps.version.outputs.next }}` |
 
             Verified: `typecheck`, `test`, `format:check`, and a real
             `linux/amd64` + `linux/arm64` image build — the latter executes
             `rtk --version` under QEMU, so an arm64-incompatible RTK release
             fails here rather than on your Pi.
 
-            Not verified: runtime behaviour in Home Assistant. Bump
-            `config.yaml` `version` when you merge if you want a release tag.
+            The add-on version is bumped here on purpose. Merging without it
+            would republish the same image tag with different content, and the
+            Supervisor — which compares the installed version against
+            `config.yaml` — would never offer your Pi the update.
+
+            Not verified: runtime behaviour in Home Assistant.
