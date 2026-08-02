@@ -5,7 +5,7 @@ import { initShortcutsLegend } from './shortcuts'
 import { buildSessionHistoryOps } from './session-history'
 import { initMobileViewport } from './mobile-viewport'
 import { initTheme } from './theme'
-import type { ClientMessage, ServerMessage, SessionMessage } from './protocol'
+import type { ClientMessage, ServerMessage, HistoryMessage } from './protocol'
 
 // ---------------------------------------------------------------------------
 // WebSocket connection (auto-reconnect)
@@ -295,6 +295,32 @@ function renderUserBubble(text: string) {
   scrollBottom()
 }
 
+/**
+ * Renders an out-of-band conversation event — a compaction, a branch return, a
+ * `!` command. Collapsed by default: a compaction summary is long, and it is
+ * context about the transcript rather than part of it.
+ */
+function renderNote(label: string, text: string) {
+  const msg = document.createElement('div')
+  msg.className = 'msg msg-note'
+
+  const details = document.createElement('details')
+  const summary = document.createElement('summary')
+  summary.textContent = label
+  details.appendChild(summary)
+
+  if (text) {
+    const body = document.createElement('div')
+    body.className = 'note-body'
+    body.textContent = text
+    details.appendChild(body)
+  }
+
+  msg.appendChild(details)
+  $messages.appendChild(msg)
+  scrollBottom()
+}
+
 async function renderAssistantMarkdown(bubble: HTMLElement | null, rawText: string) {
   if (!bubble) return
 
@@ -313,7 +339,7 @@ async function renderAssistantMarkdown(bubble: HTMLElement | null, rawText: stri
   scrollBottom()
 }
 
-async function hydrateSessionHistory(messages: SessionMessage[]) {
+async function hydrateSessionHistory(messages: HistoryMessage[]) {
   resetConversation()
 
   const ops = buildSessionHistoryOps(messages)
@@ -339,6 +365,18 @@ async function hydrateSessionHistory(messages: SessionMessage[]) {
         currentRawText = ''
         currentThinkingRaw = ''
         currentAgentBubble = createAgentBubble(false)
+        break
+
+      case 'note':
+        if (currentAgentBubble) {
+          await renderAssistantMarkdown(currentAgentBubble, currentRawText)
+          currentAgentBubble = null
+        }
+        currentToolEls.clear()
+        currentRawText = ''
+        currentThinkingRaw = ''
+        currentThinkingEl = null
+        renderNote(op.label, op.text)
         break
 
       case 'assistant_text':

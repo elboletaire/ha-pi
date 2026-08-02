@@ -6,7 +6,8 @@ export interface ProviderStatus {
 }
 
 import type { Message as SessionMessage } from '@earendil-works/pi-ai'
-export type { SessionMessage }
+import type { HistoryMessage } from './session-history'
+export type { SessionMessage, HistoryMessage }
 
 export interface AvailableModelSummary {
   provider: string
@@ -64,7 +65,7 @@ export type ServerMessage =
       sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }>
     }
   | { type: 'sessions_loading'; loaded: number; total: number }
-  | { type: 'session_history'; messages: SessionMessage[] }
+  | { type: 'session_history'; messages: HistoryMessage[] }
   | { type: 'available_models'; models: AvailableModelSummary[] }
   | { type: 'auth_status'; providers: ProviderStatus[] }
   | LoginEvent
