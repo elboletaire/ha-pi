@@ -156,3 +156,4 @@ Default order for read-only JSON inspection:
 
 - **[Supervisor API](references/supervisor-api.md)** — execute Supervisor API commands for system info, Core control, backups, add-ons, and updates
 - **[Home Assistant Log Debugging](references/home-assistant-log-debugging.md)** — investigate errors, warnings, authentication issues, and suspicious behavior; inspects local logs and storage first
+- **[Entity Rename Workflow](references/entity-rename-workflow.md)** — impact analysis, consumer search, conflict check, apply, verify, and rollback steps for any entity_id rename
