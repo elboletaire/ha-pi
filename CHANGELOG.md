@@ -9,7 +9,7 @@
 
 ### Changed
 
-- **Runtime base image is now Debian (`node:22-slim`) instead of Alpine**: RTK publishes no arm64 musl binary, and its `aarch64-unknown-linux-gnu` build needs glibc symbols (`fcntl64`, `__res_init`) that musl does not provide. This is a libc change, not an architecture change — both images are multi-arch, and Node rates arm64+glibc as Tier 1 support where arm64+musl is not in the support matrix at all.
+- **Runtime base image is now Debian trixie (`node:22-trixie-slim`) instead of Alpine**: RTK publishes no arm64 musl binary, and its `aarch64-unknown-linux-gnu` build needs glibc symbols (`fcntl64`, `__res_init`) that musl does not provide. This is a libc change, not an architecture change — both images are multi-arch, and Node rates arm64+glibc as Tier 1 support where arm64+musl is not in the support matrix at all. Trixie specifically, because that binary also requires `GLIBC_2.39`, which Debian bookworm (2.36) cannot satisfy.
 - **Upgraded pi to `@earendil-works/pi-coding-agent` 0.83** (from `@mariozechner/pi-coding-agent` 0.70.2). Upstream renamed the npm scope and redesigned auth: `AuthStorage` became a plain credential store, and login/logout/provider-status orchestration moved to `ModelRuntime`.
 - **API keys entered in the web UI are now persisted through pi's credential store.** The nearest like-for-like replacement in the new API (`setRuntimeApiKey`) only populates an in-process overlay, which would have silently discarded keys on restart.
 

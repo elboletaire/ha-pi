@@ -1,6 +1,8 @@
-# Debian-based, not Alpine: RTK ships no musl build for arm64, and its
-# aarch64-unknown-linux-gnu binary needs glibc symbols musl lacks (fcntl64,
-# __res_init). See the header comment in docker/Dockerfile for the full rationale.
+# Debian trixie, not Alpine and not bookworm: RTK ships no musl build for arm64,
+# and its aarch64-unknown-linux-gnu binary needs glibc >= 2.39 (bookworm has 2.36;
+# trixie has 2.41). See the header comment in docker/Dockerfile for the full
+# rationale — pin the suite explicitly so a Node base-image retag cannot silently
+# drop us below that floor.
 build_from:
-  aarch64: node:22-slim
-  amd64: node:22-slim
+  aarch64: node:22-trixie-slim
+  amd64: node:22-trixie-slim

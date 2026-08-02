@@ -8,7 +8,14 @@
 # libc6-compat do not resolve it). Debian also puts Node on its Tier 1 platform
 # (linux/arm64 + glibc); linux/musl is only Experimental and arm64+musl is not in
 # Node's support matrix at all. Costs ~21MB compressed over alpine.
-ARG BUILD_FROM=node:22-slim
+#
+# Specifically trixie, not bookworm: that same arm64 binary imports pidfd_spawnp
+# and pidfd_getpid at GLIBC_2.39 (Rust's newer process-spawn path). They are weak
+# undefined symbols, but the requirement is recorded in the version-needed section,
+# which ld.so enforces regardless — so bookworm's glibc 2.36 fails at exec with
+# "version `GLIBC_2.39' not found". Trixie ships 2.41. The suite is pinned rather
+# than left as :22-slim so a Node retag cannot silently drop us below that floor.
+ARG BUILD_FROM=node:22-trixie-slim
 
 # ─── Stage 1: build ──────────────────────────────────────────────────────────
 # $BUILDPLATFORM is set by Docker buildx to the runner's native platform so the
@@ -36,7 +43,7 @@ COPY public/index.html public/index.css ./public/
 RUN pnpm run build
 
 # ─── Stage 2: runtime ────────────────────────────────────────────────────────
-# node:22-slim is a multi-arch image; Docker buildx pulls the correct variant
+# node:22-trixie-slim is a multi-arch image; Docker buildx pulls the correct variant
 # (amd64 or arm64) automatically based on the --platform flag passed at build time.
 FROM ${BUILD_FROM}
 
