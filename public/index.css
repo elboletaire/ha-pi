@@ -582,6 +582,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 #sessions-list li:hover { background: var(--bg-card); }
 #sessions-list li:last-child { border-bottom: none; }
+.sessions-status {
+  color: var(--text-dim);
+  padding: 16px;
+}
+/* Not a session row — suppress the hover highlight so it doesn't read as clickable. */
+#sessions-list li.sessions-status:hover { background: none; }
 .session-row {
   display: flex;
   align-items: center;

@@ -194,6 +194,83 @@ describe('WsHandler', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Session listing progress
+// ---------------------------------------------------------------------------
+
+describe('WsHandler — session listing progress', () => {
+  let ws: ReturnType<typeof makeWs>
+  let agent: AgentManager
+
+  beforeEach(() => {
+    ws = makeWs()
+    agent = makeAgent()
+    new WsHandler(ws as any, agent, makeLogin())
+  })
+
+  function clientSend(msg: unknown) {
+    ws._emit('message', JSON.stringify(msg))
+  }
+
+  it('sends no progress frames when the listing resolves before the first tick', async () => {
+    clientSend({ type: 'get_sessions' })
+    await flushPromises()
+    expect(ws._sent.map((s) => JSON.parse(s).type)).toEqual(['sessions'])
+  })
+
+  it('reports the latest count while a slow listing runs, then stops once it finishes', async () => {
+    vi.useFakeTimers()
+    try {
+      let report!: (loaded: number, total: number) => void
+      let finish!: (sessions: unknown[]) => void
+      ;(agent.listSessions as ReturnType<typeof vi.fn>).mockImplementationOnce(
+        (onProgress: (loaded: number, total: number) => void) => {
+          report = onProgress
+          return new Promise((resolve) => {
+            finish = resolve
+          })
+        }
+      )
+
+      clientSend({ type: 'get_sessions' })
+
+      // Many per-file callbacks collapse into one frame per interval.
+      report(7, 210)
+      report(12, 210)
+      await vi.advanceTimersByTimeAsync(300)
+      expect(JSON.parse(ws._sent[0])).toEqual({ type: 'sessions_loading', loaded: 12, total: 210 })
+
+      report(198, 210)
+      await vi.advanceTimersByTimeAsync(300)
+      expect(JSON.parse(ws._sent[1])).toEqual({ type: 'sessions_loading', loaded: 198, total: 210 })
+
+      finish([])
+      await vi.advanceTimersByTimeAsync(0)
+      expect(JSON.parse(ws._sent[2]).type).toBe('sessions')
+
+      // The ticker must be cleared, or a finished listing keeps emitting forever.
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(ws._sent).toHaveLength(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('clears the ticker when the listing fails', async () => {
+    vi.useFakeTimers()
+    try {
+      ;(agent.listSessions as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('EACCES'))
+
+      clientSend({ type: 'get_sessions' })
+      await vi.advanceTimersByTimeAsync(3000)
+
+      expect(ws._sent).toHaveLength(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Agent event → browser message dispatch
 // ---------------------------------------------------------------------------
 

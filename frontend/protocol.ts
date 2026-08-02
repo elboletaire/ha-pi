@@ -63,6 +63,7 @@ export type ServerMessage =
       type: 'sessions'
       sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }>
     }
+  | { type: 'sessions_loading'; loaded: number; total: number }
   | { type: 'session_history'; messages: SessionMessage[] }
   | { type: 'available_models'; models: AvailableModelSummary[] }
   | { type: 'auth_status'; providers: ProviderStatus[] }

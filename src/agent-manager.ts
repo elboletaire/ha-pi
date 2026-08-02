@@ -207,8 +207,16 @@ export class AgentManager {
     log.info(`Switched to session ${sessionFile}`)
   }
 
-  async listSessions() {
-    return SessionManager.list(PATHS.workspace)
+  /**
+   * Lists the workspace's saved sessions, newest first.
+   *
+   * pi reads every `.jsonl` in the session directory end to end to build each
+   * row's preview, so on a Pi with a cold page cache and a few hundred sessions
+   * this takes tens of seconds. `onProgress` is pi's own per-file callback and
+   * exists so the UI can show that work happening instead of an empty list.
+   */
+  async listSessions(onProgress?: (loaded: number, total: number) => void) {
+    return SessionManager.list(PATHS.workspace, undefined, onProgress)
   }
 
   async deleteSession(sessionFile: string): Promise<void> {

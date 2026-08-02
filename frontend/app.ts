@@ -37,6 +37,7 @@ const $sessionsList = document.getElementById('sessions-list')!
 let ws: WebSocket | null = null
 let streaming = false
 let currentSessionFile: string | undefined
+let sessionsEverLoaded = false
 
 // Per-run tracking
 let currentAgentBubble: HTMLElement | null = null
@@ -138,6 +139,10 @@ function handleMessage(msg: ServerMessage) {
 
     case 'sessions':
       renderSessionsList(msg.sessions)
+      break
+
+    case 'sessions_loading':
+      renderSessionsLoading(msg.loaded, msg.total)
       break
 
     case 'session_history':
@@ -518,12 +523,25 @@ function resizeInput() {
   $input.style.height = Math.min($input.scrollHeight, 200) + 'px'
 }
 
+/**
+ * Placeholder shown while the server walks the session directory.
+ *
+ * Without it an empty list reads as data loss, which is exactly how a slow
+ * first listing after an add-on update looks. The counter is omitted until the
+ * server knows the total, so we never render a bare "0/0".
+ */
+function renderSessionsLoading(loaded?: number, total?: number) {
+  const progress = total ? ` ${loaded}/${total}` : '…'
+  $sessionsList.innerHTML = `<li class="sessions-status">Loading sessions${progress}</li>`
+}
+
 function renderSessionsList(
   sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }>
 ) {
+  sessionsEverLoaded = true
   $sessionsList.innerHTML = ''
   if (sessions.length === 0) {
-    $sessionsList.innerHTML = `<li style="color:var(--text-dim);padding:16px">No sessions yet</li>`
+    $sessionsList.innerHTML = `<li class="sessions-status">No sessions yet</li>`
     return
   }
   for (const s of sessions.sort((a, b) => b.modified.localeCompare(a.modified))) {
@@ -612,6 +630,9 @@ $btnNewSession.addEventListener('click', () => {
 })
 
 $btnSessions.addEventListener('click', () => {
+  // Reopening keeps the rows already on screen while the refresh runs, so only
+  // the very first open needs a placeholder to avoid showing a blank panel.
+  if (!sessionsEverLoaded) renderSessionsLoading()
   send({ type: 'get_sessions' })
   $sessionsOverlay.classList.remove('hidden')
 })

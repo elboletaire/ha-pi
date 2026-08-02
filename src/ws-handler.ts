@@ -52,9 +52,17 @@ type ServerMessage =
       type: 'sessions'
       sessions: Array<{ id: string; file: string; name?: string; firstMessage: string; modified: string }>
     }
+  | { type: 'sessions_loading'; loaded: number; total: number }
   | { type: 'session_history'; messages: ReturnType<AgentManager['getMessages']> }
   | { type: 'available_models'; models: AvailableModelSummary[] }
   | LoginEvent
+
+/**
+ * How often to report session-listing progress, and — because the first tick
+ * only fires after one full interval — how slow a listing has to be before the
+ * client is told about it at all.
+ */
+const SESSIONS_PROGRESS_INTERVAL_MS = 300
 
 // ---------------------------------------------------------------------------
 // WsHandler — one instance per connected client
@@ -299,8 +307,25 @@ export class WsHandler {
   }
 
   private async sendSessions(): Promise<void> {
+    let loaded = 0
+    let total = 0
+
+    // Progress is announced on a timer rather than per file: pi calls back once
+    // per session file, which would be hundreds of frames on a large history.
+    //
+    // The first tick lands one interval in, so a listing that completes quickly
+    // sends no progress at all and the client never flashes a loading state for
+    // work the user didn't have time to notice.
+    const ticker = setInterval(
+      () => this.send({ type: 'sessions_loading', loaded, total }),
+      SESSIONS_PROGRESS_INTERVAL_MS
+    )
+
     try {
-      const sessions = await this.agent.listSessions()
+      const sessions = await this.agent.listSessions((l, t) => {
+        loaded = l
+        total = t
+      })
       this.send({
         type: 'sessions',
         sessions: sessions.map((s) => ({
@@ -313,6 +338,8 @@ export class WsHandler {
       })
     } catch (err) {
       log.error('Failed to list sessions:', err)
+    } finally {
+      clearInterval(ticker)
     }
   }
 
