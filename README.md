@@ -38,6 +38,7 @@ Chat with an AI agent directly from the Home Assistant web UI or Telegram. The a
 - Bundled Home Assistant skill for entity control and automation management
 - Session history that persists across restarts and syncs between web and Telegram
 - Dynamic model selector with support for multiple AI providers
+- **[RTK](https://github.com/rtk-ai/rtk) command rewriting** — shell commands are transparently swapped for compressed-output equivalents, cutting the tokens each turn spends on command output
 - Adaptive light/dark UI that follows Home Assistant and browser color scheme preferences
 - Customizable agent behavior via add-on options or AGENTS.md file
 
@@ -88,7 +89,7 @@ First, it loads the [`home-assistant-management`](pi/skills/home-assistant-manag
 
 Second, if no system profile exists yet, it runs the [`system-profile-creator`](pi/skills/system-profile-creator) skill. This inspects your specific HA instance — reading `configuration.yaml`, checking your config structure, sampling a few automations and scripts to pick up your naming conventions and language, and querying available notification services. The result is saved to `/data/pi-agent/agents/skills/system-profile/` and reused in every future session, so this inspection only runs once.
 
-You can ask the agent to refresh the profile at any time by saying *"update system profile"*.
+You can ask the agent to refresh the profile at any time by saying _"update system profile"_.
 
 ## Configuration
 

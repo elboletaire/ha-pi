@@ -104,6 +104,25 @@ The built-in base instructions already describe Pi Agent as a Home Assistant-emb
 - If Home Assistant theme information is not available, it falls back to the browser's light/dark preference
 - This keeps the add-on readable in both light and dark environments without a separate theme setting
 
+## RTK command rewriting
+
+The add-on bundles [RTK](https://github.com/rtk-ai/rtk), a CLI proxy that rewrites common
+shell commands into equivalents that emit far less output. Because everything the agent
+runs in `bash` comes back as input tokens on the next turn, trimming that output directly
+reduces cost and latency.
+
+This happens transparently: before a `bash` tool call runs, the command is offered to
+`rtk rewrite`, and the cheaper form is substituted when one exists. Commands RTK has no
+equivalent for are passed through untouched.
+
+It is a rewrite-only optimisation, never a gate — it does not block, confirm, or audit
+anything. Every failure path (missing binary, timeout, unparseable output) falls back to
+running your original command unchanged, so RTK can only ever cost you the savings.
+
+To turn it off, set the `RTK_DISABLED=1` environment variable; the add-on then skips the
+probe entirely and registers no hook. The bundled version is pinned in `docker/Dockerfile`
+and bumped automatically by the weekly dependency-update workflow.
+
 ## Troubleshooting
 
 ### "No model available"

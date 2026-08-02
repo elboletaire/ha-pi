@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0 — RTK token savings, automatic updates, and pi 0.83
+
+### Added
+
+- **[RTK](https://github.com/rtk-ai/rtk) command rewriting**: `bash` commands are transparently rewritten to compressed-output equivalents before they run, cutting the tokens spent on command output. It is rewrite-only and fails open — a missing, slow, or broken `rtk` passes your original command through untouched. Disable with `RTK_DISABLED=1`.
+- **Weekly dependency-update workflow**: a scheduled GitHub Actions run bumps pi and RTK, then gates the result on typecheck, tests, formatting, and a real `linux/amd64` + `linux/arm64` image build before opening a PR. Nothing reaches the add-on without your review.
+
+### Changed
+
+- **Runtime base image is now Debian (`node:22-slim`) instead of Alpine**: RTK publishes no arm64 musl binary, and its `aarch64-unknown-linux-gnu` build needs glibc symbols (`fcntl64`, `__res_init`) that musl does not provide. This is a libc change, not an architecture change — both images are multi-arch, and Node rates arm64+glibc as Tier 1 support where arm64+musl is not in the support matrix at all.
+- **Upgraded pi to `@earendil-works/pi-coding-agent` 0.83** (from `@mariozechner/pi-coding-agent` 0.70.2). Upstream renamed the npm scope and redesigned auth: `AuthStorage` became a plain credential store, and login/logout/provider-status orchestration moved to `ModelRuntime`.
+- **API keys entered in the web UI are now persisted through pi's credential store.** The nearest like-for-like replacement in the new API (`setRuntimeApiKey`) only populates an in-process overlay, which would have silently discarded keys on restart.
+
+### Removed
+
+- `usesCallbackServer` from the provider status protocol. pi 0.83 exposes no equivalent, and nothing in the UI branched on it.
+
 ## 0.9.0 — Session preview improvements and build optimizations
 
 ### Added
