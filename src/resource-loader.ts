@@ -4,8 +4,9 @@ import {
   type ResourceLoader,
   type Skill,
   loadSkillsFromDir,
-} from '@mariozechner/pi-coding-agent'
+} from '@earendil-works/pi-coding-agent'
 import { PATHS, log } from './options'
+import { rtkExtension } from './rtk-extension'
 
 const AGENTS_OPTIONS_FILE = `${PATHS.piAgentDir}/agents-options.md`
 
@@ -33,11 +34,18 @@ function loadBundledSkills() {
  * Skills loading order:
  *   1. /app/skills/                 — image-bundled, always present
  *   2. /data/pi-agent/skills/       — user-installed via `pi install`, win on name conflict
+ *
+ * Extensions:
+ *   RTK is registered inline (bundled with the image) rather than discovered from
+ *   disk. Extensions the user drops into /data/pi-agent/extensions/ are still
+ *   picked up as usual — inline factories are additive, not a replacement.
  */
 export async function createResourceLoader(runtimeInfo?: string): Promise<ResourceLoader> {
   const loader = new DefaultResourceLoader({
     cwd: PATHS.workspace,
     agentDir: PATHS.piAgentDir,
+
+    extensionFactories: [rtkExtension],
 
     agentsFilesOverride: (discovered) => {
       const files: Array<{ path: string; content: string }> = []

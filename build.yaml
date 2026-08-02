@@ -1,3 +1,6 @@
+# Debian-based, not Alpine: RTK ships no musl build for arm64, and its
+# aarch64-unknown-linux-gnu binary needs glibc symbols musl lacks (fcntl64,
+# __res_init). See the header comment in docker/Dockerfile for the full rationale.
 build_from:
-  aarch64: node:22-alpine
-  amd64: node:22-alpine
+  aarch64: node:22-slim
+  amd64: node:22-slim
