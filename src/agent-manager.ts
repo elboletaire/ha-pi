@@ -2,14 +2,14 @@ import { existsSync } from 'fs'
 import { unlink } from 'fs/promises'
 import {
   createAgentSession,
-  AuthStorage,
   ModelRegistry,
+  ModelRuntime,
   SessionManager,
   SettingsManager,
   type AgentSession,
   type AgentSessionEvent,
-} from '@mariozechner/pi-coding-agent'
-import type { ResourceLoader } from '@mariozechner/pi-coding-agent'
+} from '@earendil-works/pi-coding-agent'
+import type { ResourceLoader } from '@earendil-works/pi-coding-agent'
 import {
   selectInitialModel,
   summarizeAvailableModels,
@@ -30,7 +30,7 @@ export class AgentManager {
     private readonly provider: string,
     private readonly modelId: string,
     private readonly resourceLoader: ResourceLoader,
-    private readonly authStorage: AuthStorage
+    private readonly modelRuntime: ModelRuntime
   ) {}
 
   /**
@@ -50,7 +50,7 @@ export class AgentManager {
     }
 
     const settingsManager = SettingsManager.create(PATHS.workspace, PATHS.piAgentDir)
-    const modelRegistry = ModelRegistry.create(this.authStorage, `${PATHS.piAgentDir}/models.json`)
+    const modelRegistry = new ModelRegistry(this.modelRuntime)
     this.modelRegistry = modelRegistry
 
     const preferredModels: Array<ModelRef | null> = [
@@ -77,8 +77,7 @@ export class AgentManager {
       cwd: PATHS.workspace,
       agentDir: PATHS.piAgentDir,
       model,
-      authStorage: this.authStorage,
-      modelRegistry,
+      modelRuntime: this.modelRuntime,
       sessionManager,
       settingsManager,
       resourceLoader: this.resourceLoader,
@@ -173,18 +172,17 @@ export class AgentManager {
   }
 
   setThinkingLevel(level: string): void {
-    this.ensureSession().setThinkingLevel(level as import('@mariozechner/pi-ai').ThinkingLevel)
+    this.ensureSession().setThinkingLevel(level as import('@earendil-works/pi-ai').ThinkingLevel)
   }
 
   async newSession(): Promise<void> {
     const current = this.ensureSession()
-    const modelRegistry = ModelRegistry.create(this.authStorage, `${PATHS.piAgentDir}/models.json`)
+    const modelRegistry = new ModelRegistry(this.modelRuntime)
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,
       agentDir: PATHS.piAgentDir,
       model: current.model ?? undefined,
-      authStorage: this.authStorage,
-      modelRegistry,
+      modelRuntime: this.modelRuntime,
       sessionManager: SessionManager.create(PATHS.workspace),
       settingsManager: SettingsManager.create(PATHS.workspace, PATHS.piAgentDir),
       resourceLoader: this.resourceLoader,
@@ -195,12 +193,11 @@ export class AgentManager {
   }
 
   async switchSession(sessionFile: string): Promise<void> {
-    const modelRegistry = ModelRegistry.create(this.authStorage, `${PATHS.piAgentDir}/models.json`)
+    const modelRegistry = new ModelRegistry(this.modelRuntime)
     const { session } = await createAgentSession({
       cwd: PATHS.workspace,
       agentDir: PATHS.piAgentDir,
-      authStorage: this.authStorage,
-      modelRegistry,
+      modelRuntime: this.modelRuntime,
       sessionManager: SessionManager.open(sessionFile),
       settingsManager: SettingsManager.create(PATHS.workspace, PATHS.piAgentDir),
       resourceLoader: this.resourceLoader,

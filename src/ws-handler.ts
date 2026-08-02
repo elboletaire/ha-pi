@@ -1,5 +1,5 @@
 import type { WebSocket } from 'ws'
-import type { AgentSessionEvent } from '@mariozechner/pi-coding-agent'
+import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent'
 import type { AgentManager } from './agent-manager'
 import type { LoginManager, LoginEvent } from './login-manager'
 import type { AvailableModelSummary } from './model-selection'
@@ -224,7 +224,7 @@ export class WsHandler {
           break
 
         case 'logout':
-          this.login.logout(msg.provider)
+          await this.login.logout(msg.provider)
           await this.handleAuthChanged()
           break
 
@@ -232,12 +232,12 @@ export class WsHandler {
           if (!msg.key.trim()) {
             throw new Error('API key cannot be empty')
           }
-          this.login.setApiKey(msg.provider, msg.key.trim())
+          await this.login.setApiKey(msg.provider, msg.key.trim())
           await this.handleAuthChanged()
           break
 
         case 'clear_api_key':
-          this.login.clearApiKey(msg.provider)
+          await this.login.clearApiKey(msg.provider)
           await this.handleAuthChanged()
           break
 

@@ -2,11 +2,10 @@ export interface ProviderStatus {
   id: string
   name: string
   isOAuth: boolean
-  usesCallbackServer: boolean
   auth: { configured: boolean; source?: string; label?: string }
 }
 
-import type { Message as SessionMessage } from '@mariozechner/pi-ai'
+import type { Message as SessionMessage } from '@earendil-works/pi-ai'
 export type { SessionMessage }
 
 export interface AvailableModelSummary {

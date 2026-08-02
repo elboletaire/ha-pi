@@ -1,13 +1,23 @@
 import { randomUUID } from 'crypto'
-import { AuthStorage, type AuthStatus } from '@mariozechner/pi-coding-agent'
-import type { OAuthProviderInterface } from '@mariozechner/pi-ai'
+import type { ModelRuntime } from '@earendil-works/pi-coding-agent'
+import type { AuthEvent, AuthPrompt } from '@earendil-works/pi-ai'
 import { log } from './options'
+
+/**
+ * pi 0.83 moved auth orchestration off `AuthStorage` (now a plain credential
+ * store) and onto `ModelRuntime`, which owns login/logout/status for both
+ * api-key and OAuth providers behind one `AuthInteraction` callback pair.
+ *
+ * `AuthStatus` is not re-exported from either package root, so it is derived
+ * from the method that produces it rather than deep-imported — the package
+ * `exports` map blocks `dist/**` paths anyway.
+ */
+type AuthStatus = ReturnType<ModelRuntime['getProviderAuthStatus']>
 
 export interface ProviderStatus {
   id: string
   name: string
   isOAuth: boolean
-  usesCallbackServer: boolean
   auth: AuthStatus
 }
 
@@ -31,37 +41,59 @@ export class LoginManager {
   private activeProvider: string | null = null
   private pendingPrompts = new Map<string, (value: string) => void>()
 
-  constructor(private readonly authStorage: AuthStorage) {}
+  constructor(private readonly runtime: ModelRuntime) {}
 
   // ---------------------------------------------------------------------------
   // Provider & auth status
   // ---------------------------------------------------------------------------
 
   getProviders(): ProviderStatus[] {
-    const oauthProviders = this.authStorage.getOAuthProviders().map((p: OAuthProviderInterface) => ({
-      id: p.id,
-      name: p.name,
-      isOAuth: true,
-      usesCallbackServer: p.usesCallbackServer ?? false,
-      auth: this.authStorage.getAuthStatus(p.id),
-    }))
+    const oauthProviders = this.runtime
+      .getProviders()
+      .filter((provider) => provider.auth.oauth)
+      .map((provider) => ({
+        id: provider.id,
+        name: provider.name,
+        isOAuth: true,
+        auth: this.runtime.getProviderAuthStatus(provider.id),
+      }))
 
     const apiProviders = API_KEY_PROVIDERS.map((provider) => ({
       ...provider,
       isOAuth: false,
-      usesCallbackServer: false,
-      auth: this.authStorage.getAuthStatus(provider.id),
+      auth: this.runtime.getProviderAuthStatus(provider.id),
     }))
 
     return [...oauthProviders, ...apiProviders]
   }
 
-  setApiKey(providerId: string, apiKey: string): void {
-    this.authStorage.set(providerId, { type: 'api_key', key: apiKey })
+  /**
+   * Persists an API key.
+   *
+   * Deliberately routed through `login()` rather than `setRuntimeApiKey()`:
+   * the latter only populates an in-process overlay (`AuthStatus.source` of
+   * `"runtime"`), so the key would be silently lost the next time the add-on
+   * restarts. `login()` writes through the credential store to auth.json.
+   *
+   * The standard api-key flow asks exactly one `secret` question. Anything
+   * else means a provider with a non-standard flow the web UI has no field
+   * for, so we fail loudly instead of answering the wrong prompt with a key.
+   */
+  async setApiKey(providerId: string, apiKey: string): Promise<void> {
+    await this.runtime.login(providerId, 'api_key', {
+      prompt: async (prompt: AuthPrompt) => {
+        if (prompt.type === 'secret' || prompt.type === 'text') return apiKey
+        throw new Error(
+          `Provider "${providerId}" requested "${prompt.type}" input during API key setup, ` +
+            `which the web UI cannot answer. Configure this provider from the terminal.`
+        )
+      },
+      notify: () => {},
+    })
   }
 
-  clearApiKey(providerId: string): void {
-    this.authStorage.remove(providerId)
+  async clearApiKey(providerId: string): Promise<void> {
+    await this.runtime.logout(providerId)
   }
 
   // ---------------------------------------------------------------------------
@@ -79,33 +111,44 @@ export class LoginManager {
     log.info(`Starting OAuth login for provider: ${providerId}`)
 
     try {
-      await this.authStorage.login(providerId, {
+      await this.runtime.login(providerId, 'oauth', {
         signal: this.abortController.signal,
 
-        onAuth: (info) => {
-          // GitHub Copilot: info.instructions contains the user code
-          // Callback-server providers: info.url is the browser URL, no code
-          if (info.instructions) {
-            send({
-              type: 'login_device_flow',
-              provider: providerId,
-              url: info.url,
-              code: info.instructions,
-            })
-          } else {
-            send({
-              type: 'login_open_url',
-              provider: providerId,
-              url: info.url,
-            })
+        notify: (event: AuthEvent) => {
+          switch (event.type) {
+            // Device flows (GitHub Copilot): the user types `userCode` at
+            // `verificationUri`. Callback-server flows emit `auth_url` with no
+            // instructions — just a browser URL to open.
+            case 'device_code':
+              send({
+                type: 'login_device_flow',
+                provider: providerId,
+                url: event.verificationUri,
+                code: event.userCode,
+              })
+              break
+
+            case 'auth_url':
+              if (event.instructions) {
+                send({
+                  type: 'login_device_flow',
+                  provider: providerId,
+                  url: event.url,
+                  code: event.instructions,
+                })
+              } else {
+                send({ type: 'login_open_url', provider: providerId, url: event.url })
+              }
+              break
+
+            case 'info':
+            case 'progress':
+              send({ type: 'login_progress', provider: providerId, message: event.message })
+              break
           }
         },
 
-        onProgress: (message) => {
-          send({ type: 'login_progress', provider: providerId, message })
-        },
-
-        onPrompt: (prompt) => {
+        prompt: (prompt: AuthPrompt) => {
           return new Promise<string>((resolve) => {
             const promptId = randomUUID()
             this.pendingPrompts.set(promptId, resolve)
@@ -113,22 +156,8 @@ export class LoginManager {
               type: 'login_prompt',
               provider: providerId,
               promptId,
-              message: prompt.message,
-              placeholder: prompt.placeholder,
-            })
-          })
-        },
-
-        onManualCodeInput: () => {
-          return new Promise<string>((resolve) => {
-            const promptId = randomUUID()
-            this.pendingPrompts.set(promptId, resolve)
-            send({
-              type: 'login_prompt',
-              provider: providerId,
-              promptId,
-              message: 'Paste the authorization code from the browser redirect URL',
-              placeholder: 'code=...',
+              message: describePrompt(prompt),
+              placeholder: 'placeholder' in prompt ? prompt.placeholder : undefined,
             })
           })
         },
@@ -170,8 +199,21 @@ export class LoginManager {
   // Logout
   // ---------------------------------------------------------------------------
 
-  logout(providerId: string): void {
-    this.authStorage.logout(providerId)
+  async logout(providerId: string): Promise<void> {
+    await this.runtime.logout(providerId)
     log.info(`Logged out from provider: ${providerId}`)
   }
+}
+
+/**
+ * Flattens an AuthPrompt into the single free-text question the web UI can
+ * render. `select` has no dedicated UI control, so its options are listed in
+ * the message and the user replies with an option id.
+ */
+function describePrompt(prompt: AuthPrompt): string {
+  if (prompt.type === 'select') {
+    const options = prompt.options.map((option) => `  ${option.id} — ${option.label}`).join('\n')
+    return `${prompt.message}\n${options}`
+  }
+  return prompt.message
 }

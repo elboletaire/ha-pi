@@ -7,7 +7,7 @@ import type {
   ImageContent,
   ThinkingContent,
   ToolCall,
-} from '@mariozechner/pi-ai'
+} from '@earendil-works/pi-ai'
 
 export type SessionHistoryOp =
   | { type: 'user'; text: string }

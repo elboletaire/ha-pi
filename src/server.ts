@@ -3,7 +3,7 @@ import { createServer } from 'http'
 import { WebSocketServer } from 'ws'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { AuthStorage } from '@mariozechner/pi-coding-agent'
+import { ModelRuntime } from '@earendil-works/pi-coding-agent'
 import { parseServerArgs, setLogLevel, log, PATHS, type AddOnOptions } from './options'
 import { createResourceLoader } from './resource-loader'
 import { generateRuntimeInfoMarkdown } from './runtime-info'
@@ -13,7 +13,7 @@ import { WsHandler } from './ws-handler'
 import type { ChannelBridge } from './channel-bridge/bridge'
 import {
   startTelegramBridge,
-  createAuthStorage as createBridgeAuthStorage,
+  createModelRuntime as createBridgeModelRuntime,
   createBridgeResourceLoader,
 } from './channel-bridge/index'
 
@@ -32,9 +32,15 @@ async function main() {
   // -------------------------------------------------------------------------
   const runtimeInfoMarkdown = await generateRuntimeInfoMarkdown()
   const resourceLoader = await createResourceLoader(runtimeInfoMarkdown)
-  const authStorage = AuthStorage.create(`${PATHS.piAgentDir}/auth.json`)
-  const loginManager = new LoginManager(authStorage)
-  const agentManager = new AgentManager(opts.provider, opts.model, resourceLoader, authStorage)
+  // Owns credentials and the model catalogue. In pi 0.83 this replaced
+  // AuthStorage as the auth entry point, and it absorbed the models.json path
+  // that ModelRegistry used to take.
+  const modelRuntime = await ModelRuntime.create({
+    authPath: `${PATHS.piAgentDir}/auth.json`,
+    modelsPath: `${PATHS.piAgentDir}/models.json`,
+  })
+  const loginManager = new LoginManager(modelRuntime)
+  const agentManager = new AgentManager(opts.provider, opts.model, resourceLoader, modelRuntime)
 
   // -------------------------------------------------------------------------
   // Initialize Telegram bridge (if configured)
@@ -46,14 +52,14 @@ async function main() {
 
     try {
       const bridgeResourceLoader = await createBridgeResourceLoader(runtimeInfoMarkdown)
-      const bridgeAuthStorage = createBridgeAuthStorage()
+      const bridgeModelRuntime = await createBridgeModelRuntime()
 
       telegramBridge = await startTelegramBridge({
         provider: opts.provider,
         modelId: opts.model,
         token: opts.telegramConfig.botToken,
         allowedChatIds: opts.telegramConfig.allowedChatIds.length > 0 ? opts.telegramConfig.allowedChatIds : undefined, // Empty array means all chats
-        authStorage: bridgeAuthStorage,
+        modelRuntime: bridgeModelRuntime,
         resourceLoader: bridgeResourceLoader,
       })
 

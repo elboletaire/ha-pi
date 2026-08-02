@@ -24,10 +24,10 @@ import { processCommand } from './commands'
 import { log, PATHS } from '../options'
 import { SenderSessionRegistry } from './sender-session-registry'
 import { startTypingLoop } from './typing'
-import { AuthStorage } from '@mariozechner/pi-coding-agent'
-import type { ResourceLoader } from '@mariozechner/pi-coding-agent'
+import { ModelRuntime } from '@earendil-works/pi-coding-agent'
+import type { ResourceLoader } from '@earendil-works/pi-coding-agent'
 import { createResourceLoader } from '../resource-loader'
-import type { AgentSessionEvent } from '@mariozechner/pi-coding-agent'
+import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent'
 import { formatSourceHeader, markdownToTelegramHTML } from './message-format'
 
 /**
@@ -56,7 +56,7 @@ export class ChannelBridge {
   private provider: string
   private modelId: string
   private resourceLoader: ResourceLoader
-  private authStorage: AuthStorage
+  private modelRuntime: ModelRuntime
   private typingIndicators: boolean
   private streamingDrafts: boolean
   private streamingIntervalMs: number
@@ -74,7 +74,7 @@ export class ChannelBridge {
     provider: string
     modelId: string
     resourceLoader: ResourceLoader
-    authStorage: AuthStorage
+    modelRuntime: ModelRuntime
     maxConcurrent?: number
     typingIndicators?: boolean
     /** Stream partial responses via Telegram Bot API 9.3+ sendMessageDraft (default: true). */
@@ -91,7 +91,7 @@ export class ChannelBridge {
     this.provider = config.provider
     this.modelId = config.modelId
     this.resourceLoader = config.resourceLoader
-    this.authStorage = config.authStorage
+    this.modelRuntime = config.modelRuntime
     this.maxConcurrent = config.maxConcurrent ?? 2
     this.typingIndicators = config.typingIndicators ?? true
     this.streamingDrafts = config.streamingDrafts ?? true
@@ -401,7 +401,7 @@ export class ChannelBridge {
       return existing
     }
 
-    const agentManager = new AgentManager(this.provider, this.modelId, this.resourceLoader, this.authStorage)
+    const agentManager = new AgentManager(this.provider, this.modelId, this.resourceLoader, this.modelRuntime)
 
     // Subscribe to agent events for streaming responses
     const unsubscribe = agentManager.subscribe((event) => {

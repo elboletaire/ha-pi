@@ -1,5 +1,5 @@
-import type { Model } from '@mariozechner/pi-ai'
-import type { Api } from '@mariozechner/pi-ai'
+import type { Model } from '@earendil-works/pi-ai'
+import type { Api } from '@earendil-works/pi-ai'
 
 export interface ModelRef {
   provider: string

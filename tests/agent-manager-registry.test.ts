@@ -1,8 +1,8 @@
 // tests/agent-manager-registry.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@mariozechner/pi-coding-agent', async () => {
-  const actual = await vi.importActual('@mariozechner/pi-coding-agent')
+vi.mock('@earendil-works/pi-coding-agent', async () => {
+  const actual = await vi.importActual('@earendil-works/pi-coding-agent')
 
   const mockSession = {
     sessionId: 'new-session-id',
@@ -20,8 +20,18 @@ vi.mock('@mariozechner/pi-coding-agent', async () => {
 
   return {
     ...actual,
-    ModelRegistry: {
-      create: vi.fn(),
+    // 0.83 turned ModelRegistry into a constructor over ModelRuntime. Vitest
+    // refuses mockReturnValueOnce under `new`, so per-session registries are
+    // injected through a queue: each construction shifts the next stub off it.
+    ModelRegistry: class MockModelRegistry {
+      static queue: unknown[] = []
+      constructor() {
+        const next = MockModelRegistry.queue.shift()
+        if (next) return next as MockModelRegistry
+      }
+      getAvailable() {
+        return []
+      }
     },
     SessionManager: {
       create: vi.fn().mockReturnValue({}),
@@ -39,7 +49,7 @@ vi.mock('@mariozechner/pi-coding-agent', async () => {
 })
 
 import { AgentManager } from '../src/agent-manager'
-import { ModelRegistry } from '@mariozechner/pi-coding-agent'
+import { ModelRegistry } from '@earendil-works/pi-coding-agent'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -60,14 +70,15 @@ function makeManager() {
 describe('AgentManager — modelRegistry is updated after newSession()', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ;(ModelRegistry as any).queue.length = 0
   })
 
   it('getAvailableModels() after newSession() uses the new registry, not the init() one', async () => {
     const oldRegistry = makeRegistry([makeModel('old-model')])
     const newRegistry = makeRegistry([makeModel('new-model')])
 
-    // ModelRegistry.create returns old on first call, new on second
-    ;(ModelRegistry.create as ReturnType<typeof vi.fn>).mockReturnValueOnce(newRegistry) // called by newSession()
+    // The next `new ModelRegistry(...)` — the one inside newSession() — yields newRegistry
+    ;(ModelRegistry as any).queue.push(newRegistry)
 
     const manager = makeManager()
     // Simulate state after init(): old registry is stored, session exists
@@ -86,7 +97,7 @@ describe('AgentManager — modelRegistry is updated after newSession()', () => {
     const oldRegistry = makeRegistry([makeModel('old-model')])
     const newRegistry = makeRegistry([makeModel('switched-model')])
 
-    ;(ModelRegistry.create as ReturnType<typeof vi.fn>).mockReturnValueOnce(newRegistry)
+    ;(ModelRegistry as any).queue.push(newRegistry)
 
     const manager = makeManager()
     ;(manager as any).modelRegistry = oldRegistry

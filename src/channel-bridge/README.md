@@ -43,9 +43,9 @@ Platform (Telegram/Discord/etc.)
 ### Starting a Telegram Bridge
 
 ```typescript
-import { startTelegramBridge, createAuthStorage, createBridgeResourceLoader } from './channel-bridge/index.js'
+import { startTelegramBridge, createModelRuntime, createBridgeResourceLoader } from './channel-bridge/index.js'
 
-const authStorage = createAuthStorage()
+const modelRuntime = await createModelRuntime()
 const resourceLoader = await createBridgeResourceLoader()
 
 const bridge = await startTelegramBridge({
@@ -53,7 +53,7 @@ const bridge = await startTelegramBridge({
   modelId: 'claude-sonnet-4-5-20250929',
   token: process.env.TELEGRAM_BOT_TOKEN,
   allowedChatIds: process.env.TELEGRAM_ALLOWED_CHAT_IDS?.split(','),
-  authStorage,
+  modelRuntime,
   resourceLoader,
   maxConcurrent: 2,
   typingIndicators: true,

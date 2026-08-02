@@ -14,7 +14,7 @@
  *     modelId: "claude-sonnet-4-5-20250929",
  *     token: process.env.TELEGRAM_BOT_TOKEN,
  *     allowedChatIds: process.env.TELEGRAM_ALLOWED_CHAT_IDS?.split(","),
- *     authStorage,
+ *     modelRuntime,
  *     resourceLoader,
  *   });
  */
@@ -24,8 +24,8 @@ import { ChannelBridge } from './bridge'
 import { createTelegramAdapter } from './telegram'
 import type { AdapterConfig } from './types'
 import { log, PATHS } from '../options'
-import { AuthStorage } from '@mariozechner/pi-coding-agent'
-import type { ResourceLoader } from '@mariozechner/pi-coding-agent'
+import { ModelRuntime } from '@earendil-works/pi-coding-agent'
+import type { ResourceLoader } from '@earendil-works/pi-coding-agent'
 import { createResourceLoader } from '../resource-loader'
 
 /**
@@ -54,8 +54,8 @@ export interface TelegramBridgeConfig {
    * Lower values produce smoother streaming at the cost of more API calls.
    */
   streamingIntervalMs?: number
-  /** Auth storage instance */
-  authStorage: AuthStorage
+  /** Model + credential runtime instance */
+  modelRuntime: ModelRuntime
   /** Resource loader instance */
   resourceLoader: ResourceLoader
 }
@@ -73,7 +73,7 @@ export async function startTelegramBridge(config: TelegramBridgeConfig): Promise
     provider: config.provider,
     modelId: config.modelId,
     resourceLoader: config.resourceLoader,
-    authStorage: config.authStorage,
+    modelRuntime: config.modelRuntime,
     maxConcurrent: config.maxConcurrent ?? 2,
     typingIndicators: config.typingIndicators ?? true,
     streamingDrafts: config.streamingDrafts ?? true,
@@ -104,11 +104,14 @@ export async function startTelegramBridge(config: TelegramBridgeConfig): Promise
 }
 
 /**
- * Create a default auth storage for the bridge.
- * Uses the same path as the main server.
+ * Create a default model runtime for the bridge.
+ * Uses the same paths as the main server.
  */
-export function createAuthStorage(): AuthStorage {
-  return AuthStorage.create(`${PATHS.piAgentDir}/auth.json`)
+export function createModelRuntime(): Promise<ModelRuntime> {
+  return ModelRuntime.create({
+    authPath: `${PATHS.piAgentDir}/auth.json`,
+    modelsPath: `${PATHS.piAgentDir}/models.json`,
+  })
 }
 
 /**
