@@ -1,0 +1,167 @@
+name: Weekly dependency update
+
+# Keeps pi and RTK current without manual tracking. Runs the full gate
+# (typecheck, tests, formatting, and a real multi-arch image build) and opens a
+# PR only when something changed and everything passed. Nothing reaches the
+# add-on until you merge.
+on:
+  schedule:
+    # Mondays at 04:19 UTC — deliberately off the hour, since :00 is heavily contended.
+    - cron: '19 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    name: Bump pi + RTK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The pi packages are resolved from package.json rather than hardcoded, so
+      # this keeps working across the @mariozechner -> @earendil-works rename
+      # without needing an edit here.
+      - name: Update pi packages
+        id: pi
+        run: |
+          set -euo pipefail
+          BEFORE=$(jq -r '.dependencies | to_entries
+            | map(select(.key | endswith("/pi-coding-agent") or endswith("/pi-ai")))
+            | map("\(.key)@\(.value)") | join(", ")' package.json)
+
+          PKGS=$(jq -r '.dependencies | keys[]
+            | select(endswith("/pi-coding-agent") or endswith("/pi-ai"))' package.json | tr '\n' ' ')
+
+          if [ -z "${PKGS// /}" ]; then
+            echo "No pi packages found in dependencies — skipping." >&2
+            exit 1
+          fi
+
+          echo "Updating: $PKGS"
+          # shellcheck disable=SC2086
+          pnpm update --latest $PKGS
+
+          AFTER=$(jq -r '.dependencies | to_entries
+            | map(select(.key | endswith("/pi-coding-agent") or endswith("/pi-ai")))
+            | map("\(.key)@\(.value)") | join(", ")' package.json)
+
+          echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
+          echo "after=$AFTER" >> "$GITHUB_OUTPUT"
+
+      # Uses the /releases/latest redirect rather than the REST API: no auth,
+      # no 60-req/hour anonymous rate limit. Same approach as RTK's own installer.
+      - name: Update RTK version pin
+        id: rtk
+        run: |
+          set -euo pipefail
+          CURRENT=$(grep -oP '^ARG RTK_VERSION=\K.*' docker/Dockerfile)
+          LATEST=$(curl -sI https://github.com/rtk-ai/rtk/releases/latest \
+            | grep -i '^location:' \
+            | sed -E 's|.*/tag/([^[:space:]]+).*|\1|' \
+            | tr -d '\r')
+
+          if [ -z "$LATEST" ]; then
+            echo "Could not resolve the latest RTK tag — leaving the pin at $CURRENT." >&2
+            LATEST="$CURRENT"
+          fi
+
+          if [ "$LATEST" != "$CURRENT" ]; then
+            sed -i -E "s|^ARG RTK_VERSION=.*|ARG RTK_VERSION=${LATEST}|" docker/Dockerfile
+          fi
+
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Stop early if nothing changed
+        id: changed
+        run: |
+          if git diff --quiet; then
+            echo "any=false" >> "$GITHUB_OUTPUT"
+            echo "Already up to date."
+          else
+            echo "any=true" >> "$GITHUB_OUTPUT"
+            git diff --stat
+          fi
+
+      # ─── Gate ────────────────────────────────────────────────────────────────
+      # Everything below runs only when there is something to ship, and any
+      # failure aborts before the PR is opened.
+
+      - name: Reinstall against updated lockfile
+        if: steps.changed.outputs.any == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        if: steps.changed.outputs.any == 'true'
+        run: pnpm typecheck
+
+      - name: Test
+        if: steps.changed.outputs.any == 'true'
+        run: pnpm test
+
+      - name: Check formatting
+        if: steps.changed.outputs.any == 'true'
+        run: pnpm format:check
+
+      - name: Set up QEMU
+        if: steps.changed.outputs.any == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.changed.outputs.any == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      # Builds both architectures without pushing. This is the step that proves
+      # the RTK binary actually runs on arm64: the Dockerfile ends its install
+      # with `rtk --version`, executed here under QEMU emulation. A libc or
+      # release-asset regression fails the build instead of shipping quietly.
+      - name: Build both architectures (no push)
+        if: steps.changed.outputs.any == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha,scope=amd64
+
+      - name: Open pull request
+        if: steps.changed.outputs.any == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/weekly-update
+          delete-branch: true
+          commit-message: 'chore(deps): weekly pi + RTK update'
+          title: 'chore(deps): weekly pi + RTK update'
+          labels: dependencies
+          body: |
+            Automated weekly update. All gates passed before this PR was opened.
+
+            | | Before | After |
+            |---|---|---|
+            | pi | `${{ steps.pi.outputs.before }}` | `${{ steps.pi.outputs.after }}` |
+            | RTK | `${{ steps.rtk.outputs.current }}` | `${{ steps.rtk.outputs.latest }}` |
+
+            Verified: `typecheck`, `test`, `format:check`, and a real
+            `linux/amd64` + `linux/arm64` image build — the latter executes
+            `rtk --version` under QEMU, so an arm64-incompatible RTK release
+            fails here rather than on your Pi.
+
+            Not verified: runtime behaviour in Home Assistant. Bump
+            `config.yaml` `version` when you merge if you want a release tag.
