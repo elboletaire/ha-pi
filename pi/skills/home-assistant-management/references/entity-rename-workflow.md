@@ -29,15 +29,15 @@ Before making any change, determine:
 
 Before renaming anything, search for every reference to the old entity_id across:
 
-| Component | How to search |
-|-----------|---------------|
-| Automations | HA API or grep `automations.yaml` |
-| Scripts | HA API or grep `scripts.yaml` |
-| Scenes | HA API or grep `scenes.yaml` |
-| Dashboards | HA API or grep `.storage/lovelace*`, `ui-lovelace.yaml` for the entity_id string — matches appear in `entity:`/`entities:` fields, `tap_action`/`hold_action` targets, conditional cards, template blocks, and `views[n].badges` |
-| Helpers / config-entry integrations | `GET /api/config/config_entries/entry?type=config&domain=group` — group members in `options.entities` are **not** updated automatically by a registry rename |
-| Recorder filters | `recorder: exclude:/include:` lists store entity IDs literally; a rename silently starts or stops recording |
-| Other | AppDaemon apps, Node-RED flows, Pyscript scripts, custom integrations |
+| Component                           | How to search                                                                                                                                                                                                                    |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automations                         | HA API or grep `automations.yaml`                                                                                                                                                                                                |
+| Scripts                             | HA API or grep `scripts.yaml`                                                                                                                                                                                                    |
+| Scenes                              | HA API or grep `scenes.yaml`                                                                                                                                                                                                     |
+| Dashboards                          | HA API or grep `.storage/lovelace*`, `ui-lovelace.yaml` for the entity_id string — matches appear in `entity:`/`entities:` fields, `tap_action`/`hold_action` targets, conditional cards, template blocks, and `views[n].badges` |
+| Helpers / config-entry integrations | `GET /api/config/config_entries/entry?type=config&domain=group` — group members in `options.entities` are **not** updated automatically by a registry rename                                                                     |
+| Recorder filters                    | `recorder: exclude:/include:` lists store entity IDs literally; a rename silently starts or stops recording                                                                                                                      |
+| Other                               | AppDaemon apps, Node-RED flows, Pyscript scripts, custom integrations                                                                                                                                                            |
 
 Record every location found. This list becomes the update checklist for Step 4.
 
