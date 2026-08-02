@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — Session list loading state
+
+### Fixed
+
+- **The session panel no longer looks empty while it loads.** Listing sessions reads every session file end to end to build each row's preview, which on a Pi with a cold page cache and a large history takes tens of seconds — and until it finished the panel rendered nothing. Right after an add-on update that is indistinguishable from having lost every session. It now shows `Loading sessions 47/210`, using progress pi was already reporting per file. Progress is batched onto a 300 ms interval, and a listing that completes quickly shows no loading state at all.
+
 ## 1.0.0 — RTK token savings, automatic updates, and pi 0.83
 
 ### Added
