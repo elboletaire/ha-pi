@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3 — Automated dependency update
+
+### Changed
+
+- **pi**: `@earendil-works/pi-coding-agent@^0.83.0, @earendil-works/pi-ai@^0.83.0` → `@earendil-works/pi-ai@^0.85.1, @earendil-works/pi-coding-agent@^0.85.1`
+- **RTK**: `v0.44.2` → `v0.48.0`
+
 ## 1.0.2 — Compacted sessions open again
 
 ### Fixed

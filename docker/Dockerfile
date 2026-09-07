@@ -61,7 +61,7 @@ RUN apt-get update \
 # ─── RTK — token-reducing bash proxy ─────────────────────────────────────────
 # Bump RTK_VERSION to upgrade; the weekly update workflow rewrites this default.
 # TARGETARCH is supplied automatically by buildx (amd64 | arm64).
-ARG RTK_VERSION=v0.44.2
+ARG RTK_VERSION=v0.48.0
 ARG TARGETARCH
 RUN set -eux; \
     case "${TARGETARCH}" in \
