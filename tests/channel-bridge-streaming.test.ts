@@ -353,6 +353,189 @@ describe('handleAgentEvent — message_end', () => {
     expect((bridge as any).activeDrafts.has('telegram:123')).toBe(true)
     expect((bridge as any).senderSessions.get('telegram:123').messageCount).toBe(1)
   })
+
+  it('delivers assistant text permanently via adapter.send', async () => {
+    const adapter = createMockAdapter()
+    const bridge = createBridge(adapter)
+    seedDraft(bridge, 'telegram:123')
+
+    await (bridge as any).handleAgentEvent('telegram:123', {
+      type: 'message_end',
+      message: { role: 'assistant', content: [{ type: 'text', text: 'Checking the cameras.' }] },
+    })
+
+    expect(adapter.send).toHaveBeenCalledOnce()
+    expect(adapter.send).toHaveBeenCalledWith(
+      expect.objectContaining({ adapter: 'telegram', recipient: '123', text: 'Checking the cameras.' })
+    )
+  })
+
+  it('does not send user, toolResult or tool-call-only messages', async () => {
+    const adapter = createMockAdapter()
+    const bridge = createBridge(adapter)
+    seedDraft(bridge, 'telegram:123')
+
+    const messages = [
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      { role: 'toolResult', content: [{ type: 'text', text: 'ok' }] },
+      { role: 'assistant', content: [{ type: 'toolCall', id: 'c1', name: 'bash', arguments: {} }] },
+    ]
+    for (const message of messages) {
+      await (bridge as any).handleAgentEvent('telegram:123', { type: 'message_end', message })
+    }
+
+    expect(adapter.send).not.toHaveBeenCalled()
+  })
+
+  it('does not deliver an assistant message that ended in an error, since pi retries it', async () => {
+    const adapter = createMockAdapter()
+    const bridge = createBridge(adapter)
+    seedDraft(bridge, 'telegram:123')
+
+    await (bridge as any).handleAgentEvent('telegram:123', {
+      type: 'message_end',
+      message: { role: 'assistant', content: [{ type: 'text', text: 'Partial' }], stopReason: 'error' },
+    })
+
+    expect(adapter.send).not.toHaveBeenCalled()
+  })
+
+  it('still delivers an assistant message that was aborted', async () => {
+    const adapter = createMockAdapter()
+    const bridge = createBridge(adapter)
+    seedDraft(bridge, 'telegram:123')
+
+    await (bridge as any).handleAgentEvent('telegram:123', {
+      type: 'message_end',
+      message: { role: 'assistant', content: [{ type: 'text', text: 'Stopped here' }], stopReason: 'aborted' },
+    })
+
+    expect(adapter.send).toHaveBeenCalledWith(expect.objectContaining({ text: 'Stopped here' }))
+  })
+})
+
+// ── processQueue — per-turn delivery ─────────────────────────────────────────
+
+/** Replace the AgentManager for a sender with a stub whose prompt() emits `events` through the bridge. */
+function stubAgentTurn(bridge: ChannelBridge, senderId: string, events: unknown[], messages: unknown[]) {
+  const manager = {
+    getState: () => ({ model: 'anthropic/claude-3', sessionFile: undefined }),
+    prompt: vi.fn(async () => {
+      for (const event of events) {
+        ;(bridge as any).enqueueAgentEvent(senderId, event)
+      }
+    }),
+    getMessages: () => messages,
+  }
+  ;(bridge as any).agentManagers.set(senderId, manager)
+  return manager
+}
+
+/** Run one queued prompt for telegram:123 through processQueue. */
+async function runTurn(bridge: ChannelBridge): Promise<void> {
+  const session = (bridge as any).getOrCreateSession('telegram', '123')
+  session.queue.push({ id: 'p1', adapter: 'telegram', sender: '123', text: 'go', enqueuedAt: Date.now() })
+  await (bridge as any).processQueue('telegram:123')
+}
+
+function sentTexts(adapter: ReturnType<typeof createMockAdapter>): string[] {
+  return adapter.send.mock.calls.map((call) => (call[0] as { text: string }).text)
+}
+
+describe('processQueue — turn delivery', () => {
+  it('delivers text → tool → text in order and does not resend the last message', async () => {
+    const adapter = createMockAdapter()
+    const bridge = createBridge(adapter)
+    const first = { role: 'assistant', content: [{ type: 'text', text: 'Checking the cameras.' }] }
+    const toolResult = { role: 'toolResult', content: [{ type: 'text', text: 'cameras ok' }] }
+    const last = { role: 'assistant', content: [{ type: 'text', text: 'All three cameras are fine.' }] }
+
+    // The first send is slow: if events were not serialized, the second send would finish first.
+    const order: string[] = []
+    let sends = 0
+    adapter.send.mockImplementation(async (message: { text: string }) => {
+      order.push(`start:${message.text}`)
+      if (sends++ === 0) await new Promise((resolve) => setTimeout(resolve, 20))
+      order.push(`end:${message.text}`)
+    })
+
+    stubAgentTurn(
+      bridge,
+      'telegram:123',
+      [
+        { type: 'message_end', message: first },
+        { type: 'tool_execution_start', toolCallId: 'c1', toolName: 'bash', args: {} },
+        { type: 'message_end', message: toolResult },
+        { type: 'message_end', message: last },
+      ],
+      [{ role: 'user', content: [{ type: 'text', text: 'go' }] }, first, toolResult, last]
+    )
+
+    await runTurn(bridge)
+
+    expect(order).toEqual([
+      'start:Checking the cameras.',
+      'end:Checking the cameras.',
+      'start:All three cameras are fine.',
+      'end:All three cameras are fine.',
+    ])
+  })
+
+  it('reports the error instead of resending when the last message failed after earlier text', async () => {
+    const adapter = createMockAdapter()
+    const bridge = createBridge(adapter)
+    const first = { role: 'assistant', content: [{ type: 'text', text: 'Checking the cameras.' }] }
+    const toolResult = { role: 'toolResult', content: [{ type: 'text', text: 'cameras ok' }] }
+    const failed = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Let me chec' }],
+      stopReason: 'error',
+      errorMessage: 'Connection reset',
+    }
+
+    stubAgentTurn(
+      bridge,
+      'telegram:123',
+      [
+        { type: 'message_end', message: first },
+        { type: 'tool_execution_start', toolCallId: 'c1', toolName: 'bash', args: {} },
+        { type: 'message_end', message: toolResult },
+        { type: 'message_end', message: failed },
+      ],
+      [{ role: 'user', content: [{ type: 'text', text: 'go' }] }, first, toolResult, failed]
+    )
+
+    await runTurn(bridge)
+
+    expect(sentTexts(adapter)).toEqual(['Checking the cameras.', '❌ Error: Connection reset'])
+  })
+
+  it('sends the fallback when the turn produced no assistant text', async () => {
+    const adapter = createMockAdapter()
+    const bridge = createBridge(adapter)
+
+    stubAgentTurn(
+      bridge,
+      'telegram:123',
+      [],
+      [{ role: 'assistant', content: [{ type: 'toolCall', id: 'c1', name: 'bash', arguments: {} }] }]
+    )
+
+    await runTurn(bridge)
+
+    expect(sentTexts(adapter)).toEqual(['No response generated.'])
+  })
+
+  it('sends the last assistant text when no message_end was delivered for it', async () => {
+    const adapter = createMockAdapter()
+    const bridge = createBridge(adapter)
+
+    stubAgentTurn(bridge, 'telegram:123', [], [{ role: 'assistant', content: [{ type: 'text', text: 'Hello' }] }])
+
+    await runTurn(bridge)
+
+    expect(sentTexts(adapter)).toEqual(['Hello'])
+  })
 })
 
 // ── finalizeDraft ────────────────────────────────────────────────────────────
