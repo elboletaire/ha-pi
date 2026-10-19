@@ -38,6 +38,32 @@ function getSenderId(adapter: string, sender: string): string {
   return `${adapter}:${sender}`
 }
 
+/**
+ * Extract the visible text of an assistant message.
+ * Content may be an array (pi SDK returns (TextContent | ThinkingContent | ToolCall)[]); only
+ * type==='text' blocks are kept so tool calls and thinking never render as [object Object].
+ */
+function getAssistantText(message: unknown): string {
+  const content = (message as { content?: unknown } | undefined)?.content
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  return content
+    .filter((block) => (block as { type?: string }).type === 'text')
+    .map((block) => (block as { type: 'text'; text: string }).text)
+    .join('\n')
+}
+
+/** Assistant messages are role 'assistant' (older sessions used 'ai'). */
+function isAssistantMessage(message: unknown): boolean {
+  const role = (message as { role?: string } | undefined)?.role
+  return role === 'assistant' || role === 'ai'
+}
+
+/** A failed assistant message is retried by pi, so its partial text must not be delivered. */
+function isFailedMessage(message: unknown): boolean {
+  return (message as { stopReason?: string } | undefined)?.stopReason === 'error'
+}
+
 interface ActiveDraftState {
   draftId: number
   source: string
@@ -67,6 +93,10 @@ export class ChannelBridge {
   private stopTypingFunctions: Map<string, () => void> = new Map()
   /** Timestamp of the last throttled draft send per sender, for token-stream rate limiting. */
   private lastDraftSent: Map<string, number> = new Map()
+  /** Tail of the per-sender chain that serializes agent event handling, so messages go out in order. */
+  private agentEventChains: Map<string, Promise<void>> = new Map()
+  /** Senders whose current turn already delivered an assistant text message via sendMessage. */
+  private turnTextDelivered: Set<string> = new Set()
   /** Persists senderId → sessionFile across server restarts. */
   private senderSessionRegistry: SenderSessionRegistry
 
@@ -273,29 +303,27 @@ export class ChannelBridge {
       const stateBeforePrompt = agentManager.getState()
       const modelSource = stateBeforePrompt?.model ? `🤖 ${stateBeforePrompt.model}` : 'agent'
       this.currentDraftSources.set(senderId, modelSource)
+      this.turnTextDelivered.delete(senderId)
 
       // Execute the prompt and process response
       await agentManager.prompt(prompt.text)
+
+      // Events are handled asynchronously; wait until every message_end of this turn has been delivered
+      await this.agentEventChains.get(senderId)
 
       // Get the response from the session
       const messages = agentManager.getMessages()
       const assistantMessage = messages
         .slice()
         .reverse()
-        .find((m) => (m as { role: string }).role === 'assistant' || (m as { role: string }).role === 'ai')
+        .find((m) => isAssistantMessage(m))
 
-      // Handle content that may be an array (pi SDK returns (TextContent | ThinkingContent | ToolCall)[]).
-      // Only type==='text' blocks are extracted; tool calls and thinking blocks are skipped
-      // to avoid [object Object] appearing in the final message.
-      const content = (assistantMessage as { content?: unknown } | undefined)?.content
-      const responseText = Array.isArray(content)
-        ? content
-            .filter((block) => (block as { type?: string }).type === 'text')
-            .map((block) => (block as { type: 'text'; text: string }).text)
-            .join('\n') || 'No response generated.'
-        : typeof content === 'string'
-          ? content
-          : 'No response generated.'
+      // A failed last message was never delivered by message_end, so report the error instead of its partial text.
+      const lastFailed = isFailedMessage(assistantMessage)
+      const errorMessage = (assistantMessage as { errorMessage?: string } | undefined)?.errorMessage
+      const responseText = lastFailed
+        ? `❌ Error: ${errorMessage ?? 'unknown error'}`
+        : getAssistantText(assistantMessage) || 'No response generated.'
 
       const activeDraft = this.activeDrafts.get(senderId)
 
@@ -305,19 +333,19 @@ export class ChannelBridge {
         await this.finalizeDraft(senderId, prompt.adapter, prompt.sender, responseText, undefined, modelSource)
       }
 
-      // Always deliver the permanent message via sendMessage.
-      // sendMessageDraft only shows a transient typing-animation preview — it disappears when
-      // the typing indicator ends and is never stored as a chat message by Telegram.
-      // The authoritative, persistent reply must always be sent via sendMessage.
-      await this.sendMessage(
-        {
-          adapter: prompt.adapter,
-          recipient: prompt.sender,
-          text: responseText,
-          source: modelSource,
-        },
-        undefined
-      )
+      // message_end already sends each assistant text permanently (drafts are transient),
+      // so only send here when nothing was delivered or the turn ended in an error.
+      if (lastFailed || !this.turnTextDelivered.has(senderId)) {
+        await this.sendMessage(
+          {
+            adapter: prompt.adapter,
+            recipient: prompt.sender,
+            text: responseText,
+            source: modelSource,
+          },
+          undefined
+        )
+      }
 
       // Clear abort controller after completion
       const controller = this.abortControllers.get(senderId)
@@ -331,6 +359,9 @@ export class ChannelBridge {
     } catch (err: any) {
       log.error(`Error processing message for ${senderId}:`, err.message)
 
+      // Queued text of this turn must reach the user before the error notice
+      await this.agentEventChains.get(senderId)
+
       // Send error message back to user
       await this.sendMessage({
         adapter: session.adapter,
@@ -339,6 +370,9 @@ export class ChannelBridge {
         source: 'telegram:error',
       })
     } finally {
+      // Let queued agent events of this turn finish before their state is cleaned up
+      await this.agentEventChains.get(senderId)
+
       // Always stop typing indicator, regardless of success or failure
       if (stopTyping) {
         stopTyping()
@@ -348,6 +382,8 @@ export class ChannelBridge {
       this.activeDrafts.delete(senderId)
       this.currentDraftSources.delete(senderId)
       this.lastDraftSent.delete(senderId)
+      this.agentEventChains.delete(senderId)
+      this.turnTextDelivered.delete(senderId)
 
       session.processing = false
       this.processingCount--
@@ -405,7 +441,7 @@ export class ChannelBridge {
 
     // Subscribe to agent events for streaming responses
     const unsubscribe = agentManager.subscribe((event) => {
-      this.handleAgentEvent(senderId, event)
+      this.enqueueAgentEvent(senderId, event)
     })
 
     // Look up the last known session file for this sender.
@@ -463,6 +499,20 @@ export class ChannelBridge {
   private unsubscribeFunctions: Map<string, () => void> = new Map()
 
   /**
+   * Queue an agent event behind the previous events of the same sender, so handling
+   * (and the messages it sends) runs strictly in emission order.
+   */
+  private enqueueAgentEvent(senderId: string, event: AgentSessionEvent): void {
+    const previous = this.agentEventChains.get(senderId) ?? Promise.resolve()
+    const next = previous
+      .then(() => this.handleAgentEvent(senderId, event))
+      .catch((err: any) => {
+        log.error(`Agent event handling error for ${senderId}:`, err.message)
+      })
+    this.agentEventChains.set(senderId, next)
+  }
+
+  /**
    * Handle agent session events.
    *
    * Drives the draft state machine:
@@ -471,7 +521,7 @@ export class ChannelBridge {
    *   text_start           → switch the active bubble into text mode
    *   text_delta           → append token, throttled send (no parse_mode)
    *   text_end             → finalize the active bubble in place
-   *   message_end          → count message (cleanup happens in processQueue)
+   *   message_end          → count message; deliver assistant text permanently via sendMessage
    */
   private async handleAgentEvent(senderId: string, event: AgentSessionEvent): Promise<void> {
     const session = this.senderSessions.get(senderId)
@@ -486,6 +536,16 @@ export class ChannelBridge {
 
     if (event.type === 'message_end') {
       session.messageCount++
+
+      // Draft bubbles are transient, so each assistant text message is also stored as a chat message.
+      const message = event.message
+      const text = isAssistantMessage(message) && !isFailedMessage(message) ? getAssistantText(message) : ''
+      if (text.trim()) {
+        const delivered = await this.sendMessage({ adapter, recipient: sender, text, source })
+        if (delivered) {
+          this.turnTextDelivered.add(senderId)
+        }
+      }
       return
     }
 
