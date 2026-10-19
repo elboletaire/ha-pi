@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4 — Telegram keeps every reply
+
+### Fixed
+
+- **Telegram no longer drops messages the agent sends mid-turn.** When a reply came in steps (a quick status, then tool calls, then a follow-up, as in a home-status skill that reports sensors before checking cameras), only the last message stayed in the chat. Earlier text was shown through `sendMessageDraft`, a transient preview that Telegram discards, and only the final assistant message was sent for real. Each assistant message is now sent as soon as it ends, in order. Partial replies cut off by a provider error, which pi retries, are skipped so they don't show up as duplicates, and if the turn ends on an error after earlier messages, the error is reported.
+
 ## 1.0.3 — Automated dependency update
 
 ### Changed
