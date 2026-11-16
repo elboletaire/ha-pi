@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.5 — Automated dependency update
+
+### Changed
+
+- **pi**: `@earendil-works/pi-ai@^1.3.0, @earendil-works/pi-coding-agent@^1.3.0` → `@earendil-works/pi-ai@^1.5.2, @earendil-works/pi-coding-agent@^1.5.2`
+- **RTK**: `v1.0.1` → `v1.2.0`
+
 ## 1.0.4 — Telegram keeps every reply
 
 ### Fixed
